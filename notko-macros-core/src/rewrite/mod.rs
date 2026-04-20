@@ -8,9 +8,12 @@ use crate::discover::resolve_tier;
 use crate::parse::parse_tier_arg;
 use crate::tiers::{CustomTier, Strategy};
 
-mod helpers;
+pub mod helpers;
 mod hot;
 mod outcome;
+
+pub use hot::HotRewriter;
+pub use outcome::OutcomeRewriter;
 
 /// Entry point for `#[optimize_for(tier)]` expansion. Parses the attribute
 /// argument, resolves the tier (built-in or custom file), and emits the
@@ -22,7 +25,9 @@ pub fn entry(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
     rewrite_fn(tier, input)
 }
 
-fn rewrite_fn(tier: CustomTier, input: ItemFn) -> Result<TokenStream> {
+/// Apply a resolved [`CustomTier`] to an `ItemFn`. Public for third-party
+/// proc-macro crates authoring their own attribute macros.
+pub fn rewrite_fn(tier: CustomTier, input: ItemFn) -> Result<TokenStream> {
     match tier.strategy {
         Strategy::Passthrough => Ok(quote! { #input }),
         Strategy::Hot => hot::rewrite(tier, input),

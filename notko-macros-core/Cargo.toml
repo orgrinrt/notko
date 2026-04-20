@@ -1,0 +1,16 @@
+[package]
+name = "notko-macros-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "AST-rewrite primitives and tier-discovery logic for notko-macros; reusable by third-party proc-macro crates that author their own fallibility-tier attribute macros"
+readme = "README.md"
+categories = ["development-tools::procedural-macro-helpers"]
+keywords = ["no_std", "no_alloc", "proc-macro", "hot-path", "hilavitkutin"]
+
+[dependencies]
+syn = { version = "2", features = ["full", "parsing", "visit-mut", "extra-traits"] }
+quote = "1"
+proc-macro2 = "1"

@@ -1,39 +1,27 @@
 //! `#[optimize_for(tier)]` — AST-rewriting attribute for the notko primitives.
 //!
-//! See the crate README for the tier table and usage patterns.
+//! This crate is a thin proc-macro entry point; all rewrite logic lives in
+//! the sibling [`notko-macros-core`] library so third-party proc-macro
+//! crates can reuse it.
 //!
-//! # Extension for third-party proc-macro authors
+//! See the crate README for the tier table, usage patterns, and the shape
+//! of custom-tier `notko-optimizers/<name>.rs` files.
 //!
-//! Proc-macro crates cannot re-export non-macro items, so the rewrite
-//! primitives (`HotRewriter`, `OutcomeRewriter`, tier types, …) are
-//! currently private. A `notko-macros-core` split that exposes them as a
-//! normal library crate is tracked separately.
-//!
-//! Until then, custom tier NAMES with parameterised rewrite strategies are
-//! user-extensible via the config-file mechanism in [`discover`]. Truly
-//! novel AST rewrites require forking this crate.
+//! [`notko-macros-core`]: https://github.com/orgrinrt/notko/tree/dev/notko-macros-core
 
 use proc_macro::TokenStream;
 
-mod discover;
-mod parse;
-mod rewrite;
-mod tiers;
-
 /// Attribute macro: rewrite a function's body per the named fallibility tier.
 ///
-/// Built-ins: `hot`, `warm`, `cold`. See the crate README for details.
-///
-/// Unknown tier names are resolved by looking up
-/// `<CARGO_MANIFEST_DIR>/notko-optimizers/<name>.rs` at expansion time.
-/// See the module-level docs of `discover` and the README for the
-/// custom-optimiser file shape.
+/// Built-ins: `hot`, `warm`, `cold`. Unknown tier names are resolved by
+/// looking up `<CARGO_MANIFEST_DIR>/notko-optimizers/<name>.rs` at
+/// expansion time.
 #[proc_macro_attribute]
 pub fn optimize_for(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = proc_macro2::TokenStream::from(attr);
     let item = proc_macro2::TokenStream::from(item);
 
-    match rewrite::entry(attr, item) {
+    match notko_macros_core::rewrite::entry(attr, item) {
         Ok(ts) => ts.into(),
         Err(e) => e.to_compile_error().into(),
     }

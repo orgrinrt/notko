@@ -20,8 +20,7 @@ default = []
 internal = []
 
 [dependencies]
-syn = { version = "2", features = ["full", "parsing", "visit-mut", "extra-traits"] }
-quote = "1"
+notko-macros-core = { path = "../notko-macros-core", version = "0.1.0" }
 proc-macro2 = "1"
 
 [dev-dependencies]

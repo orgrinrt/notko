@@ -5,8 +5,8 @@
 //!
 //! | Key | Type | Default | Meaning |
 //! |-----|------|---------|---------|
-//! | `based_on` | `"hot" \| "warm" \| "cold"` | required | Which built-in strategy this tier inherits. |
-//! | `inline` | `bool` | `true` if based_on = "hot", else `false` | Emit `#[inline]` on the rewritten function. |
+//! | `based_on` | built-in tier name | required | Which built-in strategy this tier inherits. |
+//! | `inline` | `bool` | built-in default | Emit `#[inline]` on the rewritten function. |
 //! | `panic_fmt` | string | `"hot path invariant violated: {err:?}"` | Format for the Err → panic rewrite (hot-strategy only). |
 //!
 //! The `@notko-optimizer` marker on the first line of the doc comment is
@@ -20,24 +20,28 @@
 //! //! inline = false
 //! //! panic_fmt = "trace: {err:?}"
 //! ```
+//!
+//! Downstream crates that want richer extension than parameterised built-in
+//! strategies should author their own proc-macro attribute reusing
+//! [`crate::rewrite`] primitives and their own `Tier`-implementing ZSTs.
 
 use std::path::{Path, PathBuf};
 
 use proc_macro2::Span;
 use syn::{Error, Result};
 
-use crate::tiers::{CustomTier, Strategy, Tier};
+use crate::tiers::{CustomTier, Strategy};
 
 /// Resolve a tier name to a [`CustomTier`].
 ///
 /// Order:
-/// 1. Built-in (`hot` / `warm` / `cold`) → [`CustomTier::from_builtin`].
+/// 1. Built-in `hot | warm | cold` ZST markers (see [`crate::tiers`]).
 /// 2. `$CARGO_MANIFEST_DIR/notko-optimizers/<name>.rs` → parse metadata.
 /// 3. `$NOTKO_OPTIMISERS_PATH/<name>.rs` (set by notko-build; see task #99).
 /// 4. Error — helpful diagnostic pointing at where the file should live.
 pub fn resolve_tier(name: &str, span: Span) -> Result<CustomTier> {
-    if let Some(tier) = Tier::from_name(name) {
-        return Ok(CustomTier::from_builtin(tier));
+    if let Some(tier) = CustomTier::builtin(name) {
+        return Ok(tier);
     }
 
     if let Some(custom) = try_load_crate_local(name, span)? {
@@ -132,21 +136,17 @@ fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
         match key {
             "based_on" => {
                 let s = trim_quotes(value);
-                based_on = Some(match s {
-                    "hot" => Strategy::Hot,
-                    "warm" => Strategy::Passthrough,
-                    "cold" => Strategy::Cold,
-                    other => {
-                        return Err(Error::new(
-                            span,
-                            format!(
-                                "optimiser file `{}`: unknown `based_on` value `{other}`. \
-                                 expected one of: hot | warm | cold.",
-                                path.display()
-                            ),
-                        ));
-                    },
-                });
+                based_on = Some(Strategy::from_name(s).ok_or_else(|| {
+                    Error::new(
+                        span,
+                        format!(
+                            "optimiser file `{}`: unknown `based_on` value `{s}`. \
+                             expected one of the built-in tier names: \
+                             hot | warm | cold.",
+                            path.display()
+                        ),
+                    )
+                })?);
             },
             "inline" => {
                 inline = Some(match value {
@@ -184,7 +184,7 @@ fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
         ));
     };
 
-    let inline = inline.unwrap_or(matches!(strategy, Strategy::Hot));
+    let inline = inline.unwrap_or_else(|| strategy.default_inline());
 
     Ok(CustomTier {
         strategy,
