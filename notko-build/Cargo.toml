@@ -1,0 +1,13 @@
+[package]
+name = "notko-build"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "build-dep helper for notko-macros: scans crate-local notko-optimizers/ and accumulates optimiser files from dependencies into $OUT_DIR for proc-macro discovery"
+readme = "README.md"
+categories = ["development-tools::build-utils"]
+keywords = ["build-script", "proc-macro", "notko", "hilavitkutin"]
+
+[dependencies]

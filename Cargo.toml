@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "notko-macros", "notko-macros-core"]
+members = [".", "notko-macros", "notko-macros-core", "notko-build"]
 resolver = "2"
 
 [workspace.package]
