@@ -51,18 +51,36 @@ proc-macro attribute that rewrites a function's return type between
 builds — `Outcome<T, E>` in debug / standalone consumers, `Just<T>`
 in internal-release builds where invariants are proven by
 construction. The developer writes standard `Result` / `Ok` / `Err` /
-`?`; the macro rewrites Ok → `Just(…)` and Err → `panic!(…)` in hot
+`?`; the macro rewrites `Ok` → `Just(…)` and `Err` → `panic!(…)` in hot
 release, leaving cold paths with full error handling and diagnostics.
 
-Loimu's `loimu-codepath-macros` crate is the working prototype of
-this pattern; the hilavitkutin stack adopts the primitives via notko
-and the macro via a sibling crate (TBD). The primitives are usable
-without the macro — the macro is an optional accelerator that turns
-plain Rust source into the temperature-specific emitted form.
+The sibling crates in this workspace deliver that story:
 
-This is the same philosophy as arvo's Hot/Warm/Cold/Precise Strategy
-markers: state the tradeoff at the type level, let the compiler pick
-the concrete shape per call site. Arvo does it for numeric precision
+| Crate | Purpose |
+|-------|---------|
+| **[notko]** (this crate) | The primitives: `Just`, `Maybe`, `Outcome`, `Boundable`, `NonZeroable`. Zero deps. |
+| **[notko-macros]** | Proc-macro `#[optimize_for(hot \| warm \| cold)]`. Reads `notko-optimizers/<name>.rs` files to resolve custom tiers. |
+| **[notko-macros-core]** | Non-proc-macro library: tier ZSTs + `Tier` trait, rewrite engine primitives, `Strategy` enum. Reusable by third-party proc-macro crates. |
+| **[notko-build]** | Build-dep. Accumulates `notko-optimizers/*.rs` across the dep graph into `$OUT_DIR` and exposes them to the proc-macro via `NOTKO_OPTIMISERS_PATH`. |
+
+[notko]: https://github.com/orgrinrt/notko
+[notko-macros]: https://github.com/orgrinrt/notko/tree/dev/notko-macros
+[notko-macros-core]: https://github.com/orgrinrt/notko/tree/dev/notko-macros-core
+[notko-build]: https://github.com/orgrinrt/notko/tree/dev/notko-build
+
+Tiers are ZST marker types implementing `notko_macros_core::tiers::Tier`.
+Built-ins (`Hot`, `Warm`, `Cold`) are shipped; downstream crates define
+their own by implementing the trait on new ZSTs. Macro dispatch is
+either via the three built-in names or via `.rs` files in
+`notko-optimizers/` that select a built-in strategy by `based_on`.
+
+The primitives are usable without the macros — the macros are an
+optional accelerator that turns plain Rust source into the
+temperature-specific emitted form.
+
+This is the same philosophy as arvo's `Hot` / `Warm` / `Cold` / `Precise`
+Strategy markers: state the tradeoff at the type level, let the compiler
+pick the concrete shape per call site. Arvo does it for numeric precision
 vs. throughput. Notko does it for fallibility vs. branchlessness.
 
 ## ABI stability
