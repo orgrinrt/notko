@@ -14,7 +14,7 @@
 
 ## What it is
 
-`notko` ships the scalar-level vocabulary the [hilavitkutin](https://github.com/orgrinrt/hilavitkutin) stack uses in place of `core::option::Option`, `core::result::Result`, and bare integer primitives. `#![no_std]`, no alloc, no platform deps. Every downstream crate in the stack (`arvo`, `hilavitkutin`, `clause`) depends on this one.
+`notko` ships the scalar-level vocabulary the [hilavitkutin](https://github.com/orgrinrt/hilavitkutin) stack uses in place of `core::option::Option`, `core::result::Result`, and bare integer primitives. `#![no_std]`, no alloc, no platform deps. Every downstream crate in the stack (`arvo`, `hilavitkutin`, `vehje`) depends on this one.
 
 The core idea: control flow has tiers. A value that is proven present should not pay branch cost. A value whose absence is ordinary should carry one bit. A value whose absence needs explanation should carry the full error payload. `notko` names those three tiers as distinct types so the compiler can pick the right shape per call site.
 
@@ -153,7 +153,7 @@ Without `try_trait_v2` the types still work; only the `?` operator is unavailabl
 
 ## Positioning
 
-`notko` has zero dependencies and sits at the bottom of the stack. [`arvo`](https://github.com/orgrinrt/arvo) builds on it directly and supplies the `Boundable` / `NonZeroable` impls for its `UFixed` / `IFixed` numeric types. [`hilavitkutin`](https://github.com/orgrinrt/hilavitkutin) builds on `arvo` for the pipeline engine, and the `clause-*` compiler and runtime crates build on all three.
+`notko` has zero dependencies and sits at the bottom of the stack. [`arvo`](https://github.com/orgrinrt/arvo) builds on it directly and supplies the `Boundable` / `NonZeroable` impls for its `UFixed` / `IFixed` numeric types. [`hilavitkutin`](https://github.com/orgrinrt/hilavitkutin) builds on `arvo` for the pipeline engine, and the `vehje-*` compiler and runtime crates build on all three.
 
 Public APIs in the downstream crates use `Maybe` / `Outcome` in place of `Option` / `Result`. Bare `core` primitives appear only where a trait method signature is fixed by the language (`fn next() -> Option<Self::Item>`, `fn partial_cmp() -> Option<Ordering>`, `fn fmt() -> fmt::Result`).
 
