@@ -58,7 +58,7 @@ pub fn resolve_tier(name: &str, span: Span) -> Result<CustomTier> {
     Err(Error::new(
         span,
         format!(
-            "unknown lower_by tier `{name}`. \
+            "unknown profile tier `{name}`. \
              built-ins: Hot | Warm | Cold. \
              custom tier expected at `{}` (crate-local) or \
              $NOTKO_OPTIMISERS_PATH/{name}.rs (via notko-build). \

@@ -121,14 +121,14 @@ fn compose() -> Outcome<u32, &'static str> {
 }
 ```
 
-## The `#[lower_by(Tier)]` attribute
+## The `#[profile(Tier)]` attribute
 
-The companion proc-macro crate `notko-macros` ships `#[lower_by(Hot | Warm | Cold)]`, an AST-rewriting attribute that selects one of three lowering strategies for the attached function body. `Hot`, `Warm`, `Cold` are ZST markers from `notko_macros_core::tiers` passed as idents, not strings:
+The companion proc-macro crate `notko-macros` ships `#[profile(Hot | Warm | Cold)]`, an AST-rewriting attribute that selects one of three lowering strategies for the attached function body. `Hot`, `Warm`, `Cold` are ZST markers from `notko_macros_core::tiers` passed as idents, not strings:
 
 ```rust
-use notko::lower_by;
+use notko::profile;
 
-#[lower_by(Hot)]
+#[profile(Hot)]
 fn compute(x: u32) -> Result<u32, Oops> {
     // Author writes plain Result / Ok / Err / ?. The macro rewrites the
     // body per the chosen tier at expansion time.
@@ -140,16 +140,16 @@ Debug and standalone consumers get `Outcome<T, E>` regardless of tier; internal-
 
 Third-party tiers are either their own ZST plus a sibling proc-macro crate that reuses `notko-macros-core`, or a crate-local `notko-optimizers/<Name>.rs` file whose module doc carries `based_on = "Hot" | "Warm" | "Cold"` metadata. See the [notko-macros README](https://github.com/orgrinrt/notko/tree/dev/notko-macros) for the file shape.
 
-Enable the `macros` feature on `notko` to get `lower_by` re-exported at the crate root. Without it, add `notko-macros` directly.
+Enable the `macros` feature on `notko` to get `profile` re-exported at the crate root. Without it, add `notko-macros` directly.
 
 ## Cargo features
 
 | Feature | Default | Effect |
 |---|---|---|
 | `try_trait_v2` | off | Impl `core::ops::Try` for `Just` / `Maybe` / `Outcome`. Requires nightly. |
-| `macros` | off | Re-export `#[lower_by]` from `notko-macros` at the crate root. |
+| `macros` | off | Re-export `#[profile]` from `notko-macros` at the crate root. |
 
-Without `try_trait_v2` the types still work; only the `?` operator is unavailable. Without `macros`, `lower_by` is available by adding `notko-macros` as a direct dep.
+Without `try_trait_v2` the types still work; only the `?` operator is unavailable. Without `macros`, `profile` is available by adding `notko-macros` as a direct dep.
 
 ## Positioning
 

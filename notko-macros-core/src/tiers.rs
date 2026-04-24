@@ -25,7 +25,7 @@
 //! ```
 //!
 //! The new marker is usable at type level inside the downstream crate.
-//! Making it usable from `#[lower_by(Trace)]` across crates still requires
+//! Making it usable from `#[profile(Trace)]` across crates still requires
 //! either the config-file path (`notko-optimizers/Trace.rs`) or authoring
 //! a new attribute macro in a sibling proc-macro crate. The shared trait
 //! keeps every tier, built-in or third-party, identifying itself through

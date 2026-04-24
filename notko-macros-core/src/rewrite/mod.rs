@@ -15,7 +15,7 @@ mod outcome;
 pub use hot::HotRewriter;
 pub use outcome::OutcomeRewriter;
 
-/// Entry point for `#[lower_by(Tier)]` expansion. Parses the attribute
+/// Entry point for `#[profile(Tier)]` expansion. Parses the attribute
 /// argument, resolves the tier (built-in or custom file), and emits the
 /// rewritten function.
 pub fn entry(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {

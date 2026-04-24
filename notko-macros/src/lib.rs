@@ -1,4 +1,4 @@
-//! `#[lower_by(Hot | Warm | Cold)]` AST-rewriting attribute for notko primitives.
+//! `#[profile(Hot | Warm | Cold)]` AST-rewriting attribute for notko primitives.
 //!
 //! This crate is a thin proc-macro entry point. All rewrite logic lives in
 //! the sibling [`notko-macros-core`] library so third-party proc-macro
@@ -11,14 +11,15 @@
 
 use proc_macro::TokenStream;
 
-/// Attribute macro: lower a function's body to the named fallibility tier.
+/// Annotate a function with a fallibility profile. The proc-macro rewrites
+/// the body per the profile's strategy at expansion time.
 ///
 /// Built-ins: `Hot`, `Warm`, `Cold`. The argument is a bare ident matching
-/// the ZST marker's name in [`notko_macros_core::tiers`]. Unknown tier names
-/// are resolved by looking up `<CARGO_MANIFEST_DIR>/notko-optimizers/<Name>.rs`
-/// at expansion time.
+/// the ZST marker's name in [`notko_macros_core::tiers`]. Unknown profile
+/// names are resolved by looking up
+/// `<CARGO_MANIFEST_DIR>/notko-optimizers/<Name>.rs` at expansion time.
 #[proc_macro_attribute]
-pub fn lower_by(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn profile(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = proc_macro2::TokenStream::from(attr);
     let item = proc_macro2::TokenStream::from(item);
 

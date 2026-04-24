@@ -1,4 +1,4 @@
-//! Smoke tests for `#[lower_by(Tier)]`.
+//! Smoke tests for `#[profile(Tier)]`.
 //!
 //! Built-in tiers are covered here in the debug + not-internal mode: Hot and
 //! Cold both rewrite to `Outcome<T, E>`; Warm is passthrough.
@@ -11,19 +11,19 @@
 #![feature(try_trait_v2)]
 
 use notko::{Outcome, Just};
-use notko_macros::lower_by;
+use notko_macros::profile;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Oops;
 
 // ---- Hot tier (debug mode) ----
 
-#[lower_by(Hot)]
+#[profile(Hot)]
 fn hot_ok(x: u32) -> Result<u32, Oops> {
     Ok(x + 1)
 }
 
-#[lower_by(Hot)]
+#[profile(Hot)]
 fn hot_err(x: u32) -> Result<u32, Oops> {
     if x == 0 {
         return Err(Oops);
@@ -45,12 +45,12 @@ fn hot_returns_outcome_err() {
 
 // ---- Cold tier ----
 
-#[lower_by(Cold)]
+#[profile(Cold)]
 fn cold_ok(x: u32) -> Result<u32, Oops> {
     Ok(x * 2)
 }
 
-#[lower_by(Cold)]
+#[profile(Cold)]
 fn cold_err(x: u32) -> Result<u32, Oops> {
     if x == 0 {
         return Err(Oops);
@@ -72,7 +72,7 @@ fn cold_returns_outcome_err() {
 
 // ---- Warm tier ----
 
-#[lower_by(Warm)]
+#[profile(Warm)]
 fn warm_ok(x: u32) -> Result<u32, Oops> {
     Ok(x)
 }
@@ -86,10 +86,10 @@ fn warm_is_passthrough() {
 // ---- custom tier via notko-optimizers/Trace.rs ----
 //
 // The test fixture at notko-macros/notko-optimizers/Trace.rs declares
-// based_on = "Cold", so `#[lower_by(Trace)]` should rewrite the function
+// based_on = "Cold", so `#[profile(Trace)]` should rewrite the function
 // the same way cold would.
 
-#[lower_by(Trace)]
+#[profile(Trace)]
 fn trace_ok(x: u32) -> Result<u32, Oops> {
     Ok(x + 100)
 }
