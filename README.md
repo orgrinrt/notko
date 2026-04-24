@@ -133,15 +133,7 @@ Without `try_trait_v2` the types still work; only the `?` operator is unavailabl
 
 ## Positioning
 
-```
-notko  (zero deps)
-  ↑
-  ├── arvo  (L0+; impls Boundable / NonZeroable on UFixed / IFixed)
-  │     ↑
-  │     ├── hilavitkutin-api + hilavitkutin
-  │     ↑
-  │     └── clause-*  (compiler + runtime)
-```
+`notko` has zero dependencies and sits at the bottom of the stack. [`arvo`](https://github.com/orgrinrt/arvo) builds on it directly and supplies the `Boundable` / `NonZeroable` impls for its `UFixed` / `IFixed` numeric types. [`hilavitkutin`](https://github.com/orgrinrt/hilavitkutin) builds on `arvo` for the pipeline engine, and the `clause-*` compiler and runtime crates build on all three.
 
 Public APIs in the downstream crates use `Maybe` / `Outcome` in place of `Option` / `Result`. Bare `core` primitives appear only where a trait method signature is fixed by the language (`fn next() -> Option<Self::Item>`, `fn partial_cmp() -> Option<Ordering>`, `fn fmt() -> fmt::Result`).
 
