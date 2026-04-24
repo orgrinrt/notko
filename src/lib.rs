@@ -90,3 +90,6 @@ pub use just::Just;
 pub use maybe::{NicheFilled, Maybe, MaybeNull};
 pub use nonzero::NonZeroable;
 pub use outcome::Outcome;
+
+#[cfg(feature = "macros")]
+pub use notko_macros::lower_by;

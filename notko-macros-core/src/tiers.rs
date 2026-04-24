@@ -18,18 +18,18 @@
 //!
 //! pub struct Trace;
 //! impl Tier for Trace {
-//!     const NAME: &'static str = "trace";
+//!     const NAME: &'static str = "Trace";
 //!     const STRATEGY: Strategy = Strategy::Cold;
 //!     const INLINE: bool = false;
 //! }
 //! ```
 //!
 //! The new marker is usable at type level inside the downstream crate.
-//! Making it usable from `#[optimize_for(trace)]` across crates still
-//! requires either the config-file path (`notko-optimizers/trace.rs`) or
-//! authoring a new attribute macro in a sibling proc-macro crate. The
-//! shared trait keeps every tier — built-in or third-party — identifying
-//! itself through the same contract.
+//! Making it usable from `#[lower_by(Trace)]` across crates still requires
+//! either the config-file path (`notko-optimizers/Trace.rs`) or authoring
+//! a new attribute macro in a sibling proc-macro crate. The shared trait
+//! keeps every tier, built-in or third-party, identifying itself through
+//! the same contract.
 
 /// Marker trait implemented by each tier ZST.
 ///
@@ -52,23 +52,23 @@ pub trait Tier {
 /// rewrites to `Just<T>` with Err → panic. Otherwise: `Outcome<T, E>`.
 pub struct Hot;
 impl Tier for Hot {
-    const NAME: &'static str = "hot";
+    const NAME: &'static str = "Hot";
     const STRATEGY: Strategy = Strategy::Hot;
     const INLINE: bool = true;
 }
 
-/// Warm tier — passthrough. Preserves the source `Result<T, E>` signature.
+/// Warm tier: passthrough. Preserves the source `Result<T, E>` signature.
 pub struct Warm;
 impl Tier for Warm {
-    const NAME: &'static str = "warm";
+    const NAME: &'static str = "Warm";
     const STRATEGY: Strategy = Strategy::Passthrough;
     const INLINE: bool = false;
 }
 
-/// Cold tier — always `Outcome<T, E>`. `diagnose!(...)` calls preserved.
+/// Cold tier: always `Outcome<T, E>`. `diagnose!(...)` calls preserved.
 pub struct Cold;
 impl Tier for Cold {
-    const NAME: &'static str = "cold";
+    const NAME: &'static str = "Cold";
     const STRATEGY: Strategy = Strategy::Cold;
     const INLINE: bool = false;
 }

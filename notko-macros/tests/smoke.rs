@@ -1,7 +1,7 @@
-//! Smoke tests for `#[optimize_for(tier)]`.
+//! Smoke tests for `#[lower_by(Tier)]`.
 //!
-//! Built-in tiers are covered here in the debug + not-internal mode: hot and
-//! cold both rewrite to `Outcome<T, E>`; warm is passthrough.
+//! Built-in tiers are covered here in the debug + not-internal mode: Hot and
+//! Cold both rewrite to `Outcome<T, E>`; Warm is passthrough.
 //!
 //! Release+internal hot-path behavior (Just<T> + panic-on-Err) is harder to
 //! exercise from a test binary — covered by compile-only verification that
@@ -11,19 +11,19 @@
 #![feature(try_trait_v2)]
 
 use notko::{Outcome, Just};
-use notko_macros::optimize_for;
+use notko_macros::lower_by;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Oops;
 
-// ---- hot tier (debug mode) ----
+// ---- Hot tier (debug mode) ----
 
-#[optimize_for(hot)]
+#[lower_by(Hot)]
 fn hot_ok(x: u32) -> Result<u32, Oops> {
     Ok(x + 1)
 }
 
-#[optimize_for(hot)]
+#[lower_by(Hot)]
 fn hot_err(x: u32) -> Result<u32, Oops> {
     if x == 0 {
         return Err(Oops);
@@ -43,14 +43,14 @@ fn hot_returns_outcome_err() {
     assert_eq!(o, Outcome::Err(Oops));
 }
 
-// ---- cold tier ----
+// ---- Cold tier ----
 
-#[optimize_for(cold)]
+#[lower_by(Cold)]
 fn cold_ok(x: u32) -> Result<u32, Oops> {
     Ok(x * 2)
 }
 
-#[optimize_for(cold)]
+#[lower_by(Cold)]
 fn cold_err(x: u32) -> Result<u32, Oops> {
     if x == 0 {
         return Err(Oops);
@@ -70,9 +70,9 @@ fn cold_returns_outcome_err() {
     assert_eq!(o, Outcome::Err(Oops));
 }
 
-// ---- warm tier ----
+// ---- Warm tier ----
 
-#[optimize_for(warm)]
+#[lower_by(Warm)]
 fn warm_ok(x: u32) -> Result<u32, Oops> {
     Ok(x)
 }
@@ -83,13 +83,13 @@ fn warm_is_passthrough() {
     assert_eq!(r, Ok(42));
 }
 
-// ---- custom tier via notko-optimizers/trace.rs ----
+// ---- custom tier via notko-optimizers/Trace.rs ----
 //
-// The test fixture at notko-macros/notko-optimizers/trace.rs declares
-// based_on = "cold", so `#[optimize_for(trace)]` should rewrite the function
+// The test fixture at notko-macros/notko-optimizers/Trace.rs declares
+// based_on = "Cold", so `#[lower_by(Trace)]` should rewrite the function
 // the same way cold would.
 
-#[optimize_for(trace)]
+#[lower_by(Trace)]
 fn trace_ok(x: u32) -> Result<u32, Oops> {
     Ok(x + 100)
 }

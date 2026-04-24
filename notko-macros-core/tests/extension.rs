@@ -5,21 +5,21 @@
 use notko_macros_core::tiers::{Cold, CustomTier, Hot, Strategy, Tier, Warm};
 
 /// A hypothetical third-party tier. In a real downstream crate this would
-/// come paired with either a `notko-optimizers/trace.rs` config file (for
+/// come paired with either a `notko-optimizers/Trace.rs` config file (for
 /// consumption through notko-macros' built-in attribute) or a sibling
 /// proc-macro crate publishing its own attribute.
 pub struct Trace;
 impl Tier for Trace {
-    const NAME: &'static str = "trace";
+    const NAME: &'static str = "Trace";
     const STRATEGY: Strategy = Strategy::Cold;
     const INLINE: bool = false;
 }
 
 #[test]
 fn builtin_markers_carry_the_right_names() {
-    assert_eq!(Hot::NAME, "hot");
-    assert_eq!(Warm::NAME, "warm");
-    assert_eq!(Cold::NAME, "cold");
+    assert_eq!(Hot::NAME, "Hot");
+    assert_eq!(Warm::NAME, "Warm");
+    assert_eq!(Cold::NAME, "Cold");
 }
 
 #[test]

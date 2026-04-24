@@ -1,4 +1,4 @@
-//! Parse the `#[optimize_for(...)]` attribute arguments.
+//! Parse the `#[lower_by(...)]` attribute arguments.
 
 use proc_macro2::TokenStream;
 use syn::parse::{Parse, ParseStream};
@@ -16,7 +16,7 @@ impl Parse for TierArg {
         if !input.is_empty() {
             return Err(syn::Error::new(
                 input.span(),
-                "expected a single tier name, e.g., `#[optimize_for(hot)]`",
+                "expected a single tier name, e.g., `#[lower_by(Hot)]`",
             ));
         }
         Ok(TierArg {

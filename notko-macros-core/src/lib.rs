@@ -1,4 +1,4 @@
-//! AST-rewrite primitives for notko-macros' `#[optimize_for(tier)]`.
+//! AST-rewrite primitives for notko-macros' `#[lower_by(Tier)]`.
 //!
 //! Proc-macro crates cannot export non-macro items, so this crate houses the
 //! reusable building blocks as a normal library. Third-party proc-macro

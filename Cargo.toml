@@ -29,7 +29,10 @@ path = "src/lib.rs"
 default = []
 # Impl `core::ops::Try` for Just/Maybe/Outcome. Requires nightly.
 try_trait_v2 = []
+# Re-export `#[optimize_for]` from notko-macros at the crate root.
+macros = ["dep:notko-macros"]
 
 [dependencies]
+notko-macros = { path = "notko-macros", version = "0.1.0", optional = true }
 
 [dev-dependencies]
