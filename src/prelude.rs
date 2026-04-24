@@ -9,6 +9,6 @@
 
 pub use crate::Boundable;
 pub use crate::Just;
-pub use crate::Maybe;
+pub use crate::{Maybe, MaybeNull};
 pub use crate::NonZeroable;
 pub use crate::Outcome;
