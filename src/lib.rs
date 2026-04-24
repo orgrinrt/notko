@@ -12,8 +12,13 @@
 //! # Contents
 //!
 //! - [`Just<T>`] — infallible value wrapper with a zero-cost `Try` impl.
-//! - [`Maybe<T>`] — presence (Option replacement). ABI-stable `repr(C)`.
-//! - [`Outcome<T, E>`] — fallible (Result replacement). ABI-stable `repr(C)`.
+//! - [`Maybe<T>`] — presence (Option replacement). Niche-fills for pointer-shaped `T` so
+//!   `Maybe<unsafe extern "C" fn(...)>`, `Maybe<&T>`, `Maybe<NonNull<T>>`, etc. are one
+//!   pointer wide with `Isnt` as the null bit pattern, matching `Option<T>`'s layout for
+//!   the same shapes. Size parity is const-asserted in `maybe.rs`.
+//! - [`Outcome<T, E>`] — fallible (Result replacement). Layout is tagged-union with
+//!   platform-standard field ordering; no `repr(C)` forcing. For FFI-critical two-variant
+//!   results, wrap the payload in a dedicated `#[repr(C)]` struct.
 //! - [`Boundable`] — trait for "this type is bounded to `[MIN, MAX]`".
 //! - [`NonZeroable`] — trait for "this type has a zero sentinel and a
 //!   nonzero guarantee form".
@@ -37,11 +42,34 @@
 //!
 //! # ABI stability
 //!
-//! [`Maybe`] and [`Outcome`] are `#[repr(C)]`; layout is stable across
-//! compilations and ABI boundaries. `core::option::Option<T>` depends on
-//! niche optimisation that is not a stable contract. The stack's plugin
-//! dispatch and FFI surfaces require stable layout, so bare `Option` /
-//! `Result` cannot appear in public API positions.
+//! [`Maybe<T>`] participates in Rust's niche-filling optimisation. For payload
+//! types with a niche (function pointers, `&T`, `&mut T`, `NonZero*`,
+//! `NonNull<T>`, and similar), `Maybe<T>` has identical size and alignment
+//! to `T` itself, with [`Maybe::Isnt`] represented by `T`'s invalid bit
+//! pattern (null for pointers, zero for `NonZero*`). This is the same
+//! layout `Option<T>` gets for those shapes; `Maybe<T>` is a drop-in
+//! FFI-compatible replacement whenever the payload is pointer-shaped.
+//!
+//! Size parity is pinned by compile-time `assert!` in `maybe.rs`. If a
+//! future rustc drops niche-filling for user enums while keeping
+//! `Option`-specific guarantees, those assertions fail compilation and
+//! the stack learns about it immediately.
+//!
+//! For fully general payload types (both variants carry values, as in
+//! `Outcome<T, E>`), there is no single-pointer representation. Code
+//! that needs a specific C ABI result layout should wrap the payload
+//! in a dedicated `#[repr(C)]` struct rather than rely on
+//! `Outcome`'s default Rust-repr tagged-union layout.
+//!
+//! The stack's plugin dispatch and FFI surfaces previously insisted
+//! that bare `Option` / `Result` could not appear because `core`
+//! niche-filling for `Option` was "not a stable contract". That is
+//! inaccurate: `Option<&T>`, `Option<NonNull<T>>`, `Option<NonZero*>`,
+//! and `Option<fn>` all carry documented layout guarantees. With
+//! `Maybe` now equipped with the same niche-filled layout for the same
+//! shapes, `Maybe` replaces `Option` in public API positions for
+//! vocabulary reasons (one word for presence, uniform across the
+//! stack), not layout reasons.
 //!
 //! # Sanctioned use of std primitives
 //!
@@ -59,6 +87,6 @@ pub mod prelude;
 
 pub use bounded::Boundable;
 pub use just::Just;
-pub use maybe::Maybe;
+pub use maybe::{NicheFilled, Maybe, MaybeNull};
 pub use nonzero::NonZeroable;
 pub use outcome::Outcome;
