@@ -250,7 +250,7 @@ pub use niche::NicheFilled;
 ///   `NonZeroUsize` / `NonZeroIsize`. Niche: integer zero.
 ///
 /// Every case shares the same invalid bit pattern: all zeros. MaybeNull's
-/// [`MaybeNull::isnt`] constructor uses that pattern, giving `MaybeNull<T>`
+/// [`MaybeNull::null`] constructor uses that pattern, giving `MaybeNull<T>`
 /// the same in-memory size as `T` itself. Instantiating `MaybeNull<T>`
 /// with a `T` outside the set fails to compile on the trait bound.
 ///
@@ -279,7 +279,7 @@ pub struct MaybeNull<T: NicheFilled>(Maybe<T>);
 
 impl<T: NicheFilled> MaybeNull<T> {
     /// Compile-time layout assertion evaluated per instantiation.
-    /// Referenced by [`Self::new`] and [`Self::isnt`] to force
+    /// Referenced by [`Self::new`] and [`Self::null`] to force
     /// evaluation so a size regression breaks the build at the
     /// introduction site.
     const _LAYOUT_ASSERT: () = assert!(
@@ -287,11 +287,10 @@ impl<T: NicheFilled> MaybeNull<T> {
         "MaybeNull<T> layout regression: niche-filling does not apply to T",
     );
 
-    /// Construct the absent variant. Represented as the all-zeros bit
-    /// pattern (null for pointer-shaped `T`, integer zero for
-    /// `NonZero*`).
+    /// Construct the null variant: the all-zeros bit pattern (null for
+    /// pointer-shaped `T`, integer zero for `NonZero*`).
     #[inline]
-    pub const fn isnt() -> Self {
+    pub const fn null() -> Self {
         let _ = Self::_LAYOUT_ASSERT;
         Self(Maybe::Isnt)
     }
@@ -304,16 +303,16 @@ impl<T: NicheFilled> MaybeNull<T> {
         Self(Maybe::Is(value))
     }
 
-    /// `true` if this carries a value.
+    /// `true` if this is the null variant.
     #[inline]
-    pub const fn is_some(&self) -> bool {
-        self.0.is()
+    pub const fn is_null(&self) -> bool {
+        self.0.isnt()
     }
 
-    /// `true` if this is the niche variant.
+    /// `true` if this carries a value.
     #[inline]
-    pub const fn is_none(&self) -> bool {
-        self.0.isnt()
+    pub const fn is_non_null(&self) -> bool {
+        self.0.is()
     }
 
     /// View as the underlying [`Maybe`].
@@ -429,7 +428,7 @@ mod niche_layout_tests {
     /// inherits its niche layout.
     #[test]
     fn maybe_null_fn_has_pointer_layout() {
-        let n = MaybeNull::<unsafe extern "C" fn()>::isnt();
+        let n = MaybeNull::<unsafe extern "C" fn()>::null();
         assert_eq!(
             core::mem::size_of_val(&n),
             core::mem::size_of::<*const ()>(),
@@ -440,7 +439,7 @@ mod niche_layout_tests {
 
     #[test]
     fn maybe_null_nonzero_has_integer_layout() {
-        let n = MaybeNull::<core::num::NonZeroU32>::isnt();
+        let n = MaybeNull::<core::num::NonZeroU32>::null();
         assert_eq!(
             core::mem::size_of_val(&n),
             core::mem::size_of::<u32>(),
@@ -453,19 +452,19 @@ mod niche_layout_tests {
     fn maybe_null_from_maybe_roundtrip() {
         let m: Maybe<&'static u32> = Maybe::Isnt;
         let n: MaybeNull<&'static u32> = MaybeNull::from(m);
-        assert!(n.is_none());
+        assert!(n.is_null());
         let back: Maybe<&'static u32> = n.into_maybe();
         assert_eq!(back, Maybe::Isnt);
     }
 
     // Compile-fail boundary documentation. Uncommenting these should
-    // fail with "the trait bound `u32: HasNullNiche` is not satisfied"
+    // fail with "the trait bound `u32: NicheFilled` is not satisfied"
     // and similar. The sealed trait keeps the set closed.
     //
-    // fn _reject_u32() { let _ = MaybeNull::<u32>::isnt(); }
+    // fn _reject_u32() { let _ = MaybeNull::<u32>::null(); }
     // fn _reject_struct() {
     //     pub struct Plain(u32);
-    //     let _ = MaybeNull::<Plain>::isnt();
+    //     let _ = MaybeNull::<Plain>::null();
     // }
-    // fn _reject_i64() { let _ = MaybeNull::<i64>::isnt(); }
+    // fn _reject_i64() { let _ = MaybeNull::<i64>::null(); }
 }
