@@ -1,4 +1,4 @@
-//! Discovery of custom tier definitions from `notko-optimizers/<name>.rs`.
+//! Discovery of custom tier definitions from `notko-optimizers/<Name>.rs`.
 //!
 //! The optimiser file's module-level doc-comment carries metadata in a
 //! `key = value` key/value format. Recognised keys:
@@ -7,7 +7,7 @@
 //! |-----|------|---------|---------|
 //! | `based_on` | built-in tier name | required | Which built-in strategy this tier inherits. |
 //! | `inline` | `bool` | built-in default | Emit `#[inline]` on the rewritten function. |
-//! | `panic_fmt` | string | `"hot path invariant violated: {err:?}"` | Format for the Err → panic rewrite (hot-strategy only). |
+//! | `panic_fmt` | string | `"hot path invariant violated: {err:?}"` | Format for the Err to panic rewrite (hot-strategy only). |
 //!
 //! The `@notko-optimizer` marker on the first line of the doc comment is
 //! required to guard against accidental parsing of unrelated .rs files.
@@ -16,7 +16,7 @@
 //!
 //! ```text
 //! //! @notko-optimizer
-//! //! based_on = "cold"
+//! //! based_on = "Cold"
 //! //! inline = false
 //! //! panic_fmt = "trace: {err:?}"
 //! ```
@@ -35,10 +35,10 @@ use crate::tiers::{CustomTier, Strategy};
 /// Resolve a tier name to a [`CustomTier`].
 ///
 /// Order:
-/// 1. Built-in `hot | warm | cold` ZST markers (see [`crate::tiers`]).
-/// 2. `$CARGO_MANIFEST_DIR/notko-optimizers/<name>.rs` → parse metadata.
-/// 3. `$NOTKO_OPTIMISERS_PATH/<name>.rs` (set by notko-build; see task #99).
-/// 4. Error — helpful diagnostic pointing at where the file should live.
+/// 1. Built-in `Hot | Warm | Cold` ZST markers (see [`crate::tiers`]).
+/// 2. `$CARGO_MANIFEST_DIR/notko-optimizers/<Name>.rs` parses metadata.
+/// 3. `$NOTKO_OPTIMISERS_PATH/<Name>.rs` (set by notko-build; see task #99).
+/// 4. Error with a diagnostic pointing at where the file should live.
 pub fn resolve_tier(name: &str, span: Span) -> Result<CustomTier> {
     if let Some(tier) = CustomTier::builtin(name) {
         return Ok(tier);
@@ -58,8 +58,8 @@ pub fn resolve_tier(name: &str, span: Span) -> Result<CustomTier> {
     Err(Error::new(
         span,
         format!(
-            "unknown optimize_for tier `{name}`. \
-             built-ins: hot | warm | cold. \
+            "unknown profile tier `{name}`. \
+             built-ins: Hot | Warm | Cold. \
              custom tier expected at `{}` (crate-local) or \
              $NOTKO_OPTIMISERS_PATH/{name}.rs (via notko-build). \
              see notko-macros README for the .rs file shape.",
@@ -142,7 +142,7 @@ fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
                         format!(
                             "optimiser file `{}`: unknown `based_on` value `{s}`. \
                              expected one of the built-in tier names: \
-                             hot | warm | cold.",
+                             Hot | Warm | Cold.",
                             path.display()
                         ),
                     )
@@ -178,7 +178,7 @@ fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
             span,
             format!(
                 "optimiser file `{}` is missing required `based_on` metadata \
-                 (expected `//! based_on = \"hot\"|\"warm\"|\"cold\"`).",
+                 (expected `//! based_on = \"Hot\"|\"Warm\"|\"Cold\"`).",
                 path.display()
             ),
         ));

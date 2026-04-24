@@ -34,11 +34,13 @@
 //! | Warm | [`Maybe<T>`]      | One-bit discriminant, no payload. |
 //! | Cold | [`Outcome<T, E>`] | Full error payload + branch. |
 //!
-//! An `#[optimize_for(...)]` proc-macro (sibling crate, TBD) rewrites a
-//! function's return type between builds: `Outcome<T, E>` in debug /
-//! standalone consumers, `Just<T>` in internal-release builds where
-//! invariants are proven by construction. The primitives are usable
-//! without the macro — the macro is an optional accelerator.
+//! The companion `#[profile(Hot | Warm | Cold)]` proc-macro (see the
+//! `notko-macros` crate, re-exported at the root under the `macros`
+//! feature) rewrites a function's return type between builds:
+//! `Outcome<T, E>` in debug and standalone consumers, `Just<T>` in
+//! internal-release builds where invariants are proven by construction.
+//! The primitives are usable without the macro; the macro is an optional
+//! accelerator.
 //!
 //! # ABI stability
 //!
@@ -90,3 +92,6 @@ pub use just::Just;
 pub use maybe::{NicheFilled, Maybe, MaybeNull};
 pub use nonzero::NonZeroable;
 pub use outcome::Outcome;
+
+#[cfg(feature = "macros")]
+pub use notko_macros::profile;
