@@ -144,72 +144,13 @@ mod try_impl {
     }
 }
 
-mod consttry_impl {
-    use super::Maybe;
-    use crate::{ConstFromResidual, ConstTry};
-    use core::convert::Infallible;
-    use core::ops::ControlFlow;
+#[cfg(feature = "const")]
+#[path = "maybe_consttry_const.rs"]
+mod consttry_const_impl;
 
-    #[cfg(feature = "const")]
-    impl<T: Copy> const ConstTry for Maybe<T> {
-        type Output = T;
-        type Residual = Maybe<Infallible>;
-
-        #[inline]
-        fn from_output(output: Self::Output) -> Self {
-            Maybe::Is(output)
-        }
-
-        #[inline]
-        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
-            match self {
-                Maybe::Is(value) => ControlFlow::Continue(value),
-                Maybe::Isnt => ControlFlow::Break(Maybe::Isnt),
-            }
-        }
-    }
-
-    #[cfg(not(feature = "const"))]
-    impl<T> ConstTry for Maybe<T> {
-        type Output = T;
-        type Residual = Maybe<Infallible>;
-
-        #[inline]
-        fn from_output(output: Self::Output) -> Self {
-            Maybe::Is(output)
-        }
-
-        #[inline]
-        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
-            match self {
-                Maybe::Is(value) => ControlFlow::Continue(value),
-                Maybe::Isnt => ControlFlow::Break(Maybe::Isnt),
-            }
-        }
-    }
-
-    #[cfg(feature = "const")]
-    impl<T: Copy> const ConstFromResidual<Maybe<Infallible>> for Maybe<T> {
-        #[inline]
-        fn from_residual(residual: Maybe<Infallible>) -> Self {
-            match residual {
-                Maybe::Isnt => Maybe::Isnt,
-                Maybe::Is(never) => match never {},
-            }
-        }
-    }
-
-    #[cfg(not(feature = "const"))]
-    impl<T> ConstFromResidual<Maybe<Infallible>> for Maybe<T> {
-        #[inline]
-        fn from_residual(residual: Maybe<Infallible>) -> Self {
-            match residual {
-                Maybe::Isnt => Maybe::Isnt,
-                Maybe::Is(never) => match never {},
-            }
-        }
-    }
-}
+#[cfg(not(feature = "const"))]
+#[path = "maybe_consttry_plain.rs"]
+mod consttry_plain_impl;
 
 mod niche {
     //! Sealed marker trait for types that carry a bit-pattern-zero niche.

@@ -1,8 +1,6 @@
 #![no_std]
 #![cfg_attr(feature = "try_trait_v2", feature(try_trait_v2))]
 #![cfg_attr(feature = "const", feature(const_trait_impl))]
-#![cfg_attr(feature = "const", feature(adt_const_params))]
-#![cfg_attr(feature = "const", allow(incomplete_features))]
 
 //! notko — foundation primitives for the hilavitkutin stack.
 //!

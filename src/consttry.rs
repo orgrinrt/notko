@@ -26,51 +26,30 @@
 //! the non-const variant via `default-features = false`. Substrate
 //! consumers (Bool, USize, Cap, Bits, NUSize) are all Copy, so the
 //! restriction is invisible at the typical call site.
-
-use core::ops::ControlFlow;
-
-#[cfg(feature = "const")]
-/// Const-callable parallel of `core::ops::Try`.
-pub const trait ConstTry {
-    /// The "successful" type emerging from the `?` operator.
-    type Output;
-
-    /// The "residual" type carrying the early-return information.
-    type Residual;
-
-    /// Construct the value back from a successful Output.
-    fn from_output(output: Self::Output) -> Self;
-
-    /// Decide whether to short-circuit (Break) or continue (Continue).
-    fn branch(self) -> ControlFlow<Self::Residual, Self::Output>;
-}
-
-#[cfg(not(feature = "const"))]
-/// Const-callable parallel of `core::ops::Try`.
-pub trait ConstTry {
-    /// The "successful" type emerging from the `?` operator.
-    type Output;
-
-    /// The "residual" type carrying the early-return information.
-    type Residual;
-
-    /// Construct the value back from a successful Output.
-    fn from_output(output: Self::Output) -> Self;
-
-    /// Decide whether to short-circuit (Break) or continue (Continue).
-    fn branch(self) -> ControlFlow<Self::Residual, Self::Output>;
-}
+//!
+//! # Module layout
+//!
+//! The const-trait declarations use the `pub const trait` keyword and
+//! `#[feature(const_trait_impl)]`, both still unstable as of rustc
+//! 1.96 nightly. Rustc parses cfg-gated items at the inline-mod level
+//! before evaluating cfg-attrs, so `#[cfg(feature = "const")] mod x {
+//! pub const trait Foo { ... } }` fires a feature-gate diagnostic
+//! when the feature is off. The fix is file-level gating: the
+//! const-path lives in `consttry_const_path.rs` loaded only when the
+//! feature is on; the plain-path lives in `consttry_plain_path.rs`
+//! loaded only when off. Cfg on the `mod` declaration controls
+//! whether the file is opened at all.
 
 #[cfg(feature = "const")]
-/// Const-callable parallel of `core::ops::FromResidual`.
-pub const trait ConstFromResidual<R = <Self as ConstTry>::Residual> {
-    /// Construct Self from a residual value.
-    fn from_residual(residual: R) -> Self;
-}
+#[path = "consttry_const_path.rs"]
+mod const_path;
 
 #[cfg(not(feature = "const"))]
-/// Const-callable parallel of `core::ops::FromResidual`.
-pub trait ConstFromResidual<R = <Self as ConstTry>::Residual> {
-    /// Construct Self from a residual value.
-    fn from_residual(residual: R) -> Self;
-}
+#[path = "consttry_plain_path.rs"]
+mod plain_path;
+
+#[cfg(feature = "const")]
+pub use const_path::{ConstFromResidual, ConstTry};
+
+#[cfg(not(feature = "const"))]
+pub use plain_path::{ConstFromResidual, ConstTry};
