@@ -116,3 +116,74 @@ mod try_impl {
         }
     }
 }
+
+mod consttry_impl {
+    use super::Outcome;
+    use crate::{ConstFromResidual, ConstTry};
+    use core::convert::Infallible;
+    use core::ops::ControlFlow;
+
+    #[cfg(feature = "const")]
+    impl<T: Copy, E: Copy> const ConstTry for Outcome<T, E> {
+        type Output = T;
+        type Residual = Outcome<Infallible, E>;
+
+        #[inline]
+        fn from_output(output: Self::Output) -> Self {
+            Outcome::Ok(output)
+        }
+
+        #[inline]
+        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+            match self {
+                Outcome::Ok(value) => ControlFlow::Continue(value),
+                Outcome::Err(err) => ControlFlow::Break(Outcome::Err(err)),
+            }
+        }
+    }
+
+    #[cfg(not(feature = "const"))]
+    impl<T, E> ConstTry for Outcome<T, E> {
+        type Output = T;
+        type Residual = Outcome<Infallible, E>;
+
+        #[inline]
+        fn from_output(output: Self::Output) -> Self {
+            Outcome::Ok(output)
+        }
+
+        #[inline]
+        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+            match self {
+                Outcome::Ok(value) => ControlFlow::Continue(value),
+                Outcome::Err(err) => ControlFlow::Break(Outcome::Err(err)),
+            }
+        }
+    }
+
+    // From impls in const trait bounds is not yet stable; ConstFromResidual on Outcome
+    // omits the `F: From<E>` conversion variant for the const path. The non-const
+    // variant matches core's shape exactly. Consumers needing E -> F conversion
+    // through ConstFromResidual reach for the non-const path (cfg-out the const feature).
+    #[cfg(feature = "const")]
+    impl<T: Copy, E: Copy> const ConstFromResidual<Outcome<Infallible, E>> for Outcome<T, E> {
+        #[inline]
+        fn from_residual(residual: Outcome<Infallible, E>) -> Self {
+            match residual {
+                Outcome::Err(err) => Outcome::Err(err),
+                Outcome::Ok(never) => match never {},
+            }
+        }
+    }
+
+    #[cfg(not(feature = "const"))]
+    impl<T, E, F: From<E>> ConstFromResidual<Outcome<Infallible, E>> for Outcome<T, F> {
+        #[inline]
+        fn from_residual(residual: Outcome<Infallible, E>) -> Self {
+            match residual {
+                Outcome::Err(err) => Outcome::Err(F::from(err)),
+                Outcome::Ok(never) => match never {},
+            }
+        }
+    }
+}

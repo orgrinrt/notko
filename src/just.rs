@@ -78,3 +78,58 @@ mod try_impl {
         }
     }
 }
+
+mod consttry_impl {
+    use super::Just;
+    use crate::{ConstFromResidual, ConstTry};
+    use core::convert::Infallible;
+    use core::ops::ControlFlow;
+
+    #[cfg(feature = "const")]
+    impl<T: Copy> const ConstTry for Just<T> {
+        type Output = T;
+        type Residual = Infallible;
+
+        #[inline]
+        fn from_output(output: Self::Output) -> Self {
+            Just(output)
+        }
+
+        #[inline]
+        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+            ControlFlow::Continue(self.0)
+        }
+    }
+
+    #[cfg(not(feature = "const"))]
+    impl<T> ConstTry for Just<T> {
+        type Output = T;
+        type Residual = Infallible;
+
+        #[inline]
+        fn from_output(output: Self::Output) -> Self {
+            Just(output)
+        }
+
+        #[inline]
+        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+            ControlFlow::Continue(self.0)
+        }
+    }
+
+    #[cfg(feature = "const")]
+    impl<T: Copy> const ConstFromResidual<Infallible> for Just<T> {
+        #[inline]
+        fn from_residual(residual: Infallible) -> Self {
+            match residual {}
+        }
+    }
+
+    #[cfg(not(feature = "const"))]
+    impl<T> ConstFromResidual<Infallible> for Just<T> {
+        #[inline]
+        fn from_residual(residual: Infallible) -> Self {
+            match residual {}
+        }
+    }
+}

@@ -1,5 +1,8 @@
 #![no_std]
 #![cfg_attr(feature = "try_trait_v2", feature(try_trait_v2))]
+#![cfg_attr(feature = "const", feature(const_trait_impl))]
+#![cfg_attr(feature = "const", feature(adt_const_params))]
+#![cfg_attr(feature = "const", allow(incomplete_features))]
 
 //! notko — foundation primitives for the hilavitkutin stack.
 //!
@@ -81,17 +84,21 @@
 //! sanctioned use of std primitives in stack code.
 
 pub mod bounded;
+pub mod consttry;
 pub mod just;
 pub mod maybe;
 pub mod nonzero;
 pub mod outcome;
 pub mod prelude;
+pub mod slot;
 
 pub use bounded::Boundable;
+pub use consttry::{ConstFromResidual, ConstTry};
 pub use just::Just;
 pub use maybe::{NicheFilled, Maybe, MaybeNull};
 pub use nonzero::NonZeroable;
 pub use outcome::Outcome;
+pub use slot::Slot;
 
 #[cfg(feature = "macros")]
 pub use notko_macros::profile;
