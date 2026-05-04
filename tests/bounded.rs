@@ -120,3 +120,58 @@ fn bound_error_works_with_clone_only_inner() {
     let cloned = err.clone();
     assert_eq!(err, cloned);
 }
+
+/// Confirms the `Boundable` trait surface itself accepts `Inner: !Copy`.
+/// Newtype wraps a `Clone`-only payload and implements `Boundable` over
+/// it; the relaxation lands at the trait level, not just the error type.
+#[test]
+fn boundable_trait_accepts_non_copy_inner() {
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct CloneOnly(u32);
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Wrapped(CloneOnly);
+
+    impl Boundable for Wrapped {
+        type Inner = CloneOnly;
+        const MIN: CloneOnly = CloneOnly(10);
+        const MAX: CloneOnly = CloneOnly(100);
+
+        fn try_new(value: CloneOnly) -> Outcome<Self, BoundError<CloneOnly>> {
+            if value.0 < Self::MIN.0 {
+                return Outcome::Err(BoundError::Below {
+                    value,
+                    min: Self::MIN,
+                });
+            }
+            if value.0 > Self::MAX.0 {
+                return Outcome::Err(BoundError::Above {
+                    value,
+                    max: Self::MAX,
+                });
+            }
+            Outcome::Ok(Wrapped(value))
+        }
+
+        fn value(self) -> CloneOnly {
+            self.0
+        }
+    }
+
+    assert!(matches!(
+        Wrapped::try_new(CloneOnly(50)),
+        Outcome::Ok(Wrapped(CloneOnly(50))),
+    ));
+
+    let below = match Wrapped::try_new(CloneOnly(0)) {
+        Outcome::Ok(_) => panic!("0 must reject"),
+        Outcome::Err(e) => e,
+    };
+    assert_eq!(
+        below,
+        BoundError::Below {
+            value: CloneOnly(0),
+            min: CloneOnly(10),
+        },
+    );
+}
