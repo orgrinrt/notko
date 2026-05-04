@@ -26,6 +26,7 @@ Function-pointer slots in FFI descriptors get their own layer: `MaybeNull<T: Nic
 |---|---|
 | `Just<T>` | Infallible value wrapper. `Try` with `Residual = Infallible`; `?` compiles to nothing. |
 | `Maybe<T>` | Presence primitive. Replaces `Option<T>` in stack APIs. Niche-filled for pointer-shaped `T`. |
+| `Slot<T>` | Niche-filled `Maybe<T>` wrapper for `T: NonZeroable + NicheFilled`. `#[repr(transparent)]`, `size_of::<Slot<T>> == size_of::<T>`. |
 | `MaybeNull<T: NicheFilled>` | `#[repr(transparent)]` wrapper for FFI function-pointer and non-zero payloads. Sealed trait closes the set. |
 | `NicheFilled` | Sealed marker for payloads with an all-zeros invalid bit pattern (references, `NonNull`, `NonZero*`, `fn` pointers of arity 0..=8). |
 | `Outcome<T, E>` | Fallible result. Replaces `Result<T, E>` in stack APIs. |
@@ -171,6 +172,7 @@ Enable the `macros` feature on `notko` to get `profile` re-exported at the crate
 
 | Feature | Default | Effect |
 |---|---|---|
+| `const` | on | Enable const-trait machinery (`ConstTry`, `ConstFromResidual`, `Slot`'s const inherent methods). Requires nightly. Disable via `default-features = false` on stable. |
 | `try_trait_v2` | off | Impl `core::ops::Try` for `Just` / `Maybe` / `Outcome`. Requires nightly. |
 | `macros` | off | Re-export `#[profile]` from `notko-macros` at the crate root. |
 
