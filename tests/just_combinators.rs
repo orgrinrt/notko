@@ -122,3 +122,12 @@ fn as_mut_borrow_mutates_inner() {
     }
     assert_eq!(j.into_inner(), 42);
 }
+
+/// Confirms `&mut self` borrow released between successive `as_mut` calls.
+#[test]
+fn as_mut_releases_borrow_between_calls() {
+    let mut j = Just::new(0_u32);
+    *j.as_mut().into_inner() = 7;
+    *j.as_mut().into_inner() *= 6;
+    assert_eq!(j.into_inner(), 42);
+}
