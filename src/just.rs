@@ -25,11 +25,17 @@ impl<T> Just<T> {
     }
 
     /// Unwrap to the inner value. Always succeeds.
+    ///
+    /// Consumes `self`; works for any `T` (no `Copy` bound required).
     #[inline]
-    pub const fn into_inner(self) -> T
-    where
-        T: Copy,
-    {
+    pub fn into_inner(self) -> T {
+        self.0
+    }
+
+    /// Alias for [`Just::into_inner`]. Mirrors the `Maybe::unwrap` /
+    /// `Outcome::unwrap` vocabulary for symmetry across the fallibility tiers.
+    #[inline]
+    pub fn unwrap(self) -> T {
         self.0
     }
 
@@ -37,6 +43,18 @@ impl<T> Just<T> {
     #[inline]
     pub const fn get(&self) -> &T {
         &self.0
+    }
+
+    /// Borrow the inner value as a [`Just`] of a reference.
+    #[inline]
+    pub const fn as_ref(&self) -> Just<&T> {
+        Just(&self.0)
+    }
+
+    /// Map the inner value through `f`.
+    #[inline]
+    pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> Just<U> {
+        Just(f(self.0))
     }
 }
 

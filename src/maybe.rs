@@ -116,6 +116,260 @@ impl<T> Maybe<T> {
             Maybe::Isnt => panic!("{}", msg),
         }
     }
+
+    /// Convert by mutable reference into a `Maybe<&mut T>` (zero-cost).
+    #[inline]
+    pub fn as_mut(&mut self) -> Maybe<&mut T> {
+        match self {
+            Maybe::Is(value) => Maybe::Is(value),
+            Maybe::Isnt => Maybe::Isnt,
+        }
+    }
+
+    /// Extract the inner value or compute it from a closure.
+    #[inline]
+    pub fn unwrap_or_else<F: FnOnce() -> T>(self, f: F) -> T {
+        match self {
+            Maybe::Is(value) => value,
+            Maybe::Isnt => f(),
+        }
+    }
+
+    /// Extract the inner value or `T::default()`.
+    #[inline]
+    pub fn unwrap_or_default(self) -> T
+    where
+        T: Default,
+    {
+        match self {
+            Maybe::Is(value) => value,
+            Maybe::Isnt => T::default(),
+        }
+    }
+
+    /// Map the inner value to `U`, or return `default` if absent.
+    #[inline]
+    pub fn map_or<U, F: FnOnce(T) -> U>(self, default: U, f: F) -> U {
+        match self {
+            Maybe::Is(value) => f(value),
+            Maybe::Isnt => default,
+        }
+    }
+
+    /// Map the inner value to `U`, or compute the default from a closure.
+    #[inline]
+    pub fn map_or_else<U, D: FnOnce() -> U, F: FnOnce(T) -> U>(self, default: D, f: F) -> U {
+        match self {
+            Maybe::Is(value) => f(value),
+            Maybe::Isnt => default(),
+        }
+    }
+
+    /// Convert to [`crate::Outcome`], computing the error from a closure.
+    ///
+    /// Lazy form of [`Maybe::ok_or`]. Use when the error value is
+    /// non-trivial to construct.
+    #[inline]
+    pub fn ok_or_else<E, F: FnOnce() -> E>(self, err: F) -> crate::Outcome<T, E> {
+        match self {
+            Maybe::Is(value) => crate::Outcome::Ok(value),
+            Maybe::Isnt => crate::Outcome::Err(err()),
+        }
+    }
+
+    /// Chain another fallible computation. If [`Maybe::Is`], call `f`
+    /// with the inner value; otherwise propagate [`Maybe::Isnt`].
+    #[inline]
+    pub fn and_then<U, F: FnOnce(T) -> Maybe<U>>(self, f: F) -> Maybe<U> {
+        match self {
+            Maybe::Is(value) => f(value),
+            Maybe::Isnt => Maybe::Isnt,
+        }
+    }
+
+    /// Return `self` if [`Maybe::Is`], otherwise return `fallback`.
+    #[inline]
+    pub fn or(self, fallback: Maybe<T>) -> Maybe<T> {
+        match self {
+            Maybe::Is(_) => self,
+            Maybe::Isnt => fallback,
+        }
+    }
+
+    /// Return `self` if [`Maybe::Is`], otherwise compute the fallback.
+    #[inline]
+    pub fn or_else<F: FnOnce() -> Maybe<T>>(self, f: F) -> Maybe<T> {
+        match self {
+            Maybe::Is(_) => self,
+            Maybe::Isnt => f(),
+        }
+    }
+
+    /// Return [`Maybe::Isnt`] if `predicate(&value)` is false.
+    #[inline]
+    pub fn filter<P: FnOnce(&T) -> bool>(self, predicate: P) -> Maybe<T> {
+        match self {
+            Maybe::Is(value) if predicate(&value) => Maybe::Is(value),
+            _ => Maybe::Isnt,
+        }
+    }
+
+    /// Exclusive-or: `Is` only if exactly one of `self` or `other` is `Is`.
+    #[inline]
+    pub fn xor(self, other: Maybe<T>) -> Maybe<T> {
+        match (self, other) {
+            (Maybe::Is(value), Maybe::Isnt) => Maybe::Is(value),
+            (Maybe::Isnt, Maybe::Is(value)) => Maybe::Is(value),
+            _ => Maybe::Isnt,
+        }
+    }
+
+    /// Combine two presences into a tuple, propagating absence.
+    #[inline]
+    pub fn zip<U>(self, other: Maybe<U>) -> Maybe<(T, U)> {
+        match (self, other) {
+            (Maybe::Is(a), Maybe::Is(b)) => Maybe::Is((a, b)),
+            _ => Maybe::Isnt,
+        }
+    }
+
+    /// Take the inner value out, leaving [`Maybe::Isnt`] in its place.
+    #[inline]
+    pub fn take(&mut self) -> Maybe<T> {
+        core::mem::replace(self, Maybe::Isnt)
+    }
+
+    /// Replace the inner value with `value`, returning the previous state.
+    #[inline]
+    pub fn replace(&mut self, value: T) -> Maybe<T> {
+        core::mem::replace(self, Maybe::Is(value))
+    }
+
+    /// `true` if [`Maybe::Is`] and `predicate(&value)` returns true.
+    #[inline]
+    pub fn is_some_and<P: FnOnce(T) -> bool>(self, predicate: P) -> bool {
+        match self {
+            Maybe::Is(value) => predicate(value),
+            Maybe::Isnt => false,
+        }
+    }
+
+    /// `true` if [`Maybe::Isnt`], or if `predicate(&value)` returns true.
+    #[inline]
+    pub fn is_none_or<P: FnOnce(T) -> bool>(self, predicate: P) -> bool {
+        match self {
+            Maybe::Is(value) => predicate(value),
+            Maybe::Isnt => true,
+        }
+    }
+
+    /// Return an iterator yielding the inner value once, or empty if absent.
+    #[inline]
+    pub fn iter(&self) -> MaybeIter<&T> {
+        MaybeIter { inner: self.as_ref() }
+    }
+}
+
+impl<T> Maybe<Maybe<T>> {
+    /// Flatten one level of nesting.
+    #[inline]
+    pub fn flatten(self) -> Maybe<T> {
+        match self {
+            Maybe::Is(inner) => inner,
+            Maybe::Isnt => Maybe::Isnt,
+        }
+    }
+}
+
+impl<T: Copy> Maybe<&T> {
+    /// Map `Maybe<&T>` to `Maybe<T>` by copying.
+    #[inline]
+    pub fn copied(self) -> Maybe<T> {
+        match self {
+            Maybe::Is(&value) => Maybe::Is(value),
+            Maybe::Isnt => Maybe::Isnt,
+        }
+    }
+}
+
+impl<T: Clone> Maybe<&T> {
+    /// Map `Maybe<&T>` to `Maybe<T>` by cloning.
+    #[inline]
+    pub fn cloned(self) -> Maybe<T> {
+        match self {
+            Maybe::Is(value) => Maybe::Is(value.clone()),
+            Maybe::Isnt => Maybe::Isnt,
+        }
+    }
+}
+
+/// Iterator over the inner value of a [`Maybe`].
+///
+/// Yields once if [`Maybe::Is`], zero times if [`Maybe::Isnt`].
+pub struct MaybeIter<T> {
+    inner: Maybe<T>,
+}
+
+impl<T> Iterator for MaybeIter<T> {
+    type Item = T;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        match core::mem::replace(&mut self.inner, Maybe::Isnt) {
+            Maybe::Is(value) => Some(value),
+            Maybe::Isnt => None,
+        }
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self.inner {
+            Maybe::Is(_) => (1, Some(1)),
+            Maybe::Isnt => (0, Some(0)),
+        }
+    }
+}
+
+impl<T> ExactSizeIterator for MaybeIter<T> {}
+
+impl<T> IntoIterator for Maybe<T> {
+    type Item = T;
+    type IntoIter = MaybeIter<T>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        MaybeIter { inner: self }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a Maybe<T> {
+    type Item = &'a T;
+    type IntoIter = MaybeIter<&'a T>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<T> From<Option<T>> for Maybe<T> {
+    #[inline]
+    fn from(opt: Option<T>) -> Self {
+        match opt {
+            Some(value) => Maybe::Is(value),
+            None => Maybe::Isnt,
+        }
+    }
+}
+
+impl<T> From<Maybe<T>> for Option<T> {
+    #[inline]
+    fn from(m: Maybe<T>) -> Self {
+        match m {
+            Maybe::Is(value) => Some(value),
+            Maybe::Isnt => None,
+        }
+    }
 }
 
 impl<T> Default for Maybe<T> {
