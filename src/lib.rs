@@ -97,7 +97,7 @@ pub mod outcome;
 pub mod prelude;
 pub mod slot;
 
-pub use bounded::Boundable;
+pub use bounded::{BoundError, Boundable};
 pub use consttry::{ConstFromResidual, ConstTry};
 pub use just::Just;
 pub use maybe::{NicheFilled, Maybe, MaybeNull};
