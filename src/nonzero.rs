@@ -10,16 +10,28 @@ use crate::Maybe;
 /// consumers take `T: NonZeroable` instead of `core::num::NonZeroU*` when
 /// the underlying storage shape should vary by caller.
 ///
+/// # Inner bound
+///
+/// `Inner: Clone` is the minimum the trait requires. Every shipped impl
+/// (the 12 `core::num::NonZero{U,I}*` types below, plus arvo's nonzero
+/// `UFixed` / `IFixed` flavours) has `Inner: Copy`, which satisfies
+/// `Clone` trivially. The relaxed bound matches the sibling
+/// [`crate::Boundable`] trait so consumer code that takes both `T:
+/// NonZeroable` and `U: Boundable` does not have to wrestle with
+/// asymmetric inner-type bounds.
+///
 /// # Trait-first usage
 ///
-/// ```ignore
+/// ```
+/// use notko::{Maybe, NonZeroable};
+///
 /// fn only_positive<T: NonZeroable<Inner = u32>>(raw: u32) -> Maybe<T> {
 ///     T::try_new(raw)
 /// }
 /// ```
 pub trait NonZeroable: Sized {
-    /// Underlying scalar (`u8`, `u32`, `i64`, …).
-    type Inner: Copy;
+    /// Underlying scalar (`u8`, `u32`, `i64`, ...).
+    type Inner: Clone;
 
     /// Try to construct from a raw value. Returns [`Maybe::Isnt`] if the
     /// value is zero.
