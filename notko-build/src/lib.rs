@@ -133,7 +133,7 @@ pub fn collect_and_distribute() -> Result<(), Error> {
     );
     // Propagate to downstream dependents via build-script metadata. Only
     // takes effect if the consumer's Cargo.toml declares a `links = ...`
-    // value — otherwise cargo silently drops it.
+    // value, otherwise cargo silently drops it.
     println!("cargo:{}={}", META_KEY, accumulated_dir.display());
 
     Ok(())

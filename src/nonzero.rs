@@ -1,4 +1,4 @@
-//! [`NonZeroable`] — trait for types with a zero sentinel and a nonzero
+//! [`NonZeroable`]: trait for types with a zero sentinel and a nonzero
 //! guarantee form.
 
 use crate::Maybe;
@@ -27,4 +27,47 @@ pub trait NonZeroable: Sized {
 
     /// Extract the underlying value. Guaranteed nonzero.
     fn value(self) -> Self::Inner;
+}
+
+// Built-in impls for the canonical `core::num::NonZero*` types.
+// Notko ships these so consumers reaching for `T: NonZeroable` can
+// pass the standard nonzero primitives directly without writing a
+// newtype. Domain newtypes (e.g. arvo's nonzero UFixed flavours)
+// add their own NonZeroable impls on top.
+macro_rules! impl_nonzeroable_for_core {
+    ($($nz:ty => $inner:ty),* $(,)?) => {
+        $(
+            impl NonZeroable for $nz {
+                type Inner = $inner;
+
+                #[inline]
+                fn try_new(value: Self::Inner) -> Maybe<Self> {
+                    match <$nz>::new(value) {
+                        Some(nz) => Maybe::Is(nz),
+                        None => Maybe::Isnt,
+                    }
+                }
+
+                #[inline]
+                fn value(self) -> Self::Inner {
+                    self.get()
+                }
+            }
+        )*
+    };
+}
+
+impl_nonzeroable_for_core! {
+    core::num::NonZeroU8 => u8,
+    core::num::NonZeroU16 => u16,
+    core::num::NonZeroU32 => u32,
+    core::num::NonZeroU64 => u64,
+    core::num::NonZeroU128 => u128,
+    core::num::NonZeroUsize => usize,
+    core::num::NonZeroI8 => i8,
+    core::num::NonZeroI16 => i16,
+    core::num::NonZeroI32 => i32,
+    core::num::NonZeroI64 => i64,
+    core::num::NonZeroI128 => i128,
+    core::num::NonZeroIsize => isize,
 }

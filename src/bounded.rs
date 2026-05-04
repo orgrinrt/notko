@@ -1,4 +1,4 @@
-//! [`Boundable`] — trait for types bounded to `[MIN, MAX]`.
+//! [`Boundable`]: trait for types bounded to `[MIN, MAX]`.
 
 use crate::Maybe;
 
@@ -10,7 +10,7 @@ use crate::Maybe;
 ///
 /// Arvo impls this trait on its `UFixed` / `IFixed` newtypes. Downstream
 /// consumers take `T: Boundable` (+ associated bounds) rather than concrete
-/// types — monomorphisation picks the storage shape at each call site.
+/// types. Monomorphisation picks the storage shape at each call site.
 ///
 /// # Trait-first usage
 ///

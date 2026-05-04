@@ -1,4 +1,4 @@
-//! [`Maybe<T>`] — presence (replaces `Option<T>`).
+//! [`Maybe<T>`]: presence (replaces `Option<T>`).
 
 use core::fmt;
 
@@ -91,6 +91,31 @@ impl<T> Maybe<T> {
             Maybe::Isnt => Maybe::Isnt,
         }
     }
+
+    /// Convert to [`crate::Outcome`], using `err` if [`Maybe::Isnt`].
+    ///
+    /// Mirrors `Option::ok_or` for the substrate vocabulary. The eager
+    /// form takes `err` by value; for a closure-deferred form pair this
+    /// with a manual `match` until `ok_or_else` ships.
+    #[inline]
+    pub fn ok_or<E>(self, err: E) -> crate::Outcome<T, E> {
+        match self {
+            Maybe::Is(value) => crate::Outcome::Ok(value),
+            Maybe::Isnt => crate::Outcome::Err(err),
+        }
+    }
+
+    /// Unwrap with a custom panic message.
+    ///
+    /// Panics with `msg` if [`Maybe::Isnt`]. Use over [`Maybe::unwrap`]
+    /// when the panic context names the invariant that was violated.
+    #[inline]
+    pub fn expect(self, msg: &str) -> T {
+        match self {
+            Maybe::Is(value) => value,
+            Maybe::Isnt => panic!("{}", msg),
+        }
+    }
 }
 
 impl<T> Default for Maybe<T> {
@@ -143,6 +168,14 @@ mod try_impl {
         }
     }
 }
+
+#[cfg(feature = "const")]
+#[path = "maybe_consttry_const.rs"]
+mod consttry_const_impl;
+
+#[cfg(not(feature = "const"))]
+#[path = "maybe_consttry_plain.rs"]
+mod consttry_plain_impl;
 
 mod niche {
     //! Sealed marker trait for types that carry a bit-pattern-zero niche.
