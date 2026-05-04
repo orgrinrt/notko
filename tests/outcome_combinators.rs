@@ -149,10 +149,10 @@ fn inspect_and_inspect_err_pass_through() {
     assert_eq!(sum, 7);
     assert!(matches!(o, Outcome::Ok(7)));
 
-    let mut last_err: Option<&'static str> = None;
+    let mut last_err: Maybe<&'static str> = Maybe::Isnt;
     let o: Outcome<i32, &'static str> =
-        Outcome::Err("boom").inspect_err(|e| last_err = Some(*e));
-    assert_eq!(last_err, Some("boom"));
+        Outcome::Err("boom").inspect_err(|e| last_err = Maybe::Is(*e));
+    assert!(matches!(last_err, Maybe::Is("boom")));
     assert!(matches!(o, Outcome::Err("boom")));
 }
 

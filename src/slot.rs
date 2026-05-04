@@ -81,6 +81,12 @@ impl<T: NonZeroable + NicheFilled> Slot<T> {
     /// the `into_*` form; this requires `T: Copy` because const fn
     /// cannot evaluate destructors of generic `T` under current
     /// rustc nightly.
+    ///
+    /// In practice the `T: Copy` bound is satisfied automatically by
+    /// every type that is also [`NicheFilled`]: references, `NonNull`,
+    /// every `core::num::NonZero*`, and `fn` pointers are all `Copy`.
+    /// The bound is therefore non-restrictive at every call site that
+    /// can construct a `Slot<T>` in the first place.
     pub const fn into_maybe(self) -> Maybe<T>
     where
         T: Copy,
