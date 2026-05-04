@@ -95,8 +95,8 @@ impl<T> Maybe<T> {
     /// Convert to [`crate::Outcome`], using `err` if [`Maybe::Isnt`].
     ///
     /// Mirrors `Option::ok_or` for the substrate vocabulary. The eager
-    /// form takes `err` by value; for a closure-deferred form pair this
-    /// with a manual `match` until `ok_or_else` ships.
+    /// form takes `err` by value; see [`Maybe::ok_or_else`] for the
+    /// closure-deferred form.
     #[inline]
     pub fn ok_or<E>(self, err: E) -> crate::Outcome<T, E> {
         match self {

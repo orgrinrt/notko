@@ -49,7 +49,9 @@ pub enum BoundError<I> {
 ///
 /// # Trait-first usage
 ///
-/// ```ignore
+/// ```
+/// use notko::{BoundError, Boundable, Outcome};
+///
 /// fn clamp_into<T: Boundable<Inner = u32>>(value: u32) -> Outcome<T, BoundError<u32>> {
 ///     T::try_new(value)
 /// }
