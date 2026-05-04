@@ -189,7 +189,7 @@ fn as_mut() {
     assert!(matches!(m, Maybe::Is(99)));
 }
 
-// Tiny inline alternative to a dependency — keeps the tests self-contained.
+// Tiny inline alternative to a dependency. Keeps the tests self-contained.
 mod heapless_min {
     pub struct SmallVec<A> {
         pub values: A,
