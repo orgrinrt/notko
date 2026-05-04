@@ -23,6 +23,8 @@
 //! - [`Slot<T>`]: niche-filled `Maybe<T>` wrapper for `T: NonZeroable + NicheFilled`,
 //!   `#[repr(transparent)]` so layout matches `T`.
 //! - [`Boundable`]: trait for "this type is bounded to `[MIN, MAX]`".
+//!   Companion [`BoundError`] enum names whether a rejected value was
+//!   below `MIN` or above `MAX` and carries the offending value.
 //! - [`NonZeroable`]: trait for "this type has a zero sentinel and a
 //!   nonzero guarantee form".
 //! - [`ConstTry`] / [`ConstFromResidual`]: const-callable parallels of

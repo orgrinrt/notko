@@ -30,7 +30,10 @@ Function-pointer slots in FFI descriptors get their own layer: `MaybeNull<T: Nic
 | `NicheFilled` | Sealed marker for payloads with an all-zeros invalid bit pattern (references, `NonNull`, `NonZero*`, `fn` pointers of arity 0..=8). |
 | `Outcome<T, E>` | Fallible result. Replaces `Result<T, E>` in stack APIs. |
 | `Boundable` | Trait: "this type is bounded to `[MIN, MAX]`". Arvo impls it on `UFixed` / `IFixed`. |
+| `BoundError<I>` | Rejection reason from `Boundable::try_new`: `Below { value, min }` / `Above { value, max }`. |
 | `NonZeroable` | Trait: "this type has a zero sentinel and a nonzero guarantee form". Arvo impls it on `UFixed` / `IFixed`. |
+| `IteratorExt` | Adapter trait. Bridges `Iterator::next() -> Option<Item>` to `Maybe<Item>` at call sites. |
+| `PartialOrdExt` | Adapter trait. Bridges `PartialOrd::partial_cmp -> Option<Ordering>` to `Maybe<Ordering>` at call sites. |
 
 ## Three tiers of fallibility
 
@@ -47,6 +50,28 @@ Function-pointer slots in FFI descriptors get their own layer: `MaybeNull<T: Nic
 `Maybe<T>` carries a one-bit discriminant and no payload on the absent side. For pointer-shaped `T` (references, `NonNull`, `NonZero*`, function pointers) the Rust compiler niche-fills the enum, so `Maybe<&T>`, `Maybe<NonZeroU32>`, `Maybe<fn()>`, and similar shapes are the same size as `T` itself, with `Maybe::Isnt` represented by `T`'s invalid bit pattern. Compile-time size assertions in `maybe.rs` pin the layout for each supported shape.
 
 `Outcome<T, E>` is the full two-payload tagged union. Layout is platform-standard Rust repr; consumers that need a specific C ABI result layout wrap the payload in a dedicated `#[repr(C)]` struct rather than relying on the default.
+
+## Iterator and PartialOrd adapters
+
+`Iterator::next() -> Option<Self::Item>` and `PartialOrd::partial_cmp -> Option<Ordering>` are fixed by `core` and cannot be re-shaped without reimplementing the traits. The `IteratorExt` / `PartialOrdExt` adapters sit on top of those impls and offer `Maybe`-returning siblings without forcing consumers to write `lint:allow(no-bare-option)` at every call site.
+
+```rust
+use notko::{Maybe, iter::IteratorExt, cmp::PartialOrdExt};
+use core::cmp::Ordering;
+
+let mut it = [1, 2, 3].into_iter();
+match it.next_maybe() {
+    Maybe::Is(x) => assert_eq!(x, 1),
+    Maybe::Isnt => unreachable!(),
+}
+
+let a = 1.0_f64;
+let nan = f64::NAN;
+assert!(matches!(a.partial_cmp_maybe(&nan), Maybe::Isnt));
+assert!(matches!(a.partial_cmp_maybe(&2.0_f64), Maybe::Is(Ordering::Less)));
+```
+
+Both methods inline to a `next().into()` / `partial_cmp().into()` chain; codegen is identical.
 
 ## `MaybeNull<T: NicheFilled>` for FFI positions
 
