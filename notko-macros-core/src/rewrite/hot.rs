@@ -170,7 +170,7 @@ fn build_panic_expr(fmt: &str, err_val: Expr) -> Expr {
 }
 
 /// Rewrite `match scrut { Ok(x) => body_ok, Err(_) => body_err }` to
-/// `{ let x = (scrut).unwrap(); body_ok }`. Err arm is discarded — in hot
+/// `{ let x = (scrut).unwrap(); body_ok }`. Err arm is discarded; in hot
 /// release, any Err reaching here is an invariant violation that `.unwrap()`
 /// panics on.
 fn rewrite_match(m: &ExprMatch) -> Option<Expr> {

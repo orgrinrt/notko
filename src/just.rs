@@ -1,4 +1,4 @@
-//! [`Just<T>`] — infallible value wrapper.
+//! [`Just<T>`]: infallible value wrapper.
 
 use core::fmt;
 
@@ -26,7 +26,10 @@ impl<T> Just<T> {
 
     /// Unwrap to the inner value. Always succeeds.
     #[inline]
-    pub fn into_inner(self) -> T {
+    pub const fn into_inner(self) -> T
+    where
+        T: Copy,
+    {
         self.0
     }
 

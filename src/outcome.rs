@@ -1,13 +1,16 @@
-//! [`Outcome<T, E>`] — fallibility (replaces `Result<T, E>`).
+//! [`Outcome<T, E>`]: fallibility (replaces `Result<T, E>`).
 
 use core::fmt;
 
 /// Fallible computation outcome.
 ///
-/// Replaces `core::result::Result<T, E>` in the hilavitkutin stack's public
-/// APIs. `repr(C)` so layout is stable across ABI boundaries; no dependency
-/// on `core::result`.
-#[repr(C)]
+/// Replaces `core::result::Result<T, E>` in the hilavitkutin stack's
+/// public APIs. Layout is platform-standard Rust repr; no `repr(C)`
+/// forcing. Two-payload `repr(C)` enums have implementation-defined
+/// edge cases at the C ABI boundary, and the documented guidance
+/// for FFI-critical result layouts is to wrap the payload in a
+/// dedicated `#[repr(C)]` struct rather than rely on Outcome's
+/// default. See `lib.rs` module-level doc.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum Outcome<T, E> {
     Ok(T),

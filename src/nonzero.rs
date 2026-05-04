@@ -1,4 +1,4 @@
-//! [`NonZeroable`] — trait for types with a zero sentinel and a nonzero
+//! [`NonZeroable`]: trait for types with a zero sentinel and a nonzero
 //! guarantee form.
 
 use crate::Maybe;

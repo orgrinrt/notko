@@ -2,27 +2,32 @@
 #![cfg_attr(feature = "try_trait_v2", feature(try_trait_v2))]
 #![cfg_attr(feature = "const", feature(const_trait_impl))]
 
-//! notko — foundation primitives for the hilavitkutin stack.
+//! notko: foundation primitives for the hilavitkutin stack.
 //!
 //! Finnish *notko*: hollow, trough. The ground every downstream crate sits on.
 //!
 //! Zero deps, no std, no alloc. Ships the scalar-level vocabulary used in
 //! place of `core::option::Option`, `core::result::Result`, and bare integer
-//! primitives across arvo, hilavitkutin, and clause.
+//! primitives across arvo, hilavitkutin, and vehje.
 //!
 //! # Contents
 //!
-//! - [`Just<T>`] — infallible value wrapper with a zero-cost `Try` impl.
-//! - [`Maybe<T>`] — presence (Option replacement). Niche-fills for pointer-shaped `T` so
+//! - [`Just<T>`]: infallible value wrapper with a zero-cost `Try` impl.
+//! - [`Maybe<T>`]: presence (Option replacement). Niche-fills for pointer-shaped `T` so
 //!   `Maybe<unsafe extern "C" fn(...)>`, `Maybe<&T>`, `Maybe<NonNull<T>>`, etc. are one
 //!   pointer wide with `Isnt` as the null bit pattern, matching `Option<T>`'s layout for
 //!   the same shapes. Size parity is const-asserted in `maybe.rs`.
-//! - [`Outcome<T, E>`] — fallible (Result replacement). Layout is tagged-union with
+//! - [`Outcome<T, E>`]: fallible (Result replacement). Layout is tagged-union with
 //!   platform-standard field ordering; no `repr(C)` forcing. For FFI-critical two-variant
 //!   results, wrap the payload in a dedicated `#[repr(C)]` struct.
-//! - [`Boundable`] — trait for "this type is bounded to `[MIN, MAX]`".
-//! - [`NonZeroable`] — trait for "this type has a zero sentinel and a
+//! - [`Slot<T>`]: niche-filled `Maybe<T>` wrapper for `T: NonZeroable + NicheFilled`,
+//!   `#[repr(transparent)]` so layout matches `T`.
+//! - [`Boundable`]: trait for "this type is bounded to `[MIN, MAX]`".
+//! - [`NonZeroable`]: trait for "this type has a zero sentinel and a
 //!   nonzero guarantee form".
+//! - [`ConstTry`] / [`ConstFromResidual`]: const-callable parallels of
+//!   `core::ops::Try` / `FromResidual`. Gated behind the `const` cargo
+//!   feature (default-on).
 //!
 //! # Three tiers of fallibility
 //!
@@ -31,7 +36,7 @@
 //!
 //! | Tier | Type | Cold path |
 //! |------|------|-----------|
-//! | Hot  | [`Just<T>`]       | None — no branch. `?` compiles away. |
+//! | Hot  | [`Just<T>`]       | None: no branch. `?` compiles away. |
 //! | Warm | [`Maybe<T>`]      | One-bit discriminant, no payload. |
 //! | Cold | [`Outcome<T, E>`] | Full error payload + branch. |
 //!

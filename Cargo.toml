@@ -39,5 +39,3 @@ const = []
 
 [dependencies]
 notko-macros = { path = "notko-macros", version = "0.1.0", optional = true }
-
-[dev-dependencies]

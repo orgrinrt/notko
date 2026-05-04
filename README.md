@@ -104,7 +104,7 @@ fn parse(bytes: &[u8]) -> Outcome<u32, &'static str> {
 }
 
 fn post_validated(value: u32) -> Just<u32> {
-    Just(value)
+    Just::new(value)
 }
 ```
 
