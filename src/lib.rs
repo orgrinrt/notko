@@ -87,7 +87,9 @@
 //! sanctioned use of std primitives in stack code.
 
 pub mod bounded;
+pub mod cmp;
 pub mod consttry;
+pub mod iter;
 pub mod just;
 pub mod maybe;
 pub mod nonzero;
