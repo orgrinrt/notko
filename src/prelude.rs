@@ -7,7 +7,9 @@
 //! fn compute() -> Outcome<u32, ()> { Outcome::Ok(42) }
 //! ```
 
-pub use crate::Boundable;
+pub use crate::cmp::PartialOrdExt;
+pub use crate::iter::IteratorExt;
+pub use crate::{BoundError, Boundable};
 pub use crate::Just;
 pub use crate::{Maybe, MaybeNull, NicheFilled};
 pub use crate::NonZeroable;
