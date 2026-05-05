@@ -101,8 +101,8 @@ pub mod slot;
 
 pub use bounded::{BoundError, Boundable};
 pub use consttry::{ConstFromResidual, ConstTry};
-pub use just::Just;
-pub use maybe::{NicheFilled, Maybe, MaybeNull};
+pub use just::{Just, JustIter};
+pub use maybe::{NicheFilled, Maybe, MaybeIter, MaybeNull};
 pub use nonzero::NonZeroable;
 pub use outcome::Outcome;
 pub use slot::Slot;
