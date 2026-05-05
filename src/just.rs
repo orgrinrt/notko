@@ -15,6 +15,7 @@ use core::fmt;
 /// no-op extraction of the inner value.
 #[repr(transparent)]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd, Default)]
+#[must_use = "Just<T> wraps a value; ignoring it discards the wrapped T"]
 pub struct Just<T>(T);
 
 impl<T> Just<T> {
@@ -242,6 +243,8 @@ impl<T> ExactSizeIterator for JustIter<T> {
         self.inner.is_some() as usize
     }
 }
+
+impl<T> core::iter::FusedIterator for JustIter<T> {}
 
 impl<T> IntoIterator for Just<T> {
     type Item = T;

@@ -12,6 +12,7 @@ use core::fmt;
 /// dedicated `#[repr(C)]` struct rather than rely on Outcome's
 /// default. See `lib.rs` module-level doc.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
+#[must_use = "Outcome<T, E> may carry an error; ignoring it discards the failure path"]
 pub enum Outcome<T, E> {
     Ok(T),
     Err(E),
