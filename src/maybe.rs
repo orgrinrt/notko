@@ -31,6 +31,7 @@ use core::fmt;
 /// should use a `#[repr(C)]` struct with the shape they actually need,
 /// not `Maybe` (tagged unions are not a native C construct anyway).
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
+#[must_use = "Maybe<T> may carry a value; ignoring it discards a presence check"]
 pub enum Maybe<T> {
     Is(T),
     Isnt,
@@ -331,6 +332,8 @@ impl<T> Iterator for MaybeIter<T> {
 }
 
 impl<T> ExactSizeIterator for MaybeIter<T> {}
+
+impl<T> core::iter::FusedIterator for MaybeIter<T> {}
 
 impl<T> IntoIterator for Maybe<T> {
     type Item = T;
