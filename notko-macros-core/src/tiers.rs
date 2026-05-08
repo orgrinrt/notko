@@ -8,7 +8,7 @@
 //! Following the shared-principles convention:
 //! - ZST markers for discrimination, not string literals at comparison
 //!   sites.
-//! - `Named::NAME` single source of truth — the [`Tier::NAME`] const is the
+//! - `Named::NAME` single source of truth: the [`Tier::NAME`] const is the
 //!   only place a tier's string identity lives.
 //!
 //! # Extension in downstream crates
@@ -35,11 +35,11 @@
 ///
 /// # Required associated items
 ///
-/// - [`NAME`](Self::NAME) — string identity used in attribute arguments
+/// - [`NAME`](Self::NAME): string identity used in attribute arguments
 ///   and config-file `based_on` fields.
-/// - [`STRATEGY`](Self::STRATEGY) — which rewrite strategy this tier
+/// - [`STRATEGY`](Self::STRATEGY): which rewrite strategy this tier
 ///   selects.
-/// - [`INLINE`](Self::INLINE) — whether to emit `#[inline]` on the
+/// - [`INLINE`](Self::INLINE): whether to emit `#[inline]` on the
 ///   rewritten function by default (callers can override via a custom
 ///   `CustomTier`).
 pub trait Tier {
@@ -48,8 +48,8 @@ pub trait Tier {
     const INLINE: bool;
 }
 
-/// Hot tier — minimum-overhead happy path. In release + `internal` feature:
-/// rewrites to `Just<T>` with Err → panic. Otherwise: `Outcome<T, E>`.
+/// Hot tier. Minimum-overhead happy path. In release + `internal` feature:
+/// rewrites to `Just<T>` with Err mapped to panic. Otherwise: `Outcome<T, E>`.
 pub struct Hot;
 impl Tier for Hot {
     const NAME: &'static str = "Hot";
