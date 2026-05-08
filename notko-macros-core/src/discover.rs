@@ -37,7 +37,7 @@ use crate::tiers::{CustomTier, Strategy};
 /// Order:
 /// 1. Built-in `Hot | Warm | Cold` ZST markers (see [`crate::tiers`]).
 /// 2. `$CARGO_MANIFEST_DIR/notko-optimizers/<Name>.rs` parses metadata.
-/// 3. `$NOTKO_OPTIMISERS_PATH/<Name>.rs` (set by notko-build; see task #99).
+/// 3. `$NOTKO_OPTIMISERS_PATH/<Name>.rs` (set by `notko-build`).
 /// 4. Error with a diagnostic pointing at where the file should live.
 pub fn resolve_tier(name: &str, span: Span) -> Result<CustomTier> {
     if let Some(tier) = CustomTier::builtin(name) {
