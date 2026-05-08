@@ -4,7 +4,7 @@
 //! Cold both rewrite to `Outcome<T, E>`; Warm is passthrough.
 //!
 //! Release+internal hot-path behavior (Just<T> + panic-on-Err) is harder to
-//! exercise from a test binary — covered by compile-only verification that
+//! exercise from a test binary, but covered by compile-only verification that
 //! the cfg branches don't collide. A dedicated integration test crate with
 //! its own `internal` feature would be needed to drive the release path.
 
