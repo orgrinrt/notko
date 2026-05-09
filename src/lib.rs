@@ -91,6 +91,7 @@
 pub mod bounded;
 pub mod cmp;
 pub mod consttry;
+pub mod ctor;
 pub mod iter;
 pub mod just;
 pub mod maybe;
@@ -101,6 +102,7 @@ pub mod slot;
 
 pub use bounded::{BoundError, Boundable};
 pub use consttry::{ConstFromResidual, ConstTry};
+pub use ctor::HasTrivialCtor;
 pub use just::{Just, JustIter};
 pub use maybe::{NicheFilled, Maybe, MaybeIter, MaybeNull};
 pub use nonzero::NonZeroable;

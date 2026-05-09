@@ -10,6 +10,7 @@
 pub use crate::cmp::PartialOrdExt;
 pub use crate::iter::IteratorExt;
 pub use crate::{BoundError, Boundable};
+pub use crate::HasTrivialCtor;
 pub use crate::Just;
 pub use crate::{Maybe, MaybeNull, NicheFilled};
 pub use crate::NonZeroable;
