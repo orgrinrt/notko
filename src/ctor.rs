@@ -1,4 +1,4 @@
-//! `HasTrivialCtor` — type ships a no-arg constructor.
+//! `HasTrivialCtor`: type ships a no-arg constructor.
 //!
 //! Granular contract trait. A type that impls `HasTrivialCtor` declares
 //! it has a `fn new() -> Self` taking no arguments. Useful for marker
