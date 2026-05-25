@@ -282,6 +282,17 @@ impl<T, E> From<Outcome<T, E>> for Result<T, E> {
     }
 }
 
+/// Default `Outcome` is `Ok(T::default())`. Matches `Result`-shaped
+/// convention: the "success path with no override" is the default.
+/// Required when downstream contracts (e.g. associated types whose
+/// default value the contract owner picks) need a constructible
+/// `Outcome` without dictating which variant the consumer prefers.
+impl<T: Default, E> Default for Outcome<T, E> {
+    fn default() -> Self {
+        Outcome::Ok(T::default())
+    }
+}
+
 impl<T, E: fmt::Debug> fmt::Debug for Outcome<T, E>
 where
     T: fmt::Debug,
@@ -336,3 +347,20 @@ mod consttry_const_impl;
 #[cfg(not(feature = "const"))]
 #[path = "outcome_consttry_plain.rs"]
 mod consttry_plain_impl;
+
+#[cfg(test)]
+mod default_tests {
+    use super::Outcome;
+
+    #[test]
+    fn default_outcome_is_ok_default() {
+        let result: Outcome<u32, ()> = Default::default();
+        assert!(matches!(result, Outcome::Ok(0)));
+    }
+
+    #[test]
+    fn default_unit_outcome_is_ok_unit() {
+        let result: Outcome<(), ()> = Default::default();
+        assert!(matches!(result, Outcome::Ok(())));
+    }
+}
