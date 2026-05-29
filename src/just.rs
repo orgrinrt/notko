@@ -10,9 +10,9 @@ use core::fmt;
 /// [`crate::Outcome`] / [`crate::Maybe`] but whose error / absent variant
 /// has been proven unreachable (codegen, reified invariants).
 ///
-/// Implements [`core::ops::Try`] (with `Residual = core::convert::Infallible`)
-/// when the `try_trait_v2` feature is enabled, so `?` on a `Just<T>` is a
-/// no-op extraction of the inner value.
+/// Implements [`core::ops::Try`] (with the dedicated empty residual
+/// `JustResidual`) when the `try_trait_v2` feature is enabled, so `?` on a
+/// `Just<T>` is a no-op extraction of the inner value.
 #[repr(transparent)]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd, Default)]
 #[must_use = "Just<T> wraps a value; ignoring it discards the wrapped T"]
