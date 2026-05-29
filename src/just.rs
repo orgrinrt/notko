@@ -10,9 +10,9 @@ use core::fmt;
 /// [`crate::Outcome`] / [`crate::Maybe`] but whose error / absent variant
 /// has been proven unreachable (codegen, reified invariants).
 ///
-/// Implements [`core::ops::Try`] (with `Residual = core::convert::Infallible`)
-/// when the `try_trait_v2` feature is enabled, so `?` on a `Just<T>` is a
-/// no-op extraction of the inner value.
+/// Implements [`core::ops::Try`] (with the dedicated empty residual
+/// `JustResidual`) when the `try_trait_v2` feature is enabled, so `?` on a
+/// `Just<T>` is a no-op extraction of the inner value.
 #[repr(transparent)]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd, Default)]
 #[must_use = "Just<T> wraps a value; ignoring it discards the wrapped T"]
@@ -281,15 +281,25 @@ impl<T: fmt::Debug> fmt::Debug for Just<T> {
     }
 }
 
+/// Uninhabited residual for [`Just`]'s infallible `Try`.
+///
+/// `Just<T>` never short-circuits (`branch` always returns `Continue`), so
+/// its `?` residual is the empty type. This carries the `Residual<T>` impl
+/// that `core::ops::Try::Residual` now requires. Bare
+/// `core::convert::Infallible` cannot: orphan rules forbid implementing
+/// `core`'s `Residual` for a foreign type, which is why `core` uses its own
+/// internal residual for the same purpose.
+#[cfg(feature = "try_trait_v2")]
+pub enum JustResidual {}
+
 #[cfg(feature = "try_trait_v2")]
 mod try_impl {
-    use super::Just;
-    use core::convert::Infallible;
-    use core::ops::{ControlFlow, FromResidual, Try};
+    use super::{Just, JustResidual};
+    use core::ops::{ControlFlow, FromResidual, Residual, Try};
 
     impl<T> Try for Just<T> {
         type Output = T;
-        type Residual = Infallible;
+        type Residual = JustResidual;
 
         #[inline]
         fn from_output(output: Self::Output) -> Self {
@@ -302,11 +312,15 @@ mod try_impl {
         }
     }
 
-    impl<T> FromResidual<Infallible> for Just<T> {
+    impl<T> FromResidual<JustResidual> for Just<T> {
         #[inline]
-        fn from_residual(residual: Infallible) -> Self {
+        fn from_residual(residual: JustResidual) -> Self {
             match residual {}
         }
+    }
+
+    impl<T> Residual<T> for JustResidual {
+        type TryType = Just<T>;
     }
 }
 
