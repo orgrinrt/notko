@@ -36,6 +36,12 @@ macros = ["dep:notko-macros"]
 # clause-dev workspace stack; consumers on stable Rust opt out via
 # default-features = false.
 const = []
+# Kitchen-sink: every notko pathway in one feature. Enable it somewhere
+# that is actually compiled (a consumer, or a CI all-features check) so
+# the feature-gated impls (the `try_trait_v2` Try/Residual impls in
+# particular) are exercised rather than lying dormant. Dormant gated code
+# is how a core API change can break the stack unnoticed.
+all = ["const", "macros", "try_trait_v2"]
 
 [dependencies]
 notko-macros = { path = "notko-macros", version = "0.1.0", optional = true }

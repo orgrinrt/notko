@@ -309,7 +309,7 @@ where
 mod try_impl {
     use super::Outcome;
     use core::convert::Infallible;
-    use core::ops::{ControlFlow, FromResidual, Try};
+    use core::ops::{ControlFlow, FromResidual, Residual, Try};
 
     impl<T, E> Try for Outcome<T, E> {
         type Output = T;
@@ -337,6 +337,10 @@ mod try_impl {
                 Outcome::Ok(never) => match never {},
             }
         }
+    }
+
+    impl<T, E> Residual<T> for Outcome<Infallible, E> {
+        type TryType = Outcome<T, E>;
     }
 }
 

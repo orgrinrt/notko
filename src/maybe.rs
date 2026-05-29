@@ -395,7 +395,7 @@ impl<T: fmt::Debug> fmt::Debug for Maybe<T> {
 mod try_impl {
     use super::Maybe;
     use core::convert::Infallible;
-    use core::ops::{ControlFlow, FromResidual, Try};
+    use core::ops::{ControlFlow, FromResidual, Residual, Try};
 
     impl<T> Try for Maybe<T> {
         type Output = T;
@@ -423,6 +423,10 @@ mod try_impl {
                 Maybe::Is(never) => match never {},
             }
         }
+    }
+
+    impl<T> Residual<T> for Maybe<Infallible> {
+        type TryType = Maybe<T>;
     }
 }
 

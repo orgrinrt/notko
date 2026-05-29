@@ -1,6 +1,8 @@
 //! Const-feature variant of HasTrivialCtor smoke tests. Loaded when
 //! the `const` feature is enabled (default).
 
+#![cfg_attr(feature = "const", feature(const_trait_impl))]
+
 use notko::HasTrivialCtor;
 
 struct UnitMarker;
