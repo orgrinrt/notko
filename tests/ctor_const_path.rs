@@ -1,7 +1,11 @@
-//! Const-feature variant of HasTrivialCtor smoke tests. Loaded when
-//! the `const` feature is enabled (default).
+//! Const-feature variant of HasTrivialCtor smoke tests.
+//!
+//! Its own test target, declared in `Cargo.toml` with
+//! `required-features = ["const"]`, so cargo skips it entirely when the feature
+//! is off. That is what lets the gate below be unconditional: the target only
+//! exists in configurations where the trait is a `const trait`.
 
-#![cfg_attr(feature = "const", feature(const_trait_impl))]
+#![feature(const_trait_impl)]
 
 use notko::HasTrivialCtor;
 

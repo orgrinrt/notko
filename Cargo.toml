@@ -3,7 +3,7 @@ members = [".", "notko-macros", "notko-macros-core", "notko-build"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.0.0"
 edition = "2024"
 rust-version = "1.85"
 license = "MPL-2.0"
@@ -25,11 +25,37 @@ keywords = ["no_std", "no_alloc", "primitives", "hilavitkutin"]
 name = "notko"
 path = "src/lib.rs"
 
+# `HasTrivialCtor` has a const and a non-const path, so it needs one test target
+# per path. Declared rather than auto-discovered, because auto-discovery compiles
+# every `tests/*.rs` unconditionally: the const variant then reached its
+# `impl const` body in a configuration where the trait is not a const trait, and
+# `cargo test --no-default-features` failed to build. `required-features` is the
+# mechanism that actually skips a target, where a `#[cfg]` inside it cannot.
+[[test]]
+name = "ctor_const_path"
+path = "tests/ctor_const_path.rs"
+required-features = ["const"]
+
+# No `required-features`. Runtime construction is valid whether or not the trait
+# is a const trait, so this target compiles in both configurations, and it is the
+# only ctor coverage that exists under `--no-default-features`.
+[[test]]
+name = "ctor_plain_path"
+path = "tests/ctor_plain_path.rs"
+
+# `?` on Just/Maybe/Outcome only exists with `try_trait_v2`. Previously a
+# crate-root `#![cfg]` compiled this to an empty binary when the feature was off,
+# reporting zero tests, which reads as "nothing to check" rather than "skipped".
+[[test]]
+name = "try_smoke"
+path = "tests/try_smoke.rs"
+required-features = ["try_trait_v2"]
+
 [features]
 default = ["const"]
 # Impl `core::ops::Try` for Just/Maybe/Outcome. Requires nightly.
 try_trait_v2 = []
-# Re-export `#[optimize_for]` from notko-macros at the crate root.
+# Re-export `#[profile]` from notko-macros at the crate root.
 macros = ["dep:notko-macros"]
 # Enable const-trait machinery: ConstTry, ConstFromResidual, Slot's
 # const inherent methods. Requires nightly. Default-on for the
@@ -44,4 +70,4 @@ const = []
 all = ["const", "macros", "try_trait_v2"]
 
 [dependencies]
-notko-macros = { path = "notko-macros", version = "0.1.0", optional = true }
+notko-macros = { path = "notko-macros", version = "0.0.0", optional = true }
