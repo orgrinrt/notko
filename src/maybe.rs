@@ -713,7 +713,7 @@ mod niche_layout_tests {
         let bits: usize = unsafe { core::mem::transmute(m) };
         assert_ne!(bits, 0, "Maybe::Is(fn) must not be null");
         assert_eq!(
-            bits, marker as usize,
+            bits, original as usize,
             "Maybe::Is(fn) must be fn's bit pattern",
         );
     }

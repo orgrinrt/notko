@@ -4,8 +4,14 @@
 //! `?` on `Maybe` short-circuits on `Isnt`, `?` on `Outcome` short-circuits
 //! on `Err`.
 
-#![cfg(feature = "try_trait_v2")]
-#![feature(try_trait_v2)]
+// Declared in `Cargo.toml` with `required-features = ["try_trait_v2"]`, so cargo
+// skips this target when the feature is off. A `#![cfg]` at the crate root
+// instead compiled it to an empty binary reporting zero tests, which reads as
+// "nothing to check here" rather than "not applicable to this configuration".
+//
+// No `#![feature(try_trait_v2)]`. The gate belongs to notko's own build; a
+// consumer using `?` on these types needs no nightly feature of its own, and
+// naming it here wrongly implied otherwise.
 
 use notko::prelude::*;
 

@@ -282,11 +282,17 @@ impl<T, E> From<Outcome<T, E>> for Result<T, E> {
     }
 }
 
-/// Default `Outcome` is `Ok(T::default())`. Matches `Result`-shaped
-/// convention: the "success path with no override" is the default.
-/// Required when downstream contracts (e.g. associated types whose
-/// default value the contract owner picks) need a constructible
-/// `Outcome` without dictating which variant the consumer prefers.
+/// Default `Outcome` is `Ok(T::default())`: the success path with no override.
+///
+/// Deliberately not following `Result`, which has no `Default` impl at all. The
+/// reason `core` declines is that neither variant is obviously the default, and
+/// the reason this one picks `Ok` anyway is the requirement below.
+///
+/// Required when a downstream contract needs a constructible `Outcome` without
+/// the contract owner choosing an error value, which is the case for an
+/// associated type whose default the contract declares rather than the consumer.
+/// `Err` would need an `E: Default`, and an error conjured from nothing is worse
+/// than a success carrying `T`'s own default.
 impl<T: Default, E> Default for Outcome<T, E> {
     fn default() -> Self {
         Outcome::Ok(T::default())

@@ -7,9 +7,16 @@
 
 #![cfg_attr(feature = "const", feature(const_trait_impl))]
 
-use core::convert::Infallible;
 use core::ops::ControlFlow;
-use notko::{ConstFromResidual, ConstTry, Just, Maybe, Outcome};
+use notko::{ConstTry, Maybe, Outcome};
+
+// Only the const-evaluated proofs below reach these, and those are gated. The
+// two runtime tests at the end are not, so this target still carries coverage
+// under `--no-default-features`.
+#[cfg(feature = "const")]
+use core::convert::Infallible;
+#[cfg(feature = "const")]
+use notko::{ConstFromResidual, Just};
 
 #[cfg(feature = "const")]
 const _JUST_BRANCH: () = {

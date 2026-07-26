@@ -1,6 +1,9 @@
-//! Plain-feature variant of HasTrivialCtor smoke tests. Loaded when
-//! the `const` feature is disabled (consumers on stable Rust opt
-//! into this via `default-features = false`).
+//! Runtime-construction variant of HasTrivialCtor smoke tests.
+//!
+//! Its own test target with no `required-features`, so it compiles whether or
+//! not the `const` feature is on: calling `new` at runtime is valid either way.
+//! Under `--no-default-features` it is the only ctor coverage there is, which is
+//! the point, since that is the configuration a consumer on stable gets.
 
 use notko::HasTrivialCtor;
 
