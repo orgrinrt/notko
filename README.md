@@ -24,8 +24,8 @@ Pre-release, and not yet published. Releases are tagged `0.0.0-dNN`, a pre-relea
 no semver promise; semver starts at the first real release. Until then the public API can move between
 tags, and the dependency is on the git repository.
 
-Several pieces gate on unstable rustc features (`adt_const_params`, `try_trait_v2`, `const_trait_impl`),
-tracked as they mature. Features with known soundness holes are skipped rather than worked around.
+Several pieces gate on unstable rustc features (`try_trait_v2`, `try_trait_v2_residual`,
+`const_trait_impl`), tracked as they mature. Features with known soundness holes are skipped rather than worked around.
 
 ## Installation
 
@@ -190,7 +190,7 @@ default without knowing the concrete type.
 
 | Feature | Default | Effect |
 |---|---|---|
-| `const` | on | Const-trait machinery: `ConstTry`, `ConstFromResidual`, `Slot`'s const inherent methods. Requires nightly. Turn off with `default-features = false` to build on stable. |
+| `const` | on | Declares `ConstTry`, `ConstFromResidual` and `HasTrivialCtor` as `const trait`s. Requires nightly. Turn off with `default-features = false` to build on stable; the traits then exist in plain form. |
 | `try_trait_v2` | off | Impl `core::ops::Try` for `Just` / `Maybe` / `Outcome`, enabling `?`. Requires nightly. |
 | `macros` | off | Re-export `#[profile]` from `notko-macros` at the crate root. |
 | `all` | off | Every pathway at once: `const`, `macros` and `try_trait_v2`. Worth enabling somewhere that actually compiles, so the gated `Try` impls are exercised rather than sitting dormant, since dormant gated code is how an upstream API change breaks a consumer unnoticed. |
