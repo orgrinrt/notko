@@ -61,9 +61,11 @@ in the dep tree consume it), use the `notko-build` companion crate.
 ## Under the hood
 
 Third-party authors who need full AST-level control beyond the built-in
-strategies can depend on this crate and reuse the primitives under
-`notko_macros::internal::*` to author their own attribute macros.
-See `src/rewrite/` for the building blocks.
+strategies can depend on [notko-macros-core] and reuse the primitives under
+`notko_macros_core::{tiers, parse, discover, rewrite}` to author their own
+attribute macros. See that crate's README for the public API map.
+
+[notko-macros-core]: https://github.com/orgrinrt/notko/tree/main/notko-macros-core
 
 ## License
 
