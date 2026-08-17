@@ -112,10 +112,10 @@ fn compute(x: u32) -> Result<u32, Oops> {
 }
 ```
 
-Built-in strategies are `Hot`, `Warm` and `Cold`, passed as idents. Debug builds get `Outcome<T, E>`
-whatever the tier, so the error path stays observable. Release-internal builds, which the consumer opts
-into through its own `internal` feature, get `Just<T>` on `Hot` with `Err` lowered to a panic. `Warm` is
-passthrough and `Cold` always emits `Outcome`.
+Built-in strategies are `Hot`, `Warm` and `Cold`, passed as idents. `Hot` emits `Outcome<T, E>` in debug
+builds, so the error path stays observable; in release-internal builds, which the consumer opts into
+through its own `internal` feature, it emits `Just<T>` with `Err` lowered to a panic. `Cold` always emits
+`Outcome`. `Warm` is passthrough in every build and preserves the source `Result<T, E>` signature.
 
 Third-party strategies live in a crate-local `notko-optimizers/<name>.rs` with a
 `based_on = "Hot" | "Warm" | "Cold"` header. The value is case-sensitive; lowercase does not match and
