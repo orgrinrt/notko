@@ -25,8 +25,8 @@ reimplementing the rewrite engine.
 use proc_macro::TokenStream;
 
 #[proc_macro_attribute]
-pub fn optimize_for_trace(attr: TokenStream, item: TokenStream) -> TokenStream {
-    // Pass your own bespoke CustomTier or call into the library directly.
+pub fn profile_trace(attr: TokenStream, item: TokenStream) -> TokenStream {
+    // pass your own bespoke CustomTier or call into the library directly
     let input: syn::ItemFn = syn::parse(item).unwrap();
     let tier = notko_macros_core::tiers::CustomTier {
         strategy: notko_macros_core::tiers::Strategy::Cold,

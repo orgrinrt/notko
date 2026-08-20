@@ -3,8 +3,6 @@
 <div align="center" style="text-align: center;">
 
 [![GitHub Stars](https://img.shields.io/github/stars/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/stargazers)
-[![Crates.io](https://img.shields.io/crates/v/notko)](https://crates.io/crates/notko)
-[![docs.rs](https://img.shields.io/docsrs/notko)](https://docs.rs/notko)
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/issues)
 ![License](https://img.shields.io/github/license/orgrinrt/notko?color=%23009689)
 
@@ -26,8 +24,8 @@ Pre-release, and not yet published. Releases are tagged `0.0.0-dNN`, a pre-relea
 no semver promise; semver starts at the first real release. Until then the public API can move between
 tags, and the dependency is on the git repository.
 
-Several pieces gate on unstable rustc features (`adt_const_params`, `try_trait_v2`, `const_trait_impl`),
-tracked as they mature. Features with known soundness holes are skipped rather than worked around.
+Several pieces gate on unstable rustc features (`try_trait_v2`, `try_trait_v2_residual`,
+`const_trait_impl`), tracked as they mature. Features with known soundness holes are skipped rather than worked around.
 
 ## Installation
 
@@ -114,10 +112,10 @@ fn compute(x: u32) -> Result<u32, Oops> {
 }
 ```
 
-Built-in strategies are `Hot`, `Warm` and `Cold`, passed as idents. Debug builds get `Outcome<T, E>`
-whatever the tier, so the error path stays observable. Release-internal builds, which the consumer opts
-into through its own `internal` feature, get `Just<T>` on `Hot` with `Err` lowered to a panic. `Warm` is
-passthrough and `Cold` always emits `Outcome`.
+Built-in strategies are `Hot`, `Warm` and `Cold`, passed as idents. `Hot` emits `Outcome<T, E>` in debug
+builds, so the error path stays observable; in release-internal builds, which the consumer opts into
+through its own `internal` feature, it emits `Just<T>` with `Err` lowered to a panic. `Cold` always emits
+`Outcome`. `Warm` is passthrough in every build and preserves the source `Result<T, E>` signature.
 
 Third-party strategies live in a crate-local `notko-optimizers/<name>.rs` with a
 `based_on = "Hot" | "Warm" | "Cold"` header. The value is case-sensitive; lowercase does not match and
@@ -192,7 +190,7 @@ default without knowing the concrete type.
 
 | Feature | Default | Effect |
 |---|---|---|
-| `const` | on | Const-trait machinery: `ConstTry`, `ConstFromResidual`, `Slot`'s const inherent methods. Requires nightly. Turn off with `default-features = false` to build on stable. |
+| `const` | on | Declares `ConstTry`, `ConstFromResidual` and `HasTrivialCtor` as `const trait`s. Requires nightly. Turn off with `default-features = false` to build on stable; the traits then exist in plain form. |
 | `try_trait_v2` | off | Impl `core::ops::Try` for `Just` / `Maybe` / `Outcome`, enabling `?`. Requires nightly. |
 | `macros` | off | Re-export `#[profile]` from `notko-macros` at the crate root. |
 | `all` | off | Every pathway at once: `const`, `macros` and `try_trait_v2`. Worth enabling somewhere that actually compiles, so the gated `Try` impls are exercised rather than sitting dormant, since dormant gated code is how an upstream API change breaks a consumer unnoticed. |

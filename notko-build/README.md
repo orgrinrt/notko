@@ -75,7 +75,7 @@ and usable by `#[profile(Name)]`.
 ## How it works
 
 1. Scans `$CARGO_MANIFEST_DIR/notko-optimizers/*.rs` (crate-local).
-2. Collects paths from `DEP_NOTKO-OPTIMISERS-*_NOTKO_OPTIMISER_PATH`
+2. Collects paths from `DEP_*_NOTKO_OPTIMISER_PATH`
    environment variables. Cargo sets these on build scripts of crates
    that depend on an optimiser provider.
 3. Copies every `.rs` file into `$OUT_DIR/notko-optimisers/`.
