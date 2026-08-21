@@ -52,9 +52,8 @@ pub fn resolve_tier(name: &str, span: Span) -> Result<CustomTier> {
         return Ok(custom);
     }
 
-    let crate_local = crate_local_optimiser_path(name).unwrap_or_else(|| {
-        PathBuf::from(format!("notko-optimizers/{name}.rs"))
-    });
+    let crate_local = crate_local_optimiser_path(name)
+        .unwrap_or_else(|| PathBuf::from(format!("notko-optimizers/{name}.rs")));
     Err(Error::new(
         span,
         format!(
@@ -147,7 +146,7 @@ fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
                         ),
                     )
                 })?);
-            },
+            }
             "inline" => {
                 inline = Some(match value {
                     "true" => true,
@@ -160,16 +159,16 @@ fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
                                 path.display()
                             ),
                         ));
-                    },
+                    }
                 });
-            },
+            }
             "panic_fmt" => {
                 panic_fmt = Some(trim_quotes(value).to_string());
-            },
+            }
             _ => {
                 // Unknown keys are tolerated to allow forward-compatibility
                 // with future metadata extensions.
-            },
+            }
         }
     }
 

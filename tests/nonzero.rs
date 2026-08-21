@@ -10,22 +10,58 @@ use notko::{Maybe, NonZeroable};
 
 #[test]
 fn try_new_zero_returns_isnt_unsigned() {
-    assert!(matches!(<NonZeroU8 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroU16 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroU32 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroU64 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroU128 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroUsize as NonZeroable>::try_new(0), Maybe::Isnt));
+    assert!(matches!(
+        <NonZeroU8 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroU16 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroU32 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroU64 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroU128 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroUsize as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
 }
 
 #[test]
 fn try_new_zero_returns_isnt_signed() {
-    assert!(matches!(<NonZeroI8 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroI16 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroI32 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroI64 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroI128 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroIsize as NonZeroable>::try_new(0), Maybe::Isnt));
+    assert!(matches!(
+        <NonZeroI8 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroI16 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroI32 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroI64 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroI128 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroIsize as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
 }
 
 #[test]

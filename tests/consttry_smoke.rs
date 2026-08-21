@@ -82,7 +82,8 @@ const _OUTCOME_ERR_BRANCH: () = {
 #[cfg(feature = "const")]
 const _MAYBE_FROM_RESIDUAL: () = {
     let residual: Maybe<Infallible> = Maybe::Isnt;
-    let m: Maybe<u32> = <Maybe<u32> as ConstFromResidual<Maybe<Infallible>>>::from_residual(residual);
+    let m: Maybe<u32> =
+        <Maybe<u32> as ConstFromResidual<Maybe<Infallible>>>::from_residual(residual);
     match <Maybe<u32> as ConstTry>::branch(m) {
         ControlFlow::Continue(_) => panic!("from_residual(Isnt) should branch to Break"),
         ControlFlow::Break(_) => {}

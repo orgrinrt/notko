@@ -175,11 +175,7 @@ impl<T> Just<T> {
     /// Tier-symmetric mirror of [`crate::Maybe::map_or_else`] /
     /// [`crate::Outcome::map_or_else`].
     #[inline]
-    pub fn map_or_else<U, D: FnOnce() -> U, F: FnOnce(T) -> U>(
-        self,
-        _default: D,
-        f: F,
-    ) -> U {
+    pub fn map_or_else<U, D: FnOnce() -> U, F: FnOnce(T) -> U>(self, _default: D, f: F) -> U {
         f(self.0)
     }
 

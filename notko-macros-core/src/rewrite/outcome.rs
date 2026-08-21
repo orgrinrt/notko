@@ -4,7 +4,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::visit_mut::VisitMut;
-use syn::{parse_quote, Expr, ExprMacro, ExprReturn, ItemFn, Result, Stmt, StmtMacro, Type};
+use syn::{Expr, ExprMacro, ExprReturn, ItemFn, Result, Stmt, StmtMacro, Type, parse_quote};
 
 use super::helpers::{
     extract_result_inner_types, is_err_call, is_ok_call, macro_last_ident_is,
@@ -18,7 +18,9 @@ pub fn rewrite(tier: CustomTier, mut func: ItemFn) -> Result<TokenStream> {
         set_outcome_return(&mut func, t, e);
     }
 
-    let mut rewriter = OutcomeRewriter { rewrite_diagnose: true };
+    let mut rewriter = OutcomeRewriter {
+        rewrite_diagnose: true,
+    };
     rewriter.visit_block_mut(&mut func.block);
 
     let inline = if tier.inline {
@@ -97,11 +99,11 @@ impl VisitMut for OutcomeRewriter {
                 Expr::Call(call) if is_ok_call(call) => {
                     let val = call.args.first().unwrap().clone();
                     Some(parse_quote! { ::notko::Outcome::Ok(#val) })
-                },
+                }
                 Expr::Call(call) if is_err_call(call) => {
                     let val = call.args.first().unwrap().clone();
                     Some(parse_quote! { ::notko::Outcome::Err(#val) })
-                },
+                }
                 _ => None,
             };
             if let Some(r) = replacement {

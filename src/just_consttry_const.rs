@@ -6,7 +6,7 @@ use crate::{ConstFromResidual, ConstTry};
 use core::convert::Infallible;
 use core::ops::ControlFlow;
 
-impl<T: Copy> const ConstTry for Just<T> {
+const impl<T: Copy> ConstTry for Just<T> {
     type Output = T;
     type Residual = Infallible;
 
@@ -21,7 +21,7 @@ impl<T: Copy> const ConstTry for Just<T> {
     }
 }
 
-impl<T: Copy> const ConstFromResidual<Infallible> for Just<T> {
+const impl<T: Copy> ConstFromResidual<Infallible> for Just<T> {
     #[inline]
     fn from_residual(residual: Infallible) -> Self {
         match residual {}

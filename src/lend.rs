@@ -87,7 +87,7 @@ pub struct Exhausted {
 #[derive(Debug)]
 pub struct Fill<'a, T> {
     slots: &'a mut [T],
-    used:  usize,
+    used: usize,
 }
 
 impl<'a, T> Fill<'a, T> {
@@ -98,7 +98,10 @@ impl<'a, T> Fill<'a, T> {
     /// `&mut [T]` was refused and reaching the slice impl meant lending a `&mut` to a
     /// `&mut [T]`.
     pub fn new(storage: &'a mut (impl Lend<T> + ?Sized)) -> Self {
-        Self { slots: storage.lend(), used: 0 }
+        Self {
+            slots: storage.lend(),
+            used: 0,
+        }
     }
 
     /// How much the lend holds.
@@ -131,7 +134,7 @@ impl<'a, T> Fill<'a, T> {
                 // and inventing the true total would mean knowing how much the
                 // caller still intends to push.
                 wanted: self.used + 1,
-                had:    self.slots.len(),
+                had: self.slots.len(),
             });
         }
         self.slots[self.used] = item;
@@ -161,7 +164,10 @@ impl<'a, T> Fill<'a, T> {
         let items = items.into_iter();
         let wanted = self.used + items.len();
         if wanted > self.slots.len() {
-            return Outcome::Err(Exhausted { wanted, had: self.slots.len() });
+            return Outcome::Err(Exhausted {
+                wanted,
+                had: self.slots.len(),
+            });
         }
         for item in items {
             self.slots[self.used] = item;
@@ -173,7 +179,7 @@ impl<'a, T> Fill<'a, T> {
     /// The filled prefix, giving the lend back.
     #[must_use]
     pub fn finish(self) -> &'a [T] {
-        &self.slots[.. self.used]
+        &self.slots[..self.used]
     }
 
     /// The filled prefix, still writable.
@@ -182,7 +188,7 @@ impl<'a, T> Fill<'a, T> {
     /// common enough to be worth having and rare enough not to be the default.
     #[must_use]
     pub fn finish_mut(self) -> &'a mut [T] {
-        &mut self.slots[.. self.used]
+        &mut self.slots[..self.used]
     }
 }
 
@@ -266,7 +272,7 @@ mod tests {
         // The point of the trait: storage from an arena and storage on the
         // stack are the same to a filler.
         let mut backing = [0u8; 16];
-        let mut region: &mut [u8] = &mut backing[4 .. 8];
+        let mut region: &mut [u8] = &mut backing[4..8];
         let mut fill = Fill::new(&mut region);
         assert_eq!(fill.capacity(), 4);
         assert!(fill.extend([7, 7, 7, 7]).is_ok());
@@ -293,7 +299,7 @@ mod tests {
         // impl could not be reached through it: lending a slice meant lending a `&mut` to
         // a `&mut [T]`. This is the shape the module documentation describes.
         let mut backing = [0u8; 8];
-        let region: &mut [u8] = &mut backing[2 .. 6];
+        let region: &mut [u8] = &mut backing[2..6];
         let mut fill = Fill::new(region);
         assert_eq!(fill.capacity(), 4);
         assert!(fill.extend([1, 2, 3, 4]).is_ok());

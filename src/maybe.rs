@@ -267,7 +267,9 @@ impl<T> Maybe<T> {
     /// Return an iterator yielding the inner value once, or empty if absent.
     #[inline]
     pub fn iter(&self) -> MaybeIter<&T> {
-        MaybeIter { inner: self.as_ref() }
+        MaybeIter {
+            inner: self.as_ref(),
+        }
     }
 }
 
@@ -734,10 +736,7 @@ mod niche_layout_tests {
     #[test]
     fn maybe_null_nonzero_has_integer_layout() {
         let n = MaybeNull::<core::num::NonZeroU32>::null();
-        assert_eq!(
-            core::mem::size_of_val(&n),
-            core::mem::size_of::<u32>(),
-        );
+        assert_eq!(core::mem::size_of_val(&n), core::mem::size_of::<u32>(),);
         let bits: u32 = unsafe { core::mem::transmute(n) };
         assert_eq!(bits, 0);
     }

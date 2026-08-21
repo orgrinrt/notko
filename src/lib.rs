@@ -26,6 +26,11 @@
 //! - [`Boundable`]: trait for "this type is bounded to `[MIN, MAX]`".
 //!   Companion [`BoundError`] enum names whether a rejected value was
 //!   below `MIN` or above `MAX` and carries the offending value.
+//! - [`sink::Push<T>`] and [`sink::BulkPush<T>`]: receive an item, or a slice of them,
+//!   through an exclusive reference and without failing. What a collector somebody owns
+//!   looks like.
+//! - [`sink::Emit<T>`]: receive an item through a shared reference, fallibly. What an
+//!   installed destination looks like: a log, a port, a file, a channel.
 //! - [`NonZeroable`]: trait for "this type has a zero sentinel and a
 //!   nonzero guarantee form".
 //! - [`ConstTry`] / [`ConstFromResidual`]: const-callable parallels of
@@ -100,13 +105,14 @@ pub mod maybe;
 pub mod nonzero;
 pub mod outcome;
 pub mod prelude;
+pub mod sink;
 pub mod slot;
 
 pub use bounded::{BoundError, Boundable};
 pub use consttry::{ConstFromResidual, ConstTry};
 pub use ctor::HasTrivialCtor;
 pub use just::{Just, JustIter};
-pub use maybe::{NicheFilled, Maybe, MaybeIter, MaybeNull};
+pub use maybe::{Maybe, MaybeIter, MaybeNull, NicheFilled};
 pub use nonzero::NonZeroable;
 pub use outcome::Outcome;
 pub use slot::Slot;

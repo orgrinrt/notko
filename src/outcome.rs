@@ -42,7 +42,7 @@ impl<T, E> Outcome<T, E> {
             Outcome::Ok(value) => value,
             Outcome::Err(err) => {
                 panic!("called `Outcome::unwrap` on an `Err` value: {err:?}")
-            },
+            }
         }
     }
 
@@ -119,7 +119,7 @@ impl<T, E> Outcome<T, E> {
         match self {
             Outcome::Ok(value) => {
                 panic!("called `Outcome::unwrap_err` on an `Ok` value: {value:?}")
-            },
+            }
             Outcome::Err(err) => err,
         }
     }

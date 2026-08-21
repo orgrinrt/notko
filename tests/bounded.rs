@@ -45,13 +45,7 @@ fn below_min_rejects_with_below_variant() {
         Outcome::Ok(_) => panic!("0 must reject"),
         Outcome::Err(e) => e,
     };
-    assert_eq!(
-        err,
-        BoundError::Below {
-            value: 0,
-            min: 10,
-        },
-    );
+    assert_eq!(err, BoundError::Below { value: 0, min: 10 },);
 }
 
 #[test]
@@ -80,10 +74,7 @@ fn value_round_trips() {
 
 #[test]
 fn bound_error_clone_and_eq() {
-    let err: BoundError<u8> = BoundError::Below {
-        value: 5,
-        min: 10,
-    };
+    let err: BoundError<u8> = BoundError::Below { value: 5, min: 10 };
     let cloned = err.clone();
     assert_eq!(err, cloned);
 
@@ -96,10 +87,7 @@ fn bound_error_clone_and_eq() {
 
 #[test]
 fn bound_error_debug_renders_field_names() {
-    let err: BoundError<u8> = BoundError::Below {
-        value: 5,
-        min: 10,
-    };
+    let err: BoundError<u8> = BoundError::Below { value: 5, min: 10 };
     let rendered = format!("{err:?}");
     assert!(rendered.contains("Below"));
     assert!(rendered.contains("value"));

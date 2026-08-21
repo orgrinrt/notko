@@ -5,7 +5,10 @@
 //! avoid evaluating them).
 
 use core::mem::{align_of, size_of};
-use core::num::{NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroIsize, NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroUsize};
+use core::num::{
+    NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroIsize, NonZeroU8, NonZeroU16, NonZeroU32,
+    NonZeroU64, NonZeroUsize,
+};
 use notko::Slot;
 
 #[test]
