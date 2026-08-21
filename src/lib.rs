@@ -95,6 +95,7 @@ pub mod consttry;
 pub mod ctor;
 pub mod iter;
 pub mod just;
+pub mod lend;
 pub mod maybe;
 pub mod nonzero;
 pub mod outcome;

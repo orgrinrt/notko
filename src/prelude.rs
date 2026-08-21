@@ -12,6 +12,7 @@ pub use crate::iter::IteratorExt;
 pub use crate::{BoundError, Boundable};
 pub use crate::HasTrivialCtor;
 pub use crate::Just;
+pub use crate::lend::{Exhausted, Fill, Lend};
 pub use crate::{Maybe, MaybeNull, NicheFilled};
 pub use crate::NonZeroable;
 pub use crate::Outcome;
