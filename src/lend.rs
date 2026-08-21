@@ -92,7 +92,12 @@ pub struct Fill<'a, T> {
 
 impl<'a, T> Fill<'a, T> {
     /// Begin filling `storage`.
-    pub fn new(storage: &'a mut impl Lend<T>) -> Self {
+    ///
+    /// `?Sized` because [`Lend`] is implemented for `[T]` as well as for an array, and
+    /// without it that impl is unreachable here: `impl Lend<T>` implies `Sized`, so a
+    /// `&mut [T]` was refused and reaching the slice impl meant lending a `&mut` to a
+    /// `&mut [T]`.
+    pub fn new(storage: &'a mut (impl Lend<T> + ?Sized)) -> Self {
         Self { slots: storage.lend(), used: 0 }
     }
 
@@ -139,11 +144,22 @@ impl<'a, T> Fill<'a, T> {
     /// All or nothing, because a partial fill from a batch is a result nobody
     /// can use: the caller cannot tell which items landed without counting, and
     /// the count it would have to trust is the one that just failed.
-    pub fn extend(&mut self, items: impl IntoIterator<Item = T> + Clone) -> Outcome<(), Exhausted>
+    pub fn extend<I>(&mut self, items: I) -> Outcome<(), Exhausted>
     where
-        T: Copy,
+        I: IntoIterator<Item = T>,
+        I::IntoIter: ExactSizeIterator,
     {
-        let wanted = self.used + items.clone().into_iter().count();
+        // The length comes from the iterator that is about to be walked, rather than from
+        // a clone of it. Counting a clone and then walking the original ties the two
+        // together only by convention: `Clone` promises nothing about sequence length, so a
+        // hand-written one that under-reports made the loop below write past the end. It
+        // also cost a second full traversal, and excluded every iterator that is not
+        // `Clone`.
+        //
+        // `T: Copy` went with it. It was never needed: `push` performs the same assignment
+        // without it, so the bound only served to stop `Fill<'_, String>` from using this.
+        let items = items.into_iter();
+        let wanted = self.used + items.len();
         if wanted > self.slots.len() {
             return Outcome::Err(Exhausted { wanted, had: self.slots.len() });
         }
@@ -255,6 +271,33 @@ mod tests {
         assert_eq!(fill.capacity(), 4);
         assert!(fill.extend([7, 7, 7, 7]).is_ok());
         assert!(fill.push(7).is_err(), "the region took more than it has");
+    }
+
+    #[test]
+    fn a_non_copy_item_can_be_extended_as_well_as_pushed() {
+        // `extend` used to require `T: Copy`, which `push` does not, so a `Fill` of
+        // anything owning could be filled one item at a time and not in a batch. Nothing
+        // about the write needs the bound.
+        #[derive(Debug, PartialEq)]
+        struct NotCopy(u8);
+
+        let mut storage = [NotCopy(0), NotCopy(0), NotCopy(0)];
+        let mut fill = Fill::new(&mut storage);
+        assert!(fill.extend([NotCopy(1), NotCopy(2)]).is_ok());
+        assert_eq!(fill.finish(), &[NotCopy(1), NotCopy(2)]);
+    }
+
+    #[test]
+    fn a_bare_slice_is_lent_directly() {
+        // `Fill::new` took `impl Lend<T>`, which implies `Sized`, so the `Lend for [T]`
+        // impl could not be reached through it: lending a slice meant lending a `&mut` to
+        // a `&mut [T]`. This is the shape the module documentation describes.
+        let mut backing = [0u8; 8];
+        let region: &mut [u8] = &mut backing[2 .. 6];
+        let mut fill = Fill::new(region);
+        assert_eq!(fill.capacity(), 4);
+        assert!(fill.extend([1, 2, 3, 4]).is_ok());
+        assert!(fill.push(5).is_err());
     }
 
     #[test]
