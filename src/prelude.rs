@@ -16,6 +16,7 @@ pub use crate::lend::{Exhausted, Fill, Lend};
 pub use crate::{Maybe, MaybeNull, NicheFilled};
 pub use crate::NonZeroable;
 pub use crate::Outcome;
+pub use crate::sink::{BulkPush, Emit, Push};
 pub use crate::Slot;
 // ConstTry / ConstFromResidual are intentionally not in the prelude.
 // They are substrate-internal const-callable parallels of core's Try /
