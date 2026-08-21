@@ -144,8 +144,7 @@ fn is_ok_and_and_is_err_and() {
 #[test]
 fn inspect_and_inspect_err_pass_through() {
     let mut sum = 0_i32;
-    let o: Outcome<i32, &'static str> =
-        Outcome::Ok(7).inspect(|x| sum += *x);
+    let o: Outcome<i32, &'static str> = Outcome::Ok(7).inspect(|x| sum += *x);
     assert_eq!(sum, 7);
     assert!(matches!(o, Outcome::Ok(7)));
 

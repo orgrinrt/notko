@@ -60,8 +60,14 @@ fn or_combinator() {
 
 #[test]
 fn or_else() {
-    assert!(matches!(Maybe::Is(1).or_else(|| Maybe::Is(2)), Maybe::Is(1)));
-    assert!(matches!(Maybe::<i32>::Isnt.or_else(|| Maybe::Is(2)), Maybe::Is(2)));
+    assert!(matches!(
+        Maybe::Is(1).or_else(|| Maybe::Is(2)),
+        Maybe::Is(1)
+    ));
+    assert!(matches!(
+        Maybe::<i32>::Isnt.or_else(|| Maybe::Is(2)),
+        Maybe::Is(2)
+    ));
 }
 
 #[test]
@@ -81,8 +87,14 @@ fn xor_combinator() {
 
 #[test]
 fn zip() {
-    assert!(matches!(Maybe::Is(1).zip(Maybe::Is("two")), Maybe::Is((1, "two"))));
-    assert!(matches!(Maybe::<i32>::Isnt.zip(Maybe::Is("two")), Maybe::Isnt));
+    assert!(matches!(
+        Maybe::Is(1).zip(Maybe::Is("two")),
+        Maybe::Is((1, "two"))
+    ));
+    assert!(matches!(
+        Maybe::<i32>::Isnt.zip(Maybe::Is("two")),
+        Maybe::Isnt
+    ));
     assert!(matches!(Maybe::Is(1).zip(Maybe::<&str>::Isnt), Maybe::Isnt));
 }
 
@@ -201,7 +213,10 @@ mod heapless_min {
         where
             Self::Item: Copy + Default,
         {
-            let mut out = SmallVec { values: [Default::default(); 2], len: 0 };
+            let mut out = SmallVec {
+                values: [Default::default(); 2],
+                len: 0,
+            };
             for x in self {
                 if out.len < 2 {
                     out.values[out.len] = x;

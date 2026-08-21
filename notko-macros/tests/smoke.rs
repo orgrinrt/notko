@@ -10,7 +10,7 @@
 
 #![feature(try_trait_v2)]
 
-use notko::{Outcome, Just};
+use notko::{Just, Outcome};
 use notko_macros::profile;
 
 #[derive(Debug, PartialEq, Eq)]

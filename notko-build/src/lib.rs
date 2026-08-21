@@ -46,12 +46,15 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::MissingEnv(var) => write!(
-                f,
-                "notko-build: required cargo env var `{var}` was not set"
-            ),
+            Error::MissingEnv(var) => {
+                write!(f, "notko-build: required cargo env var `{var}` was not set")
+            }
             Error::Io(e) => write!(f, "notko-build: io error: {e}"),
-            Error::Collision { name, first, second } => write!(
+            Error::Collision {
+                name,
+                first,
+                second,
+            } => write!(
                 f,
                 "notko-build: tier `{name}` provided by two sources: \
                  `{}` and `{}`. resolve by renaming one or dropping a \
@@ -103,7 +106,12 @@ pub fn collect_and_distribute() -> Result<(), Error> {
     // DEP_*-propagated paths (the consumer's own files shadow deps).
     if local_dir.is_dir() {
         emit_rerun(&local_dir);
-        copy_tree(&local_dir, &accumulated_dir, &mut seen, /* allow_shadow = */ true)?;
+        copy_tree(
+            &local_dir,
+            &accumulated_dir,
+            &mut seen,
+            /* allow_shadow = */ true,
+        )?;
     }
 
     // Collect DEP_*_NOTKO_OPTIMISER_PATH env vars set by cargo from deps
@@ -241,11 +249,18 @@ mod tests {
 
         let err = copy_tree(&src_b, &dst, &mut seen, false).unwrap_err();
         match err {
-            Error::Collision { name, first, second } => {
+            Error::Collision {
+                name,
+                first,
+                second,
+            } => {
                 assert_eq!(name, "trace");
                 assert_eq!(first.file_name().and_then(|s| s.to_str()), Some("trace.rs"));
-                assert_eq!(second.file_name().and_then(|s| s.to_str()), Some("trace.rs"));
-            },
+                assert_eq!(
+                    second.file_name().and_then(|s| s.to_str()),
+                    Some("trace.rs")
+                );
+            }
             other => panic!("expected Collision, got {other:?}"),
         }
     }
@@ -254,7 +269,10 @@ mod tests {
     fn copy_tree_allows_local_to_shadow_existing() {
         let local = tmp_dir("shadow-local");
         let dst = tmp_dir("shadow-dst");
-        write(&local.join("trace.rs"), "//! @notko-optimizer\n// local wins\n");
+        write(
+            &local.join("trace.rs"),
+            "//! @notko-optimizer\n// local wins\n",
+        );
 
         let mut seen = BTreeMap::new();
         // Pretend a dep already registered it.
@@ -264,7 +282,9 @@ mod tests {
 
         assert!(dst.join("trace.rs").is_file());
         assert_eq!(
-            seen.get("trace").and_then(|p| p.file_name()).and_then(|s| s.to_str()),
+            seen.get("trace")
+                .and_then(|p| p.file_name())
+                .and_then(|s| s.to_str()),
             Some("trace.rs")
         );
     }

@@ -7,11 +7,9 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::visit_mut::VisitMut;
-use syn::{parse_quote, Expr, ExprMatch, ExprReturn, ItemFn, Pat, Result, Type};
+use syn::{Expr, ExprMatch, ExprReturn, ItemFn, Pat, Result, Type, parse_quote};
 
-use super::helpers::{
-    extract_result_inner_types, is_err_call, is_ok_call,
-};
+use super::helpers::{extract_result_inner_types, is_err_call, is_ok_call};
 use super::outcome::OutcomeRewriter;
 use crate::tiers::CustomTier;
 
@@ -42,7 +40,9 @@ fn build_debug(
             out.sig.output = parse_quote! { -> ::notko::Outcome<#t, #e> };
         }
     }
-    let mut rewriter = OutcomeRewriter { rewrite_diagnose: false };
+    let mut rewriter = OutcomeRewriter {
+        rewrite_diagnose: false,
+    };
     rewriter.visit_block_mut(&mut out.block);
 
     let inline = inline_attr(tier);
@@ -102,9 +102,8 @@ pub struct HotRewriter {
 impl HotRewriter {
     pub fn new(panic_fmt: Option<String>) -> Self {
         Self {
-            panic_fmt: panic_fmt.unwrap_or_else(|| {
-                "hot path invariant violated: {err:?}".to_string()
-            }),
+            panic_fmt: panic_fmt
+                .unwrap_or_else(|| "hot path invariant violated: {err:?}".to_string()),
         }
     }
 }
@@ -126,13 +125,13 @@ impl VisitMut for HotRewriter {
                     let panic_expr = build_panic_expr(&self.panic_fmt, val);
                     *expr = panic_expr;
                 }
-            },
+            }
             Expr::Match(m) => {
                 if let Some(rewritten) = rewrite_match(m) {
                     *expr = rewritten;
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 
@@ -143,11 +142,11 @@ impl VisitMut for HotRewriter {
                 Expr::Call(call) if is_ok_call(call) => {
                     let val = call.args.first().unwrap().clone();
                     Some(parse_quote! { ::notko::Just::new(#val) })
-                },
+                }
                 Expr::Call(call) if is_err_call(call) => {
                     let val = call.args.first().unwrap().clone();
                     Some(build_panic_expr(&self.panic_fmt, val))
-                },
+                }
                 _ => None,
             };
             if let Some(r) = replacement {

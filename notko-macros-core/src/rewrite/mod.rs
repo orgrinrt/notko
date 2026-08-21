@@ -2,7 +2,7 @@
 
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{parse2, ItemFn, Result};
+use syn::{ItemFn, Result, parse2};
 
 use crate::discover::resolve_tier;
 use crate::parse::parse_tier_arg;

@@ -104,15 +104,15 @@ pub mod lend;
 pub mod maybe;
 pub mod nonzero;
 pub mod outcome;
-pub mod sink;
 pub mod prelude;
+pub mod sink;
 pub mod slot;
 
 pub use bounded::{BoundError, Boundable};
 pub use consttry::{ConstFromResidual, ConstTry};
 pub use ctor::HasTrivialCtor;
 pub use just::{Just, JustIter};
-pub use maybe::{NicheFilled, Maybe, MaybeIter, MaybeNull};
+pub use maybe::{Maybe, MaybeIter, MaybeNull, NicheFilled};
 pub use nonzero::NonZeroable;
 pub use outcome::Outcome;
 pub use slot::Slot;

@@ -11,14 +11,18 @@ use notko::HasTrivialCtor;
 
 struct UnitMarker;
 
-impl const HasTrivialCtor for UnitMarker {
-    fn new() -> Self { UnitMarker }
+const impl HasTrivialCtor for UnitMarker {
+    fn new() -> Self {
+        UnitMarker
+    }
 }
 
 struct PhantomMarker<T>(core::marker::PhantomData<T>);
 
-impl<T> const HasTrivialCtor for PhantomMarker<T> {
-    fn new() -> Self { PhantomMarker(core::marker::PhantomData) }
+const impl<T> HasTrivialCtor for PhantomMarker<T> {
+    fn new() -> Self {
+        PhantomMarker(core::marker::PhantomData)
+    }
 }
 
 #[test]

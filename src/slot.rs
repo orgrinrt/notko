@@ -120,7 +120,10 @@ impl<T: NonZeroable + NicheFilled> Default for Slot<T> {
 mod layout_assertions {
     use super::Slot;
     use core::mem::size_of;
-    use core::num::{NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize};
+    use core::num::{
+        NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroU8, NonZeroU16, NonZeroU32,
+        NonZeroU64, NonZeroUsize,
+    };
 
     const _SLOT_NONZERO_USIZE: () = assert!(size_of::<Slot<NonZeroUsize>>() == size_of::<usize>());
     const _SLOT_NONZERO_U8: () = assert!(size_of::<Slot<NonZeroU8>>() == size_of::<u8>());

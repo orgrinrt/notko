@@ -15,13 +15,17 @@
 //! third, exclusive and fallible, is `hilavitkutin_api::BoundedPush`, which lives there
 //! because it needs a capacity to report and this crate has no numerics.
 //!
-//! # Why these are here rather than where they were
+//! # Why these are here rather than where they started
 //!
-//! `Push` and `BulkPush` were `hilavitkutin_api::capability`'s, and nothing in them is about
-//! pipelines: they name no numeric type, they carry no scheduling meaning, and a crate with
-//! nothing to do with the engine wanting to accept items had to either depend on the engine
-//! or write the same two traits again. The second is what happened, more than once. They are
-//! re-exported from where they were, so the engine's own vocabulary is unchanged.
+//! `Push` and `BulkPush` began as `hilavitkutin_api::capability`'s, and nothing in them is
+//! about pipelines: they name no numeric type, they carry no scheduling meaning, and a crate
+//! with nothing to do with the engine wanting to accept items had to either depend on the
+//! engine or write the same two traits again. The second is what happened, more than once.
+//!
+//! Until hilavitkutin re-exports these instead of declaring its own, both spellings exist and
+//! a crate depending on the engine and on this one sees two same-named traits that do not
+//! interconvert. That is a live duplicate, not a completed move, and it is what the engine
+//! side of this change has to close.
 
 use crate::outcome::Outcome;
 
@@ -97,7 +101,6 @@ mod tests {
     #[derive(Default)]
     struct Counter {
         items: usize,
-        bulk_calls: usize,
     }
 
     impl Push<u8> for Counter {
@@ -136,9 +139,6 @@ mod tests {
         let mut counter = Counter::default();
         counter.push_bulk(&[1, 2, 3, 4]);
         assert_eq!(counter.items, 4);
-        // The default cannot have gone through an override, because there is none to go
-        // through. Asserting it anyway is what tells this test apart from the next one.
-        assert_eq!(counter.bulk_calls, 0);
     }
 
     #[test]

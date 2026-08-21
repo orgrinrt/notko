@@ -24,8 +24,14 @@ fn works_with_custom_iterator() {
         type Item = i32;
         fn next(&mut self) -> Option<i32> {
             match self.2 {
-                0 => { self.2 = 1; Some(self.0) },
-                1 => { self.2 = 2; Some(self.1) },
+                0 => {
+                    self.2 = 1;
+                    Some(self.0)
+                }
+                1 => {
+                    self.2 = 2;
+                    Some(self.1)
+                }
                 _ => None,
             }
         }
@@ -46,7 +52,7 @@ fn equivalent_to_next_into() {
         let from_into: Maybe<i32> = b.next().into();
         match (from_ext, from_into) {
             (Maybe::Is(x), Maybe::Is(y)) => assert_eq!(x, y),
-            (Maybe::Isnt, Maybe::Isnt) => {},
+            (Maybe::Isnt, Maybe::Isnt) => {}
             _ => panic!("ext / into divergence"),
         }
     }
