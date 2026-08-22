@@ -20,6 +20,7 @@ description = "Fallibility primitives whose branch cost is chosen at the call si
 readme = "README.md"
 categories = ["no-std", "rust-patterns"]
 keywords = ["no_std", "no_alloc", "primitives", "hilavitkutin"]
+exclude = ["notes/", "target/"]
 
 [lib]
 name = "notko"
