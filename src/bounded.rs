@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! [`Boundable`]: trait for types bounded to `[MIN, MAX]`.
 //! [`BoundError`]: rejection reason returned from [`Boundable::try_new`].
 

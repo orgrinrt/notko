@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! [`IteratorExt`]: adapter from `core::iter::Iterator::next` to [`Maybe`].
 //!
 //! Bridges the std `Iterator::next() -> Option<Item>` boundary to the

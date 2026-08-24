@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! [`PartialOrdExt`]: adapter from `core::cmp::PartialOrd::partial_cmp` to [`Maybe`].
 //!
 //! Same shape as [`crate::iter::IteratorExt`]. Bridges

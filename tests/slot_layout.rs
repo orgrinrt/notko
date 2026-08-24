@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! Layout assertions for `Slot<T>`. Pins `size_of::<Slot<T>> ==
 //! size_of::<T>` at runtime so a layout regression surfaces as a
 //! test failure even if the per-instantiation `_LAYOUT_ASSERT`

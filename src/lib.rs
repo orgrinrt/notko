@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 #![no_std]
 #![cfg_attr(feature = "try_trait_v2", feature(try_trait_v2))]
 #![cfg_attr(feature = "try_trait_v2", feature(try_trait_v2_residual))]

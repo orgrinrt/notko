@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! Const-callable parallels of `core::ops::Try` and `core::ops::FromResidual`.
 //!
 //! `core::ops::Try` is not `pub const trait` as of 2026-05 nightly, so
