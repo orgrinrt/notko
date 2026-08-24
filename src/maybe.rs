@@ -592,6 +592,12 @@ impl<T: NicheFilled> MaybeNull<T> {
     /// pointer-shaped `T`, integer zero for `NonZero*`).
     #[inline]
     pub const fn null() -> Self {
+        // Not `Self::_LAYOUT_ASSERT;`, which clippy suggests and then reports
+        // as a path statement with no effect, because that is exactly what it
+        // is: the const is never evaluated and the assertion never fires. The
+        // binding is what forces it, per instantiation, at the point a value is
+        // introduced.
+        #[allow(clippy::let_unit_value)]
         let _ = Self::_LAYOUT_ASSERT;
         Self(Maybe::Isnt)
     }
@@ -600,6 +606,12 @@ impl<T: NicheFilled> MaybeNull<T> {
     /// discriminant overhead.
     #[inline]
     pub const fn new(value: T) -> Self {
+        // Not `Self::_LAYOUT_ASSERT;`, which clippy suggests and then reports
+        // as a path statement with no effect, because that is exactly what it
+        // is: the const is never evaluated and the assertion never fires. The
+        // binding is what forces it, per instantiation, at the point a value is
+        // introduced.
+        #[allow(clippy::let_unit_value)]
         let _ = Self::_LAYOUT_ASSERT;
         Self(Maybe::Is(value))
     }
@@ -647,13 +659,46 @@ impl<T: NicheFilled> From<MaybeNull<T>> for Maybe<T> {
 // Each line forces const evaluation of `MaybeNull::<T>::_LAYOUT_ASSERT`
 // for a specific T, so a size regression surfaces at compile time at
 // notko's foundation rather than at a far-away FFI crash site.
-const _: () = MaybeNull::<unsafe extern "C" fn()>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<extern "C" fn()>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<unsafe fn()>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<fn()>::_LAYOUT_ASSERT;
+//
+// The set below is the whole impl matrix, not a sample of it. The impls are
+// macro-generated over families, so a hand-written list covers whichever
+// members somebody thought of, and the arities nobody typed out are exactly
+// where a niche would go missing without anything saying so.
+
+// Function pointers: every arity the impl macro covers, times every qualifier
+// combination it generates. Unsized argument types are not expressible here and
+// are not part of that matrix.
+macro_rules! assert_fn_layout {
+    ($($args:ident),*) => {
+        const _: () = MaybeNull::<fn($($args),*) -> u8>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<unsafe fn($($args),*) -> u8>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<extern "C" fn($($args),*) -> u8>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<unsafe extern "C" fn($($args),*) -> u8>::_LAYOUT_ASSERT;
+    };
+}
+assert_fn_layout!();
+assert_fn_layout!(u8);
+assert_fn_layout!(u8, u16);
+assert_fn_layout!(u8, u16, u32);
+assert_fn_layout!(u8, u16, u32, u64);
+assert_fn_layout!(u8, u16, u32, u64, i8);
+assert_fn_layout!(u8, u16, u32, u64, i8, i16);
+assert_fn_layout!(u8, u16, u32, u64, i8, i16, i32);
+assert_fn_layout!(u8, u16, u32, u64, i8, i16, i32, i64);
+
+// References and NonNull. The impls take `T: ?Sized`, so a fat pointer is in
+// the matrix and is the member most likely to lose the niche: the assertion is
+// about `MaybeNull<T>` being the same size as `T`, and for a fat pointer that
+// is two words rather than one.
 const _: () = MaybeNull::<&'static ()>::_LAYOUT_ASSERT;
 const _: () = MaybeNull::<&'static mut ()>::_LAYOUT_ASSERT;
+const _: () = MaybeNull::<&'static [u8]>::_LAYOUT_ASSERT;
+const _: () = MaybeNull::<&'static mut [u8]>::_LAYOUT_ASSERT;
+const _: () = MaybeNull::<&'static str>::_LAYOUT_ASSERT;
+const _: () = MaybeNull::<&'static dyn core::fmt::Debug>::_LAYOUT_ASSERT;
 const _: () = MaybeNull::<core::ptr::NonNull<()>>::_LAYOUT_ASSERT;
+const _: () = MaybeNull::<core::ptr::NonNull<[u8]>>::_LAYOUT_ASSERT;
+const _: () = MaybeNull::<core::ptr::NonNull<dyn core::fmt::Debug>>::_LAYOUT_ASSERT;
 const _: () = MaybeNull::<core::num::NonZeroU8>::_LAYOUT_ASSERT;
 const _: () = MaybeNull::<core::num::NonZeroU16>::_LAYOUT_ASSERT;
 const _: () = MaybeNull::<core::num::NonZeroU32>::_LAYOUT_ASSERT;

@@ -13,8 +13,6 @@
 //! the cfg branches don't collide. A dedicated integration test crate with
 //! its own `internal` feature would be needed to drive the release path.
 
-#![feature(try_trait_v2)]
-
 use notko::{Just, Outcome};
 use notko_macros::profile;
 

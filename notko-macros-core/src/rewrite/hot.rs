@@ -155,7 +155,9 @@ impl VisitMut for HotRewriter {
                 _ => None,
             };
             if let Some(r) = replacement {
-                *inner = Box::new(r);
+                // Writing through the box rather than replacing it, so the
+                // rewrite reuses the allocation the tree already holds.
+                **inner = r;
             }
         }
     }
