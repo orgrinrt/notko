@@ -152,29 +152,38 @@ impl<'a, T> Fill<'a, T> {
     /// All or nothing, because a partial fill from a batch is a result nobody
     /// can use: the caller cannot tell which items landed without counting, and
     /// the count it would have to trust is the one that just failed.
+    ///
+    /// The refusal is decided from [`ExactSizeIterator::len`], so all-or-nothing
+    /// holds exactly as far as that length is honest. `len` is a safe method and
+    /// an implementation is free to return the wrong number, which no bound here
+    /// can prevent. What is guaranteed regardless is the part that matters: the
+    /// write stays inside the lend. An iterator yielding more items than it
+    /// reported fills the space that was checked and then stops, with
+    /// [`Exhausted`] naming where it stopped, and those items have landed.
     pub fn extend<I>(&mut self, items: I) -> Outcome<(), Exhausted>
     where
         I: IntoIterator<Item = T>,
         I::IntoIter: ExactSizeIterator,
     {
-        // The length comes from the iterator that is about to be walked, rather than from
-        // a clone of it. Counting a clone and then walking the original ties the two
-        // together only by convention: `Clone` promises nothing about sequence length, so a
-        // hand-written one that under-reports made the loop below write past the end. It
-        // also cost a second full traversal, and excluded every iterator that is not
-        // `Clone`.
-        //
-        // `T: Copy` went with it. It was never needed: `push` performs the same assignment
-        // without it, so the bound only served to stop `Fill<'_, String>` from using this.
+        // The length is asked of the iterator that is about to be walked, not
+        // of a copy of it, so the number checked and the sequence written are
+        // the same object rather than two things related by convention.
         let items = items.into_iter();
-        let wanted = self.used + items.len();
-        if wanted > self.slots.len() {
-            return Outcome::Err(Exhausted {
-                wanted,
-                had: self.slots.len(),
-            });
+        let had = self.slots.len();
+        let wanted = self.used.saturating_add(items.len());
+        if wanted > had {
+            return Outcome::Err(Exhausted { wanted, had });
         }
         for item in items {
+            // `wanted` came from `len()`, which is safe to implement and safe
+            // to get wrong, so it decides the refusal and does not decide the
+            // bound. The bound is the lend's own length, checked per item.
+            if self.used == had {
+                return Outcome::Err(Exhausted {
+                    wanted: had.saturating_add(1),
+                    had,
+                });
+            }
             self.slots[self.used] = item;
             self.used += 1;
         }
@@ -319,5 +328,88 @@ mod tests {
         let written = fill.finish_mut();
         written[0] = 9;
         assert_eq!(written, &[9, 2, 3]);
+    }
+
+    /// An `ExactSizeIterator` whose `len` is whatever it was told to say.
+    ///
+    /// `len` is a safe method with a documented contract and no way to enforce
+    /// it, so this is a legal safe implementation and a consumer can write one
+    /// by accident. It exists here because the guarantee `extend` makes is
+    /// quantified over what `len` reports, and a test that only ever sees an
+    /// honest one cannot tell the difference.
+    struct Liar<I> {
+        inner: I,
+        claimed: usize,
+    }
+
+    impl<I: Iterator> Iterator for Liar<I> {
+        type Item = I::Item;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            self.inner.next()
+        }
+
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            (self.claimed, Some(self.claimed))
+        }
+    }
+
+    impl<I: Iterator> ExactSizeIterator for Liar<I> {
+        fn len(&self) -> usize {
+            self.claimed
+        }
+    }
+
+    #[test]
+    fn an_iterator_claiming_fewer_items_than_it_yields_cannot_write_past_the_lend() {
+        let mut storage = [0u8; 4];
+        let mut fill = Fill::new(&mut storage);
+
+        // Six items, reported as two. The capacity check passes on the
+        // reported number, so the loop is what has to hold the line.
+        let liar = Liar {
+            inner: [1u8, 2, 3, 4, 5, 6].into_iter(),
+            claimed: 2,
+        };
+
+        let Outcome::Err(exhausted) = fill.extend(liar) else {
+            panic!("six items cannot fit in a lend of four");
+        };
+        assert_eq!(exhausted.had, 4);
+        assert_eq!(exhausted.wanted, 5);
+        // Four landed and nothing beyond the lend was touched, which is the
+        // whole claim: a wrong `len` costs the all-or-nothing property and
+        // never costs memory outside the slice.
+        assert_eq!(fill.finish(), &[1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn an_iterator_claiming_more_items_than_it_yields_is_refused_without_writing() {
+        let mut storage = [0u8; 4];
+        let mut fill = Fill::new(&mut storage);
+
+        // Two items, reported as nine. Over-reporting can only cost a refusal
+        // of a batch that would have fit, and it must not cost a write.
+        let liar = Liar {
+            inner: [1u8, 2].into_iter(),
+            claimed: 9,
+        };
+
+        let Outcome::Err(exhausted) = fill.extend(liar) else {
+            panic!("a claim of nine against a lend of four has to be refused");
+        };
+        assert_eq!(exhausted.wanted, 9);
+        assert_eq!(exhausted.had, 4);
+        assert_eq!(fill.finish(), &[]);
+    }
+
+    #[test]
+    fn an_honest_iterator_that_exactly_fills_the_lend_is_accepted() {
+        // The boundary the two liars sit either side of. Off by one here and
+        // a full batch would be refused for fitting.
+        let mut storage = [0u8; 4];
+        let mut fill = Fill::new(&mut storage);
+        assert!(fill.extend([1u8, 2, 3, 4]).is_ok());
+        assert_eq!(fill.finish(), &[1, 2, 3, 4]);
     }
 }
