@@ -34,6 +34,12 @@ run "nightly, const only"          cargo test -p notko --no-default-features --f
 run "nightly, try_trait_v2 only"   cargo test -p notko --no-default-features --features try_trait_v2
 run "nightly, macros only"         cargo test -p notko --no-default-features --features macros
 
+# `#[profile(Hot)]` rewrites to a different return type under `internal` with
+# `debug_assertions` off, and that arm is the crate's headline behaviour. A
+# workspace run never reaches it, since neither flag is on by default.
+run "macros, defaults"             cargo test -p notko-macros
+run "macros, internal + release"   cargo test -p notko-macros --features internal --release
+
 # The README tells a reader on stable to turn the defaults off. Both halves of
 # that sentence are checked: the crate works without them, and it genuinely
 # cannot be built with them, so the instruction is necessary rather than

@@ -11,6 +11,10 @@ readme = "README.md"
 categories = ["development-tools::procedural-macro-helpers"]
 keywords = ["no_std", "no_alloc", "proc-macro", "hot-path", "fallible"]
 
+# Named rather than excluded, so a file added later has to be asked for
+# rather than shipping by accident.
+include = ["src/**/*.rs", "tests/*.rs", "notko-optimizers/*.rs", "README.md", "LICENSE"]
+
 [lib]
 proc-macro = true
 

@@ -14,10 +14,28 @@ fallibility tiers at compile time.
 
 `Hot` gets `#[inline]`. `Cold` and `Warm` do not.
 
-The `internal` feature on this crate (or on a crate that re-enables it
-transitively) controls the hot-tier release codegen. External published
-consumers leave `internal` off → Hot stays as `Outcome<T, E>`, i.e. stable
-`Result`-family signatures for the public API.
+## The `internal` feature belongs to your crate
+
+`#[profile(Hot)]` emits a `cfg(feature = "internal")`, and a `cfg` written by
+an attribute macro is read against the features of the crate it expanded into.
+So the feature that decides which arm you get is **yours**, not this crate's,
+and it has to be declared:
+
+```toml
+[features]
+internal = []
+```
+
+Without that line the code still compiles and still behaves correctly, on the
+`Outcome<T, E>` arm, but every `#[profile]` in the crate warns that `internal`
+is not a value `feature` can take. Declaring it is what makes the warning go
+away and the switch reachable.
+
+Leave it off and `Hot` stays `Outcome<T, E>`, which is the arm a published api
+wants: `Result`-family signatures, errors that can be handled. Turn it on in a
+build with `debug_assertions` off and `Hot` becomes `Just<T>` with the error
+arm panicking, which is the arm a binary wants when it has already decided the
+error cannot happen.
 
 ## Usage
 
