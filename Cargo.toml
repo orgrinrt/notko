@@ -7,6 +7,7 @@ version = "0.0.1"
 edition = "2024"
 rust-version = "1.85"
 license = "MPL-2.0"
+homepage = "https://github.com/orgrinrt/notko"
 repository = "https://github.com/orgrinrt/notko"
 
 [package]
@@ -15,12 +16,15 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+homepage.workspace = true
 repository.workspace = true
 description = "Fallibility primitives whose branch cost is chosen at the call site rather than fixed by the type. no_std, no alloc, zero deps."
 readme = "README.md"
 categories = ["no-std", "rust-patterns"]
-keywords = ["no_std", "no_alloc", "primitives", "hilavitkutin"]
-exclude = ["notes/", "target/"]
+keywords = ["no_std", "no_alloc", "primitives", "fallible"]
+# Named rather than excluded, so a file added later has to be asked for
+# instead of shipping by default.
+include = ["src/**/*.rs", "tests/**/*.rs", "README.md", "LICENSE"]
 
 [lib]
 name = "notko"
@@ -60,7 +64,7 @@ try_trait_v2 = []
 macros = ["dep:notko-macros"]
 # Enable const-trait machinery: ConstTry, ConstFromResidual, Slot's
 # const inherent methods. Requires nightly. Default-on for the
-# clause-dev workspace stack; consumers on stable Rust opt out via
+# stack this was written for; consumers on stable Rust opt out via
 # default-features = false.
 const = []
 # Kitchen-sink: every notko pathway in one feature. Enable it somewhere
@@ -72,3 +76,10 @@ all = ["const", "macros", "try_trait_v2"]
 
 [dependencies]
 notko-macros = { path = "notko-macros", version = "0.0.1", optional = true }
+
+# docs.rs builds default features only, and half of what is worth reading here
+# sits behind `try_trait_v2` and `macros`. Without this the page documents a
+# crate smaller than the one that ships.
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

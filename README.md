@@ -3,6 +3,8 @@
 <div align="center" style="text-align: center;">
 
 [![GitHub Stars](https://img.shields.io/github/stars/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/stargazers)
+[![Crates.io](https://img.shields.io/crates/v/notko)](https://crates.io/crates/notko)
+[![docs.rs](https://img.shields.io/docsrs/notko)](https://docs.rs/notko)
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/issues)
 ![License](https://img.shields.io/github/license/orgrinrt/notko?color=%23009689)
 
@@ -20,25 +22,35 @@ compile time only, which is where a macro runs and not where its output lands.
 
 ## Status
 
-Pre-release, and not yet published. Releases are tagged `0.0.0-dNN`, a pre-release-shaped version carrying
-no semver promise; semver starts at the first real release. Until then the public API can move between
-tags, and the dependency is on the git repository.
+Early, so the api hasn't settled and a `0.0.x` bump can move it. We'll keep the moves in the release notes,
+but I'd pin an exact version rather than a range for now.
 
-Several pieces gate on unstable rustc features (`try_trait_v2`, `try_trait_v2_residual`,
-`const_trait_impl`), tracked as they mature. Features with known soundness holes are skipped rather than worked around.
+The default feature set needs a nightly compiler, because the const-trait machinery it turns on isn't
+stable yet. On stable, turn the defaults off and the crate builds and works, with the const paths absent.
+That is the one thing worth knowing before adding it.
+
+Two of the unstable features it sits on, `try_trait_v2` and `const_trait_impl`, are both still moving
+upstream. Anything with a known soundness hole is left alone rather than worked around, so the surface here
+is smaller than what nightly would allow.
 
 ## Installation
 
-```toml
-[dependencies]
-notko = { git = "https://github.com/orgrinrt/notko.git", branch = "main" }
+```bash
+cargo add notko
 ```
 
-Pin a tag instead of a branch when you want a fixed state:
+Or add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-notko = { git = "https://github.com/orgrinrt/notko.git", tag = "0.0.0-d01" }
+notko = "0.0.1"
+```
+
+On stable Rust, and anywhere the const paths aren't wanted:
+
+```toml
+[dependencies]
+notko = { version = "0.0.1", default-features = false }
 ```
 
 ## Usage
