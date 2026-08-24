@@ -79,10 +79,10 @@ and usable by `#[profile(Name)]`.
    environment variables. Cargo sets these on build scripts of crates
    that depend on an optimiser provider.
 3. Copies every `.rs` file into `$OUT_DIR/notko-optimisers/`.
-4. Collisions: two sources providing the same tier name produce a build
-   error unless the consumer's own crate-local file shadows both. The
-   error lists both source paths; resolve by renaming or providing a
-   local override.
+4. Collisions: two dependencies providing the same tier name produce a
+   build error, since nothing ranks one dependency above another. The
+   error lists both source paths; resolve by renaming or by providing a
+   local file of that name, which wins over every dependency's.
 5. Emits:
    - `cargo:rustc-env=NOTKO_OPTIMISERS_PATH=$OUT_DIR/notko-optimisers`,
      which the notko-macros proc-macro reads during expansion.
