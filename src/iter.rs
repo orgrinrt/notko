@@ -18,7 +18,7 @@ use crate::Maybe;
 /// a [`Maybe`] instead of an [`Option`].
 ///
 /// Use at call sites that consume an iterator and want to stay in the
-/// substrate's vocabulary:
+/// vocabulary of this crate:
 ///
 /// ```
 /// use notko::{Maybe, iter::IteratorExt};

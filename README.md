@@ -22,15 +22,15 @@ compile time only, which is where a macro runs and not where its output lands.
 
 ## Status
 
-Early, so the api hasn't settled and a `0.0.x` bump can move it. We'll keep the moves in the release notes,
-but I'd pin an exact version rather than a range for now.
+Early, so the api hasn't settled and a `0.0.x` bump can move it. Every release is tagged, and the log
+between two tags is what actually moved. I'd pin an exact version rather than a range for now.
 
 The default feature set needs a nightly compiler, because the const-trait machinery it turns on isn't
 stable yet. On stable, turn the defaults off and the crate builds and works, with the const paths absent.
 That is the one thing worth knowing before adding it.
 
-Two of the unstable features it sits on, `try_trait_v2` and `const_trait_impl`, are both still moving
-upstream. Anything with a known soundness hole is left alone rather than worked around, so the surface here
+The three unstable features it sits on, `try_trait_v2`, `try_trait_v2_residual` and `const_trait_impl`,
+are all still moving upstream. Anything with a known soundness hole is left alone rather than worked around, so the surface here
 is smaller than what nightly would allow.
 
 ## Installation

@@ -7,9 +7,8 @@
 //!
 //! `core::ops::Try` is not `pub const trait` as of 2026-05 nightly, so
 //! `?` on `Just<T>`, `Maybe<T>`, `Outcome<T, E>`, and `Bool` cannot be
-//! used in const context. This module ships a substrate-internal
-//! parallel surface: explicit `match x.branch() { ... }` calls work in
-//! const fn bodies.
+//! used in const context. This module ships a parallel surface for that
+//! case: an explicit `match x.branch() { ... }` works in a const fn body.
 //!
 //! `?` syntax itself stays non-const because rustc desugars `?`
 //! directly to `core::ops::Try::branch`. Adopting `ConstTry` does not

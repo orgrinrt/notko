@@ -6,7 +6,7 @@
 //! [`PartialOrdExt`]: adapter from `core::cmp::PartialOrd::partial_cmp` to [`Maybe`].
 //!
 //! Same shape as [`crate::iter::IteratorExt`]. Bridges
-//! `PartialOrd::partial_cmp -> Option<Ordering>` to the stack's
+//! `PartialOrd::partial_cmp -> Option<Ordering>` to this crate's
 //! [`Maybe`] vocabulary at call sites.
 
 use core::cmp::Ordering;
@@ -17,7 +17,7 @@ use crate::Maybe;
 /// as a [`Maybe<Ordering>`] instead of `Option<Ordering>`.
 ///
 /// Use at call sites that compare two values and want to stay in the
-/// substrate's vocabulary:
+/// vocabulary of this crate:
 ///
 /// ```
 /// use notko::{Maybe, cmp::PartialOrdExt};

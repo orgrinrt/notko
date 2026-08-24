@@ -24,6 +24,6 @@ pub use crate::sink::{BulkPush, Emit, Push};
 pub use crate::{BoundError, Boundable};
 pub use crate::{Maybe, MaybeNull, NicheFilled};
 // ConstTry / ConstFromResidual are intentionally not in the prelude.
-// They are substrate-internal const-callable parallels of core's Try /
-// FromResidual; consumers usually access fallibility through `?`
+// They are const-callable parallels of core's Try / FromResidual, and
+// fallibility is usually reached through `?`
 // (which desugars to core::ops::Try, not ConstTry).

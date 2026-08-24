@@ -9,8 +9,8 @@ use core::fmt;
 
 /// Presence. Either carries a value ([`Maybe::Is`]) or doesn't ([`Maybe::Isnt`]).
 ///
-/// Replaces `core::option::Option<T>` in the hilavitkutin stack's public APIs.
-/// No dependency on `core::option`.
+/// Stands in for `core::option::Option<T>` in a public API, so presence has one
+/// word across every tier. No dependency on `core::option`.
 ///
 /// # Layout
 ///
@@ -89,6 +89,19 @@ impl<T> Maybe<T> {
         }
     }
 
+    /// Run `f` on the inner value if present, then pass `self` through.
+    ///
+    /// Tier-symmetric mirror of [`crate::Just::inspect`] /
+    /// [`crate::Outcome::inspect`]. The closure does not run on
+    /// [`Maybe::Isnt`].
+    #[inline]
+    pub fn inspect<F: FnOnce(&T)>(self, f: F) -> Self {
+        if let Maybe::Is(ref value) = self {
+            f(value);
+        }
+        self
+    }
+
     /// Map the inner value if present.
     #[inline]
     pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> Maybe<U> {
@@ -100,7 +113,7 @@ impl<T> Maybe<T> {
 
     /// Convert to [`crate::Outcome`], using `err` if [`Maybe::Isnt`].
     ///
-    /// Mirrors `Option::ok_or` for the substrate vocabulary. The eager
+    /// Mirrors `Option::ok_or` in this crate's vocabulary. The eager
     /// form takes `err` by value; see [`Maybe::ok_or_else`] for the
     /// closure-deferred form.
     #[inline]
@@ -450,11 +463,11 @@ mod niche {
     //!
     //! Rustc's niche-filling optimisation applies to any 2-variant enum
     //! where one variant is unit and the other carries a type with an
-    //! invalid bit pattern. This module enumerates the types the stack
+    //! invalid bit pattern. This module enumerates the types this crate
     //! relies on as having a documented all-zeros invalid bit pattern:
     //! function pointers (non-null by language contract), references
     //! (non-null by language contract), [`core::ptr::NonNull`], and
-    //! [`core::num::NonZero*`]. In every case the niche value is the
+    //! `core::num::NonZero{U,I}*`. In every case the niche value is the
     //! all-zeros bit pattern (null pointer or integer zero), so a
     //! single sealed trait captures the full set.
     //!
@@ -547,7 +560,7 @@ pub use niche::NicheFilled;
 ///   0..=8. Niche: the null function pointer bit pattern.
 /// - A reference `&T` or `&mut T`. Niche: the null pointer bit pattern.
 /// - [`core::ptr::NonNull<T>`]. Niche: null.
-/// - [`core::num::NonZeroU*`] / [`core::num::NonZeroI*`] /
+/// - `core::num::NonZeroU*` / `core::num::NonZeroI*` /
 ///   `NonZeroUsize` / `NonZeroIsize`. Niche: integer zero.
 ///
 /// Every case shares the same invalid bit pattern: all zeros. MaybeNull's

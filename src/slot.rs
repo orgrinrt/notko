@@ -17,10 +17,9 @@
 //! contracts:
 //!
 //! `NonZeroable` (open trait) says "this type has a zero sentinel
-//! and a guaranteed-nonzero form." Downstream crates implement
-//! `NonZeroable` on their own newtypes (e.g. arvo's nonzero
-//! flavours of UFixed / IFixed) without needing to coordinate with
-//! notko.
+//! and a guaranteed-nonzero form." A downstream crate implements it
+//! on its own newtypes, a nonzero flavour of a fixed-point type say,
+//! without coordinating with this crate.
 //!
 //! `NicheFilled` (sealed trait) says "rustc's niche-filling
 //! optimisation actually realizes the bit-pattern-zero niche for
@@ -43,20 +42,18 @@
 //!
 //! ## Composition with domain wrappers
 //!
-//! Consumers needing the +1 / -1 shift to expose 0-indexed semantics
-//! over a `NonZeroX` payload (e.g. `arvo`'s `NUSize` over
-//! `Slot<NonZeroUSize>`) wrap `Slot<T>` again at the domain layer.
-//! The shift is the wrapper's contract, not Slot's. notko stays
-//! arithmetic-free.
+//! The +1 / -1 shift that exposes 0-indexed semantics over a
+//! `NonZeroX` payload is a wrapper around `Slot<T>` at the domain
+//! layer, not something `Slot` does. The shift is that wrapper's
+//! contract, and this crate stays arithmetic-free.
 //!
 //! ## Limitations on downstream NicheFilled types
 //!
 //! `NicheFilled` is sealed in notko. Downstream crates that want a
 //! `Slot<TheirCustomNonZeroType>` cannot extend `NicheFilled` and
 //! must use `core::num::NonZero{U,I}*` or a reference type as the
-//! payload. Tracked as a future cross-repo design question; for
-//! immediate use cases (arvo's `NUSize` over `NonZeroUSize`) the
-//! seal is not load-bearing.
+//! payload. Wrapping one of those is the shape that is actually
+//! reached for, so the seal has not bound anything in practice.
 
 use crate::{Maybe, NicheFilled, NonZeroable};
 

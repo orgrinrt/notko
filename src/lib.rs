@@ -8,13 +8,14 @@
 #![cfg_attr(feature = "try_trait_v2", feature(try_trait_v2_residual))]
 #![cfg_attr(feature = "const", feature(const_trait_impl))]
 
-//! notko: foundation primitives for the hilavitkutin stack.
+//! notko: foundation primitives.
 //!
 //! Finnish *notko*: hollow, trough. The ground every downstream crate sits on.
 //!
-//! Zero deps, no std, no alloc. Ships the scalar-level vocabulary used in
-//! place of `core::option::Option`, `core::result::Result`, and bare integer
-//! primitives across arvo, hilavitkutin, and vehje.
+//! Zero deps, no std, no alloc. Ships the scalar-level vocabulary that stands
+//! in for `core::option::Option`, `core::result::Result`, and bare integer
+//! primitives, so one set of words covers presence, fallibility and width
+//! everywhere above it.
 //!
 //! # Contents
 //!
@@ -44,8 +45,9 @@
 //!
 //! # Three tiers of fallibility
 //!
-//! [`Just`] / [`Maybe`] / [`Outcome`] mirror arvo's Hot / Warm / Cold
-//! numeric strategy at the control-flow level:
+//! [`Just`] / [`Maybe`] / [`Outcome`] put the hot, warm and cold split at
+//! the control-flow level, the same way a numeric strategy marker puts it at
+//! the arithmetic level:
 //!
 //! | Tier | Type | Cold path |
 //! |------|------|-----------|
@@ -74,7 +76,7 @@
 //! Size parity is pinned by compile-time `assert!` in `maybe.rs`. If a
 //! future rustc drops niche-filling for user enums while keeping
 //! `Option`-specific guarantees, those assertions fail compilation and
-//! the stack learns about it immediately.
+//! a build catches it immediately.
 //!
 //! For fully general payload types (both variants carry values, as in
 //! `Outcome<T, E>`), there is no single-pointer representation. Code
@@ -82,15 +84,12 @@
 //! in a dedicated `#[repr(C)]` struct rather than rely on
 //! `Outcome`'s default Rust-repr tagged-union layout.
 //!
-//! The stack's plugin dispatch and FFI surfaces previously insisted
-//! that bare `Option` / `Result` could not appear because `core`
-//! niche-filling for `Option` was "not a stable contract". That is
-//! inaccurate: `Option<&T>`, `Option<NonNull<T>>`, `Option<NonZero*>`,
-//! and `Option<fn>` all carry documented layout guarantees. With
-//! `Maybe` now equipped with the same niche-filled layout for the same
-//! shapes, `Maybe` replaces `Option` in public API positions for
-//! vocabulary reasons (one word for presence, uniform across the
-//! stack), not layout reasons.
+//! `Maybe` sits in a public API position for vocabulary reasons rather than
+//! layout ones. `Option<&T>`, `Option<NonNull<T>>`, `Option<NonZero*>` and
+//! `Option<fn>` all carry documented layout guarantees of their own, and
+//! `Maybe` carries the same niche-filled layout for the same shapes. What it
+//! buys is one word for presence everywhere, not a representation `core`
+//! could not have given.
 //!
 //! # Sanctioned use of std primitives
 //!

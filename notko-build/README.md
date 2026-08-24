@@ -25,10 +25,10 @@ name = "my-crate"
 build = "build.rs"
 
 [build-dependencies]
-notko-build = "0.1"
+notko-build = "0.0.1"
 
 [dependencies]
-notko-macros = "0.1"
+notko-macros = "0.0.1"
 # ... plus whichever crates in your dep tree provide the tiers you want to
 # consume via `#[profile(X)]`
 ```
@@ -54,7 +54,7 @@ build = "build.rs"
 links = "notko-optimisers-my-provider"  # unique; required for cargo metadata propagation
 
 [build-dependencies]
-notko-build = "0.1"
+notko-build = "0.0.1"
 ```
 
 Drop your optimiser files into `./notko-optimizers/*.rs`. Each must carry

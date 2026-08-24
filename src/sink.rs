@@ -5,40 +5,29 @@
 
 //! Where an item goes, as a contract rather than a decision.
 //!
-//! Two traits, because two shapes of receiver exist in this stack and each has a consumer.
+//! Two traits, along the two axes a receiver actually varies on: whether the caller holds it
+//! exclusively, and whether the write can fail.
 //!
 //! [`Push<T>`] takes an item through `&mut self` and cannot fail. That is a collector
-//! somebody owns: a buffer being filled, a counter, a discard. The engine's work units pass
-//! these around, and overflow is the implementor's problem rather than the caller's.
+//! somebody owns: a buffer being filled, a counter, a discard. Overflow is the implementor's
+//! problem rather than the caller's.
 //!
 //! [`Emit<T>`] takes an item through `&self` and can fail. That is a destination somebody
 //! installed: a log, a serial port, a file, a channel shared between threads. Nobody holds it
 //! exclusively, so `&mut self` is not available, and the write can fail for reasons the
 //! caller did not cause and usually cannot fix.
 //!
-//! The fourth corner, shared and infallible, has no consumer and is not written down. The
-//! third, exclusive and fallible, is `hilavitkutin_api::BoundedPush`, which lives there
-//! because it needs a capacity to report and this crate has no numerics.
-//!
-//! # Why these are here rather than where they started
-//!
-//! `Push` and `BulkPush` began as `hilavitkutin_api::capability`'s, and nothing in them is
-//! about pipelines: they name no numeric type, they carry no scheduling meaning, and a crate
-//! with nothing to do with the engine wanting to accept items had to either depend on the
-//! engine or write the same two traits again. The second is what happened, more than once.
-//!
-//! Until hilavitkutin re-exports these instead of declaring its own, both spellings exist and
-//! a crate depending on the engine and on this one sees two same-named traits that do not
-//! interconvert. That is a live duplicate, not a completed move, and it is what the engine
-//! side of this change has to close.
+//! The two remaining corners are not declared here. Shared and infallible has no consumer.
+//! Exclusive and fallible needs a capacity to report, and this crate has no numeric types to
+//! report one in, so it belongs to whichever crate does.
 
 use crate::outcome::Outcome;
 
 /// Receive one item by value, through an exclusive reference.
 ///
 /// Infallible: overflow is the implementor's problem. A receiver that refuses when full
-/// implements `hilavitkutin_api::BoundedPush` alongside this, which reports the refusal and
-/// the headroom that caused it.
+/// wants a bounded variant alongside this one, reporting the refusal and the headroom that
+/// caused it, and that variant belongs wherever the capacity type does.
 #[diagnostic::on_unimplemented(
     message = "`{Self}` cannot accept items of type `{T}` via Push",
     note = "Implement `Push<T>` to declare item-acceptance. For a receiver reached through a shared reference, or one whose write can fail, implement `Emit<T>` instead."

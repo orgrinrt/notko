@@ -18,8 +18,7 @@ use crate::Maybe;
 /// # Inner bound
 ///
 /// `Inner: Clone` is the minimum the trait requires. Every shipped impl
-/// (the 12 `core::num::NonZero{U,I}*` types below, plus arvo's nonzero
-/// `UFixed` / `IFixed` flavours) has `Inner: Copy`, which satisfies
+/// (the 12 `core::num::NonZero{U,I}*` types below) has `Inner: Copy`, which satisfies
 /// `Clone` trivially. The relaxed bound matches the sibling
 /// [`crate::Boundable`] trait so consumer code that takes both `T:
 /// NonZeroable` and `U: Boundable` does not have to wrestle with
@@ -47,10 +46,9 @@ pub trait NonZeroable: Sized {
 }
 
 // Built-in impls for the canonical `core::num::NonZero*` types.
-// Notko ships these so consumers reaching for `T: NonZeroable` can
-// pass the standard nonzero primitives directly without writing a
-// newtype. Domain newtypes (e.g. arvo's nonzero UFixed flavours)
-// add their own NonZeroable impls on top.
+// Shipped so a consumer reaching for `T: NonZeroable` can pass the
+// standard nonzero primitives directly rather than writing a newtype
+// first. A domain newtype adds its own impl on top.
 macro_rules! impl_nonzeroable_for_core {
     ($($nz:ty => $inner:ty),* $(,)?) => {
         $(

@@ -87,8 +87,8 @@ pub struct Exhausted {
 /// common case carry the general case's cost.
 ///
 /// Bare `usize` here and in [`Exhausted`] is the definition-site exception this
-/// crate exists to be: notko sits below the numeric substrate, so it cannot
-/// name that substrate's types without a cycle.
+/// crate exists to be. A typed width lives in a crate that depends on this one,
+/// so naming one here would be a cycle.
 #[derive(Debug)]
 pub struct Fill<'a, T> {
     slots: &'a mut [T],
