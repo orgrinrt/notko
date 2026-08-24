@@ -593,9 +593,14 @@ pub struct MaybeNull<T: NicheFilled>(Maybe<T>);
 
 impl<T: NicheFilled> MaybeNull<T> {
     /// Compile-time layout assertion evaluated per instantiation.
-    /// Referenced by [`Self::new`] and [`Self::null`] to force
-    /// evaluation so a size regression breaks the build at the
-    /// introduction site.
+    ///
+    /// [`Self::new`] and [`Self::null`] reference it, so a size regression
+    /// breaks the build at the site that introduced the value. They are not
+    /// the whole guard, and they cannot be: [`From`], [`Clone`] and
+    /// [`Self::into_maybe`] all hand back a `MaybeNull` without going through
+    /// either. What closes it is the block of `const _` bindings below, which
+    /// forces this for every `T` the sealed [`NicheFilled`] trait admits,
+    /// whatever route a value took to exist.
     const _LAYOUT_ASSERT: () = assert!(
         core::mem::size_of::<MaybeNull<T>>() == core::mem::size_of::<T>(),
         "MaybeNull<T> layout regression: niche-filling does not apply to T",
@@ -699,19 +704,40 @@ assert_fn_layout!(u8, u16, u32, u64, i8, i16);
 assert_fn_layout!(u8, u16, u32, u64, i8, i16, i32);
 assert_fn_layout!(u8, u16, u32, u64, i8, i16, i32, i64);
 
-// References and NonNull. The impls take `T: ?Sized`, so a fat pointer is in
-// the matrix and is the member most likely to lose the niche: the assertion is
-// about `MaybeNull<T>` being the same size as `T`, and for a fat pointer that
-// is two words rather than one.
-const _: () = MaybeNull::<&'static ()>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<&'static mut ()>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<&'static [u8]>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<&'static mut [u8]>::_LAYOUT_ASSERT;
+// References and NonNull. These impls take `T: ?Sized`, so the family is
+// unbounded and no list can name every member of it. What is bounded is the
+// thing the layout actually depends on: a pointer is one word plus its
+// pointee's metadata, and there are exactly three kinds of metadata, none for
+// a sized type, a length for a slice, and a vtable for a trait object. Every
+// pointer in the language is one of those three, so covering all three for each
+// family covers the family.
+macro_rules! assert_pointer_layout {
+    ($sized:ty, $slice:ty, $vtable:ty) => {
+        const _: () = MaybeNull::<$sized>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<$slice>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<$vtable>::_LAYOUT_ASSERT;
+    };
+}
+assert_pointer_layout!(
+    &'static (),
+    &'static [u8],
+    &'static dyn core::fmt::Debug
+);
+assert_pointer_layout!(
+    &'static mut (),
+    &'static mut [u8],
+    &'static mut dyn core::fmt::Debug
+);
+assert_pointer_layout!(
+    core::ptr::NonNull<()>,
+    core::ptr::NonNull<[u8]>,
+    core::ptr::NonNull<dyn core::fmt::Debug>
+);
+// `str` is a fourth spelling of slice metadata rather than a fourth kind, and
+// it is the one a caller reaches for often enough to be worth pinning by name.
 const _: () = MaybeNull::<&'static str>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<&'static dyn core::fmt::Debug>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::ptr::NonNull<()>>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::ptr::NonNull<[u8]>>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::ptr::NonNull<dyn core::fmt::Debug>>::_LAYOUT_ASSERT;
+const _: () = MaybeNull::<&'static mut str>::_LAYOUT_ASSERT;
+
 const _: () = MaybeNull::<core::num::NonZeroU8>::_LAYOUT_ASSERT;
 const _: () = MaybeNull::<core::num::NonZeroU16>::_LAYOUT_ASSERT;
 const _: () = MaybeNull::<core::num::NonZeroU32>::_LAYOUT_ASSERT;

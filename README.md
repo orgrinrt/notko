@@ -178,8 +178,10 @@ impl ExtensionDescriptor {
 }
 ```
 
-A per-instantiation `const _LAYOUT_ASSERT` runs at every call site, so the build fails if a future rustc
-ever regresses niche-filling for one of the supported shapes.
+A `const` layout assertion is forced for every shape `NicheFilled` admits, so the build fails if a future
+rustc ever regresses niche-filling for one of them. `NicheFilled` is sealed and its pointer families are
+covered at all three metadata kinds, which is what makes that a claim about the whole set rather than about
+the members somebody happened to list.
 
 ### Value invariants
 
