@@ -72,17 +72,34 @@ macro_rules! impl_nonzeroable_for_core {
     };
 }
 
-impl_nonzeroable_for_core! {
-    core::num::NonZeroU8 => u8,
-    core::num::NonZeroU16 => u16,
-    core::num::NonZeroU32 => u32,
-    core::num::NonZeroU64 => u64,
-    core::num::NonZeroU128 => u128,
-    core::num::NonZeroUsize => usize,
-    core::num::NonZeroI8 => i8,
-    core::num::NonZeroI16 => i16,
-    core::num::NonZeroI32 => i32,
-    core::num::NonZeroI64 => i64,
-    core::num::NonZeroI128 => i128,
-    core::num::NonZeroIsize => isize,
+/// The twelve `core::num::NonZero*` types and the primitive each wraps, in one
+/// place.
+///
+/// Three things need this list and they need it in different shapes: the trait
+/// impls here, the niche seal in `maybe`, and the layout assertions in `slot`.
+/// Written out three times it drifts, and the drift is silent, because a
+/// thirteenth type added to one list leaves the other two passing over the
+/// twelve they still name. So the list lives here and the shapes come to it:
+/// pass a macro that accepts `Ty => inner` pairs and it is invoked with all
+/// twelve.
+macro_rules! for_each_core_nonzero {
+    ($callback:ident) => {
+        $callback! {
+            core::num::NonZeroU8 => u8,
+            core::num::NonZeroU16 => u16,
+            core::num::NonZeroU32 => u32,
+            core::num::NonZeroU64 => u64,
+            core::num::NonZeroU128 => u128,
+            core::num::NonZeroUsize => usize,
+            core::num::NonZeroI8 => i8,
+            core::num::NonZeroI16 => i16,
+            core::num::NonZeroI32 => i32,
+            core::num::NonZeroI64 => i64,
+            core::num::NonZeroI128 => i128,
+            core::num::NonZeroIsize => isize,
+        }
+    };
 }
+pub(crate) use for_each_core_nonzero;
+
+for_each_core_nonzero!(impl_nonzeroable_for_core);

@@ -3,16 +3,21 @@
 // SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
 //--------------------------------------------------------------------------------------------------
 
-//! Layout assertions for `Slot<T>`. Pins `size_of::<Slot<T>> ==
-//! size_of::<T>` at runtime so a layout regression surfaces as a
-//! test failure even if the per-instantiation `_LAYOUT_ASSERT`
-//! consts in `slot.rs` are bypassed (e.g. by inlining changes that
-//! avoid evaluating them).
+//! Layout assertions for `Slot<T>`, from outside the crate.
+//!
+//! The const assertions inside `slot.rs` are generated from one list, so they
+//! cannot disagree with the trait impls. What they cannot do is notice the
+//! list getting shorter: drop a type from it and every remaining assertion
+//! still passes, over eleven twelfths of the surface.
+//!
+//! This file names all twelve by hand, which is the point. It is the external
+//! copy the generated ones are checked against, and a type leaving the list
+//! takes this file's build with it rather than going quiet.
 
 use core::mem::{align_of, size_of};
 use core::num::{
-    NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroIsize, NonZeroU8, NonZeroU16, NonZeroU32,
-    NonZeroU64, NonZeroUsize,
+    NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroIsize, NonZeroU8,
+    NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128, NonZeroUsize,
 };
 use notko::Slot;
 
@@ -29,19 +34,23 @@ fn slot_nonzero_isize_has_pointer_layout() {
 }
 
 #[test]
-fn slot_nonzero_u8_to_u64_have_integer_layout() {
+fn slot_unsigned_nonzero_have_integer_layout() {
     assert_eq!(size_of::<Slot<NonZeroU8>>(), size_of::<u8>());
     assert_eq!(size_of::<Slot<NonZeroU16>>(), size_of::<u16>());
     assert_eq!(size_of::<Slot<NonZeroU32>>(), size_of::<u32>());
     assert_eq!(size_of::<Slot<NonZeroU64>>(), size_of::<u64>());
+    assert_eq!(size_of::<Slot<NonZeroU128>>(), size_of::<u128>());
+    assert_eq!(align_of::<Slot<NonZeroU128>>(), align_of::<u128>());
 }
 
 #[test]
-fn slot_nonzero_i8_to_i64_have_integer_layout() {
+fn slot_signed_nonzero_have_integer_layout() {
     assert_eq!(size_of::<Slot<NonZeroI8>>(), size_of::<i8>());
     assert_eq!(size_of::<Slot<NonZeroI16>>(), size_of::<i16>());
     assert_eq!(size_of::<Slot<NonZeroI32>>(), size_of::<i32>());
     assert_eq!(size_of::<Slot<NonZeroI64>>(), size_of::<i64>());
+    assert_eq!(size_of::<Slot<NonZeroI128>>(), size_of::<i128>());
+    assert_eq!(align_of::<Slot<NonZeroI128>>(), align_of::<i128>());
 }
 
 #[test]

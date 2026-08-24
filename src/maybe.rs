@@ -499,29 +499,18 @@ mod niche {
     impl<T: ?Sized> Sealed for core::ptr::NonNull<T> {}
     impl<T: ?Sized> NicheFilled for core::ptr::NonNull<T> {}
 
-    // NonZero integers (unsigned + signed + usize + isize).
+    // NonZero integers. The list is `nonzero`'s, in `Ty => inner` pairs; the
+    // inner primitive is what the layout assertions need and this seal does
+    // not, so it is bound and dropped.
     macro_rules! impl_nz {
-        ($($ty:path),* $(,)?) => {
+        ($($ty:path => $inner:ty),* $(,)?) => {
             $(
                 impl Sealed for $ty {}
                 impl NicheFilled for $ty {}
             )*
         };
     }
-    impl_nz!(
-        core::num::NonZeroU8,
-        core::num::NonZeroU16,
-        core::num::NonZeroU32,
-        core::num::NonZeroU64,
-        core::num::NonZeroU128,
-        core::num::NonZeroUsize,
-        core::num::NonZeroI8,
-        core::num::NonZeroI16,
-        core::num::NonZeroI32,
-        core::num::NonZeroI64,
-        core::num::NonZeroI128,
-        core::num::NonZeroIsize,
-    );
+    crate::nonzero::for_each_core_nonzero!(impl_nz);
 
     // Function pointers at arities 0..=8 with every qualifier
     // combination (safe / unsafe x plain / extern "C").
@@ -738,18 +727,14 @@ assert_pointer_layout!(
 const _: () = MaybeNull::<&'static str>::_LAYOUT_ASSERT;
 const _: () = MaybeNull::<&'static mut str>::_LAYOUT_ASSERT;
 
-const _: () = MaybeNull::<core::num::NonZeroU8>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroU16>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroU32>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroU64>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroU128>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroUsize>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroI8>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroI16>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroI32>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroI64>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroI128>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroIsize>::_LAYOUT_ASSERT;
+// The same twelve `nonzero` names, so a type added there is asserted here
+// without anybody remembering to come and add it.
+macro_rules! assert_nonzero_niche {
+    ($($nz:ty => $inner:ty),* $(,)?) => {
+        $(const _: () = MaybeNull::<$nz>::_LAYOUT_ASSERT;)*
+    };
+}
+crate::nonzero::for_each_core_nonzero!(assert_nonzero_niche);
 
 #[cfg(test)]
 mod niche_layout_tests {

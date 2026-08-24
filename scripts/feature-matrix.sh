@@ -15,11 +15,22 @@ cd "$(dirname "$0")/.."
 
 fail=0
 
+# Count the tests that ran, not the result lines. An arm that compiled and ran
+# nothing prints one `test result: ok` per target and would otherwise pass for
+# a working configuration.
 run() {
     local label="$1"; shift
     printf '%-46s ' "$label"
     if out=$("$@" 2>&1); then
-        printf 'ok    %s\n' "$(echo "$out" | grep -cE '^test result: ok')"
+        local ran
+        ran=$(echo "$out" | sed -nE 's/^test result: ok\. ([0-9]+) passed.*/\1/p' \
+            | awk '{n += $1} END {print n + 0}')
+        if [ "$ran" -eq 0 ]; then
+            printf 'FAILED (compiled and ran no tests)\n'
+            fail=1
+        else
+            printf 'ok    %s\n' "$ran"
+        fi
     else
         printf 'FAILED\n'
         echo "$out" | grep -E '^error' | head -5 | sed 's/^/    /'
@@ -27,34 +38,43 @@ run() {
     fi
 }
 
-run "nightly, defaults"            cargo test -p notko
-run "nightly, no defaults"         cargo test -p notko --no-default-features
-run "nightly, all features"        cargo test -p notko --all-features
-run "nightly, const only"          cargo test -p notko --no-default-features --features const
-run "nightly, try_trait_v2 only"   cargo test -p notko --no-default-features --features try_trait_v2
-run "nightly, macros only"         cargo test -p notko --no-default-features --features macros
+# Sourcing gets the functions and runs nothing, which is what the test beside
+# this file needs. Executing runs the matrix.
+main() {
+    run "nightly, defaults"            cargo test -p notko
+    run "nightly, no defaults"         cargo test -p notko --no-default-features
+    run "nightly, all features"        cargo test -p notko --all-features
+    run "nightly, const only"          cargo test -p notko --no-default-features --features const
+    run "nightly, try_trait_v2 only"   cargo test -p notko --no-default-features --features try_trait_v2
+    run "nightly, macros only"         cargo test -p notko --no-default-features --features macros
 
-# `#[profile(Hot)]` rewrites to a different return type under `internal` with
-# `debug_assertions` off, and that arm is the crate's headline behaviour. A
-# workspace run never reaches it, since neither flag is on by default.
-run "macros, defaults"             cargo test -p notko-macros
-run "macros, internal + release"   cargo test -p notko-macros --features internal --release
+    # `#[profile(Hot)]` rewrites to a different return type under `internal` with
+    # `debug_assertions` off, and that arm is the crate's headline behaviour. A
+    # workspace run never reaches it, since neither flag is on by default.
+    run "macros, defaults"             cargo test -p notko-macros
+    run "macros, internal + release"   cargo test -p notko-macros --features internal --release
 
-# The README tells a reader on stable to turn the defaults off. Both halves of
-# that sentence are checked: the crate works without them, and it genuinely
-# cannot be built with them, so the instruction is necessary rather than
-# cautious.
-if rustup toolchain list 2>/dev/null | grep -q '^stable'; then
-    run "stable, no defaults" cargo +stable test -p notko --no-default-features
-    printf '%-46s ' "stable, defaults refused"
-    if cargo +stable build -p notko >/dev/null 2>&1; then
-        printf 'FAILED (it built, so the README overstates the need)\n'
-        fail=1
+    # The README tells a reader on stable to turn the defaults off. Both halves of
+    # that sentence are checked: the crate works without them, and it genuinely
+    # cannot be built with them, so the instruction is necessary rather than
+    # cautious.
+    if rustup toolchain list 2>/dev/null | grep -q '^stable'; then
+        run "stable, no defaults" cargo +stable test -p notko --no-default-features
+        printf '%-46s ' "stable, defaults refused"
+        if cargo +stable build -p notko >/dev/null 2>&1; then
+            printf 'FAILED (it built, so the README overstates the need)\n'
+            fail=1
+        else
+            printf 'ok\n'
+        fi
     else
-        printf 'ok\n'
+        echo "stable toolchain absent, skipping the two stable arms"
     fi
-else
-    echo "stable toolchain absent, skipping the two stable arms"
-fi
 
-exit "$fail"
+    return "$fail"
+}
+
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    main
+    exit $?
+fi
