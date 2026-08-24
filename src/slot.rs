@@ -34,10 +34,12 @@
 //! match the contract a niche occupies; NicheFilled so the layout
 //! claim holds.
 //!
-//! Per-instantiation `_LAYOUT_ASSERT` constants verify
-//! `size_of::<Slot<T>> == size_of::<T>` at compile time. Adding a
-//! new `Slot<T>` instantiation that fails the assert is a build
-//! error, not a silent layout regression.
+//! A const assertion per `NonZeroable` impl verifies
+//! `size_of::<Slot<T>> == size_of::<T>` at compile time, so a layout
+//! regression on any of them is a build error rather than something
+//! that shows up at an FFI boundary. Those assertions cover the
+//! primitives this crate implements the trait for; a consumer adding
+//! its own `NonZeroable` type is asserting its own layout.
 //!
 //! ## Composition with domain wrappers
 //!
@@ -116,27 +118,34 @@ impl<T: NonZeroable + NicheFilled> Default for Slot<T> {
     }
 }
 
-// Per-instantiation layout assertions. Each named instantiation
-// pins `size_of::<Slot<T>> == size_of::<T>` at compile time. New
-// instantiations downstream consumers actually exercise (e.g.
-// arvo's `Slot<NonZeroUSize>`) should add a matching const here.
-// Drift between Slot's claimed layout and rustc's realized layout
-// surfaces as a build error.
+// Layout assertions over every type this crate implements `NonZeroable`
+// for. Drift between the claimed layout and the one rustc realizes is a
+// build error rather than something an FFI boundary discovers later.
 mod layout_assertions {
     use super::Slot;
     use core::mem::size_of;
-    use core::num::{
-        NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroU8, NonZeroU16, NonZeroU32,
-        NonZeroU64, NonZeroUsize,
-    };
 
-    const _SLOT_NONZERO_USIZE: () = assert!(size_of::<Slot<NonZeroUsize>>() == size_of::<usize>());
-    const _SLOT_NONZERO_U8: () = assert!(size_of::<Slot<NonZeroU8>>() == size_of::<u8>());
-    const _SLOT_NONZERO_U16: () = assert!(size_of::<Slot<NonZeroU16>>() == size_of::<u16>());
-    const _SLOT_NONZERO_U32: () = assert!(size_of::<Slot<NonZeroU32>>() == size_of::<u32>());
-    const _SLOT_NONZERO_U64: () = assert!(size_of::<Slot<NonZeroU64>>() == size_of::<u64>());
-    const _SLOT_NONZERO_I8: () = assert!(size_of::<Slot<NonZeroI8>>() == size_of::<i8>());
-    const _SLOT_NONZERO_I16: () = assert!(size_of::<Slot<NonZeroI16>>() == size_of::<i16>());
-    const _SLOT_NONZERO_I32: () = assert!(size_of::<Slot<NonZeroI32>>() == size_of::<i32>());
-    const _SLOT_NONZERO_I64: () = assert!(size_of::<Slot<NonZeroI64>>() == size_of::<i64>());
+    // The list mirrors `impl_nonzeroable_for_core!` in `nonzero.rs`. A
+    // hand-written subset of it drifts silently, since every assertion that
+    // is present still passes while the ones nobody typed cover nothing.
+    macro_rules! assert_slot_layout {
+        ($($nz:ty => $inner:ty),* $(,)?) => {
+            $(const _: () = assert!(size_of::<Slot<$nz>>() == size_of::<$inner>());)*
+        };
+    }
+
+    assert_slot_layout! {
+        core::num::NonZeroU8 => u8,
+        core::num::NonZeroU16 => u16,
+        core::num::NonZeroU32 => u32,
+        core::num::NonZeroU64 => u64,
+        core::num::NonZeroU128 => u128,
+        core::num::NonZeroUsize => usize,
+        core::num::NonZeroI8 => i8,
+        core::num::NonZeroI16 => i16,
+        core::num::NonZeroI32 => i32,
+        core::num::NonZeroI64 => i64,
+        core::num::NonZeroI128 => i128,
+        core::num::NonZeroIsize => isize,
+    }
 }
