@@ -25,9 +25,29 @@ description = "Fallibility primitives whose branch cost is chosen at the call si
 readme = "README.md"
 categories = ["no-std", "rust-patterns"]
 keywords = ["no_std", "no_alloc", "primitives", "fallible"]
-# Named rather than excluded, so a file added later has to be asked for
-# instead of shipping by default.
-include = ["src/**/*.rs", "tests/**/*.rs", "README.md", "LICENSE"]
+# Tests are named one at a time, because the two kinds here want opposite
+# answers. Most of them check the crate and belong in the package. One checks
+# this repository: `readme_claims.rs` reads the workspace manifest's member
+# list, which cargo's generated manifest does not have, so in an unpacked
+# tarball it panics rather than testing anything. A glob cannot tell them
+# apart, and the decision is the point.
+include = [
+    "src/**/*.rs",
+    "tests/bounded.rs",
+    "tests/cmp_ext.rs",
+    "tests/consttry_smoke.rs",
+    "tests/ctor_const_path.rs",
+    "tests/ctor_plain_path.rs",
+    "tests/iter_ext.rs",
+    "tests/just_combinators.rs",
+    "tests/maybe_combinators.rs",
+    "tests/nonzero.rs",
+    "tests/outcome_combinators.rs",
+    "tests/slot_layout.rs",
+    "tests/try_smoke.rs",
+    "README.md",
+    "LICENSE",
+]
 
 [lib]
 name = "notko"

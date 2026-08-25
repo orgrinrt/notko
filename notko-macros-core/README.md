@@ -25,15 +25,12 @@ Do note the surface still moves with the rest of the crates, so pin an exact ver
 cargo add notko-macros-core
 ```
 
-## Public API
+## What's in it
 
-| Item | Purpose |
-|---|---|
-| `tiers::{Tier, Strategy, CustomTier}` | Three built-in tiers and the resolved-tier struct handed to rewriters. |
-| `parse::parse_tier_arg` | Parse the tier ident from an attribute-arg token stream. |
-| `discover::resolve_tier` | Resolve a tier name to a `CustomTier`, looking up `notko-optimizers/<Name>.rs` in the consumer's crate manifest dir and (optionally) in `$NOTKO_OPTIMISERS_PATH`. |
-| `rewrite::{entry, rewrite_fn, HotRewriter, OutcomeRewriter}` | The rewrite engine. `entry` is the one-shot driver used by notko-macros itself; `rewrite_fn` takes an already-resolved `CustomTier`; the visitor structs are exposed for finer-grained use. |
-| `rewrite::helpers::{is_ok_call, is_err_call, extract_result_inner_types, macro_last_ident_is, stmt_macro_last_ident_is}` | Shared AST utilities. |
+The rewrite engine, the tier vocabulary it rewrites against, and the discovery
+that turns a tier name into something to rewrite with. The full surface with
+working links is on [docs.rs](https://docs.rs/notko-macros-core), which is a
+better place for it than a table here that drifts the first time a type moves.
 
 ## Authoring a third-party attribute macro
 

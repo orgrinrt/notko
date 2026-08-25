@@ -21,13 +21,13 @@ So this runs in a build script instead. It gathers every optimiser file the crat
 its dependencies', into `$OUT_DIR/notko-optimisers/`, and points the proc-macro at the result through
 `NOTKO_OPTIMISERS_PATH`. You only need it if you're sharing tiers across crates.
 
-## A note on spelling
+## The two spellings
 
-Source files live in `notko-optimizers/` (US "z"), by historical convention.
-The env var, `links` key, and `$OUT_DIR` subdirectory use `notko-optimisers/`
-(UK "s") to match the British baseline elsewhere in the project. Both forms
-appear throughout this README. The split is intentional; readers should not
-assume a typo.
+Source files live in `notko-optimizers/`, with a z. The env var, the `links`
+key and the `$OUT_DIR` subdirectory are `notko-optimisers/`, with an s. Both
+spellings turn up below and neither is a typo, so it's worth having the pair in
+mind: a directory named with the wrong one is simply not found, and nothing
+says so.
 
 ## Usage
 

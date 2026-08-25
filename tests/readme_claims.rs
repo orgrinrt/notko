@@ -93,9 +93,18 @@ fn every_crate_ships_a_readme() {
 
 #[test]
 fn no_readme_says_the_crate_is_unpublished() {
-    // The whole class rather than the sentence that was there, because the next
-    // one will be phrased differently. Anything pointing a reader at the git
-    // repository for an install is the same claim in another coat.
+    // Two halves, and only one of them is a class.
+    //
+    // The branch-dependency check below is structural: any README telling a
+    // reader to install from a git branch is making this claim, however it is
+    // worded, and the check finds it without knowing the wording.
+    //
+    // The phrase list is not a class and should not be read as one. It is six
+    // spellings that were actually in these files, kept so those exact
+    // regressions cannot come back. A seventh wording sails through, and the
+    // structural half is what catches it, so adding to this list is worth
+    // doing when a new phrasing turns up and is not a substitute for the check
+    // underneath.
     const UNPUBLISHED: [&str; 6] = [
         "not on crates.io",
         "isn't on crates.io",
@@ -206,6 +215,73 @@ fn the_readme_the_manifest_names_is_the_one_that_is_there() {
         assert!(
             dir.join(&named).is_file(),
             "{name}'s manifest names {named}, which is not beside it",
+        );
+    }
+}
+
+/// The tests this crate publishes have to run from an unpacked tarball, where
+/// the repository is not there.
+///
+/// Two kinds of test live under `tests/`. Most check the crate and belong in
+/// the package. This file checks the repository: it reads the workspace
+/// manifest's member list, which cargo's generated manifest does not carry, so
+/// shipping it produces a crate whose own suite panics on the first line.
+/// `cargo package` will not catch that, because packaging compiles the tests
+/// and never runs them.
+#[test]
+fn a_shipped_test_does_not_reach_for_the_repository() {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let toml = fs::read_to_string(manifest_dir.join("Cargo.toml")).expect("no manifest");
+
+    let include = toml
+        .split_once("include = [")
+        .expect("the manifest names no `include`, so everything ships and this check is moot")
+        .1
+        .split_once(']')
+        .expect("`include` is not closed")
+        .0;
+
+    let shipped: Vec<&str> = include
+        .split('"')
+        .filter(|s| s.starts_with("tests/") && s.ends_with(".rs"))
+        .collect();
+
+    assert!(
+        !shipped.is_empty(),
+        "no test file is named in `include`, so this check would hold over an \
+         empty set. If that is deliberate, delete this test rather than \
+         leaving it to pass on nothing."
+    );
+
+    // What a tarball does not have: the workspace manifest, and the repository
+    // git would answer questions about.
+    const ABSENT: [&str; 2] = ["workspace manifest", "members = ["];
+
+    for file in &shipped {
+        let body = fs::read_to_string(manifest_dir.join(file))
+            .unwrap_or_else(|e| panic!("`include` names {file}, which is not readable: {e}"));
+
+        for needle in ABSENT {
+            assert!(
+                !body.contains(needle),
+                "{file} is published and reaches for `{needle}`, which an \
+                 unpacked tarball does not have. Either drop it from `include` \
+                 because it is a check about this repository, or stop it \
+                 depending on the repository because it is a check about the \
+                 crate."
+            );
+        }
+    }
+
+    // The control. Without it the loop passes on any needle nothing contains,
+    // including a typo, and this file is the proof the needles are findable in
+    // a real test body.
+    let own = fs::read_to_string(file!()).expect("this file is not readable");
+    for needle in ABSENT {
+        assert!(
+            own.contains(needle),
+            "the needle `{needle}` was not found even in a file that plainly \
+             uses it, so the loop above would clear every file it looked at"
         );
     }
 }
