@@ -1,0 +1,833 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
+//! [`Maybe<T>`]: presence (replaces `Option<T>`).
+
+use core::fmt;
+
+/// Presence. Either carries a value ([`Maybe::Is`]) or doesn't ([`Maybe::Isnt`]).
+///
+/// Stands in for `core::option::Option<T>` in a public API, so presence has one
+/// word across every tier. No dependency on `core::option`.
+///
+/// # Layout
+///
+/// `Maybe<T>` is a plain Rust-repr two-variant enum. When `T` has a niche
+/// (function pointers, references `&T` / `&mut T`, `NonZero*`, `NonNull<T>`),
+/// rustc applies niche-filling: `Maybe<T>` has identical size and alignment
+/// to `T` itself, and `Maybe::Isnt` is represented by `T`'s invalid bit
+/// pattern (null for pointer-shaped types). This is the same optimization
+/// that gives `Option<T>` its null-niche layout for pointer types.
+///
+/// The optimization is applied automatically by the compiler on any
+/// 2-variant enum with one unit variant and one payload-carrying variant
+/// whose payload type has a niche. Size parity with the underlying
+/// pointer type is verified at compile time below, for the shapes that
+/// actually cross an FFI boundary. If a future rustc changes its
+/// niche-filling behavior for user enums, those assertions fail
+/// compilation immediately.
+///
+/// Deliberately not `#[repr(C)]`. Forcing a tagged union layout, meaning
+/// an explicit discriminant plus payload plus padding, blocks the very
+/// niche-filling this type exists for. Anything that needs an explicit
+/// C ABI representation should use a `#[repr(C)]` struct shaped the way
+/// it actually needs, not `Maybe`, since a tagged union isn't a native C
+/// construct anyway.
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
+#[must_use = "Maybe<T> may carry a value; ignoring it discards a presence check"]
+pub enum Maybe<T> {
+    Is(T),
+    Isnt,
+}
+
+// The layout contract lives on [`MaybeNull<T>`] further down, not on
+// [`Maybe<T>`]. `Maybe` is the general vocabulary type; its layout
+// depends on whether `T` happens to carry a niche. `MaybeNull<T>` is the
+// FFI-intent wrapper that pins the layout per instantiation via
+// sealed-trait bound + const assertion.
+
+impl<T> Maybe<T> {
+    /// `true` if this is [`Maybe::Is`].
+    #[inline]
+    pub const fn is(&self) -> bool {
+        matches!(self, Maybe::Is(_))
+    }
+
+    /// `true` if this is [`Maybe::Isnt`].
+    #[inline]
+    pub const fn isnt(&self) -> bool {
+        matches!(self, Maybe::Isnt)
+    }
+
+    /// Convert by value into a `&Maybe<&T>` (zero-cost).
+    #[inline]
+    pub const fn as_ref(&self) -> Maybe<&T> {
+        match self {
+            Maybe::Is(value) => Maybe::Is(value),
+            Maybe::Isnt => Maybe::Isnt,
+        }
+    }
+
+    /// Extract the inner value; panic if absent.
+    #[inline]
+    #[track_caller]
+    pub fn unwrap(self) -> T {
+        match self {
+            Maybe::Is(value) => value,
+            Maybe::Isnt => panic!("called `Maybe::unwrap` on an `Isnt` value"),
+        }
+    }
+
+    /// Extract the inner value or return `fallback`.
+    #[inline]
+    pub fn unwrap_or(self, fallback: T) -> T {
+        match self {
+            Maybe::Is(value) => value,
+            Maybe::Isnt => fallback,
+        }
+    }
+
+    /// Run `f` on the inner value if present, then pass `self` through.
+    ///
+    /// Tier-symmetric mirror of [`crate::Just::inspect`] /
+    /// [`crate::Outcome::inspect`]. The closure does not run on
+    /// [`Maybe::Isnt`].
+    #[inline]
+    pub fn inspect<F: FnOnce(&T)>(self, f: F) -> Self {
+        if let Maybe::Is(ref value) = self {
+            f(value);
+        }
+        self
+    }
+
+    /// Map the inner value if present.
+    #[inline]
+    pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> Maybe<U> {
+        match self {
+            Maybe::Is(value) => Maybe::Is(f(value)),
+            Maybe::Isnt => Maybe::Isnt,
+        }
+    }
+
+    /// Convert to [`crate::Outcome`], using `err` if [`Maybe::Isnt`].
+    ///
+    /// Mirrors `Option::ok_or` in this crate's vocabulary. The eager
+    /// form takes `err` by value; see [`Maybe::ok_or_else`] for the
+    /// closure-deferred form.
+    #[inline]
+    pub fn ok_or<E>(self, err: E) -> crate::Outcome<T, E> {
+        match self {
+            Maybe::Is(value) => crate::Outcome::Ok(value),
+            Maybe::Isnt => crate::Outcome::Err(err),
+        }
+    }
+
+    /// Unwrap with a custom panic message.
+    ///
+    /// Panics with `msg` if [`Maybe::Isnt`]. Use over [`Maybe::unwrap`]
+    /// when the panic context names the invariant that was violated.
+    #[inline]
+    pub fn expect(self, msg: &str) -> T {
+        match self {
+            Maybe::Is(value) => value,
+            Maybe::Isnt => panic!("{}", msg),
+        }
+    }
+
+    /// Convert by mutable reference into a `Maybe<&mut T>` (zero-cost).
+    #[inline]
+    pub fn as_mut(&mut self) -> Maybe<&mut T> {
+        match self {
+            Maybe::Is(value) => Maybe::Is(value),
+            Maybe::Isnt => Maybe::Isnt,
+        }
+    }
+
+    /// Extract the inner value or compute it from a closure.
+    #[inline]
+    pub fn unwrap_or_else<F: FnOnce() -> T>(self, f: F) -> T {
+        match self {
+            Maybe::Is(value) => value,
+            Maybe::Isnt => f(),
+        }
+    }
+
+    /// Extract the inner value or `T::default()`.
+    #[inline]
+    pub fn unwrap_or_default(self) -> T
+    where
+        T: Default,
+    {
+        match self {
+            Maybe::Is(value) => value,
+            Maybe::Isnt => T::default(),
+        }
+    }
+
+    /// Map the inner value to `U`, or return `default` if absent.
+    #[inline]
+    pub fn map_or<U, F: FnOnce(T) -> U>(self, default: U, f: F) -> U {
+        match self {
+            Maybe::Is(value) => f(value),
+            Maybe::Isnt => default,
+        }
+    }
+
+    /// Map the inner value to `U`, or compute the default from a closure.
+    #[inline]
+    pub fn map_or_else<U, D: FnOnce() -> U, F: FnOnce(T) -> U>(self, default: D, f: F) -> U {
+        match self {
+            Maybe::Is(value) => f(value),
+            Maybe::Isnt => default(),
+        }
+    }
+
+    /// Convert to [`crate::Outcome`], computing the error from a closure.
+    ///
+    /// Lazy form of [`Maybe::ok_or`]. Use when the error value is
+    /// non-trivial to construct.
+    #[inline]
+    pub fn ok_or_else<E, F: FnOnce() -> E>(self, err: F) -> crate::Outcome<T, E> {
+        match self {
+            Maybe::Is(value) => crate::Outcome::Ok(value),
+            Maybe::Isnt => crate::Outcome::Err(err()),
+        }
+    }
+
+    /// Chain another fallible computation. If [`Maybe::Is`], call `f`
+    /// with the inner value; otherwise propagate [`Maybe::Isnt`].
+    #[inline]
+    pub fn and_then<U, F: FnOnce(T) -> Maybe<U>>(self, f: F) -> Maybe<U> {
+        match self {
+            Maybe::Is(value) => f(value),
+            Maybe::Isnt => Maybe::Isnt,
+        }
+    }
+
+    /// Return `self` if [`Maybe::Is`], otherwise return `fallback`.
+    #[inline]
+    pub fn or(self, fallback: Maybe<T>) -> Maybe<T> {
+        match self {
+            Maybe::Is(_) => self,
+            Maybe::Isnt => fallback,
+        }
+    }
+
+    /// Return `self` if [`Maybe::Is`], otherwise compute the fallback.
+    #[inline]
+    pub fn or_else<F: FnOnce() -> Maybe<T>>(self, f: F) -> Maybe<T> {
+        match self {
+            Maybe::Is(_) => self,
+            Maybe::Isnt => f(),
+        }
+    }
+
+    /// Return [`Maybe::Isnt`] if `predicate(&value)` is false.
+    #[inline]
+    pub fn filter<P: FnOnce(&T) -> bool>(self, predicate: P) -> Maybe<T> {
+        match self {
+            Maybe::Is(value) if predicate(&value) => Maybe::Is(value),
+            _ => Maybe::Isnt,
+        }
+    }
+
+    /// Exclusive-or: `Is` only if exactly one of `self` or `other` is `Is`.
+    #[inline]
+    pub fn xor(self, other: Maybe<T>) -> Maybe<T> {
+        match (self, other) {
+            (Maybe::Is(value), Maybe::Isnt) => Maybe::Is(value),
+            (Maybe::Isnt, Maybe::Is(value)) => Maybe::Is(value),
+            _ => Maybe::Isnt,
+        }
+    }
+
+    /// Combine two presences into a tuple, propagating absence.
+    #[inline]
+    pub fn zip<U>(self, other: Maybe<U>) -> Maybe<(T, U)> {
+        match (self, other) {
+            (Maybe::Is(a), Maybe::Is(b)) => Maybe::Is((a, b)),
+            _ => Maybe::Isnt,
+        }
+    }
+
+    /// Take the inner value out, leaving [`Maybe::Isnt`] in its place.
+    #[inline]
+    pub fn take(&mut self) -> Maybe<T> {
+        core::mem::replace(self, Maybe::Isnt)
+    }
+
+    /// Replace the inner value with `value`, returning the previous state.
+    #[inline]
+    pub fn replace(&mut self, value: T) -> Maybe<T> {
+        core::mem::replace(self, Maybe::Is(value))
+    }
+
+    /// `true` if [`Maybe::Is`] and `predicate(&value)` returns true.
+    #[inline]
+    pub fn is_some_and<P: FnOnce(T) -> bool>(self, predicate: P) -> bool {
+        match self {
+            Maybe::Is(value) => predicate(value),
+            Maybe::Isnt => false,
+        }
+    }
+
+    /// `true` if [`Maybe::Isnt`], or if `predicate(&value)` returns true.
+    #[inline]
+    pub fn is_none_or<P: FnOnce(T) -> bool>(self, predicate: P) -> bool {
+        match self {
+            Maybe::Is(value) => predicate(value),
+            Maybe::Isnt => true,
+        }
+    }
+
+    /// Return an iterator yielding the inner value once, or empty if absent.
+    #[inline]
+    pub fn iter(&self) -> MaybeIter<&T> {
+        MaybeIter {
+            inner: self.as_ref(),
+        }
+    }
+}
+
+impl<T> Maybe<Maybe<T>> {
+    /// Flatten one level of nesting.
+    #[inline]
+    pub fn flatten(self) -> Maybe<T> {
+        match self {
+            Maybe::Is(inner) => inner,
+            Maybe::Isnt => Maybe::Isnt,
+        }
+    }
+}
+
+impl<T: Copy> Maybe<&T> {
+    /// Map `Maybe<&T>` to `Maybe<T>` by copying.
+    #[inline]
+    pub fn copied(self) -> Maybe<T> {
+        match self {
+            Maybe::Is(&value) => Maybe::Is(value),
+            Maybe::Isnt => Maybe::Isnt,
+        }
+    }
+}
+
+impl<T: Clone> Maybe<&T> {
+    /// Map `Maybe<&T>` to `Maybe<T>` by cloning.
+    #[inline]
+    pub fn cloned(self) -> Maybe<T> {
+        match self {
+            Maybe::Is(value) => Maybe::Is(value.clone()),
+            Maybe::Isnt => Maybe::Isnt,
+        }
+    }
+}
+
+/// Iterator over the inner value of a [`Maybe`].
+///
+/// Yields once if [`Maybe::Is`], zero times if [`Maybe::Isnt`].
+pub struct MaybeIter<T> {
+    inner: Maybe<T>,
+}
+
+impl<T> Iterator for MaybeIter<T> {
+    type Item = T;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        match core::mem::replace(&mut self.inner, Maybe::Isnt) {
+            Maybe::Is(value) => Some(value),
+            Maybe::Isnt => None,
+        }
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self.inner {
+            Maybe::Is(_) => (1, Some(1)),
+            Maybe::Isnt => (0, Some(0)),
+        }
+    }
+}
+
+impl<T> ExactSizeIterator for MaybeIter<T> {}
+
+impl<T> core::iter::FusedIterator for MaybeIter<T> {}
+
+impl<T> IntoIterator for Maybe<T> {
+    type Item = T;
+    type IntoIter = MaybeIter<T>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        MaybeIter { inner: self }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a Maybe<T> {
+    type Item = &'a T;
+    type IntoIter = MaybeIter<&'a T>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<T> From<Option<T>> for Maybe<T> {
+    #[inline]
+    fn from(opt: Option<T>) -> Self {
+        match opt {
+            Some(value) => Maybe::Is(value),
+            None => Maybe::Isnt,
+        }
+    }
+}
+
+impl<T> From<Maybe<T>> for Option<T> {
+    #[inline]
+    fn from(m: Maybe<T>) -> Self {
+        match m {
+            Maybe::Is(value) => Some(value),
+            Maybe::Isnt => None,
+        }
+    }
+}
+
+impl<T> Default for Maybe<T> {
+    #[inline]
+    fn default() -> Self {
+        Maybe::Isnt
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for Maybe<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Maybe::Is(value) => f.debug_tuple("Is").field(value).finish(),
+            Maybe::Isnt => f.write_str("Isnt"),
+        }
+    }
+}
+
+#[cfg(feature = "try_trait_v2")]
+mod try_impl {
+    use super::Maybe;
+    use core::convert::Infallible;
+    use core::ops::{ControlFlow, FromResidual, Residual, Try};
+
+    impl<T> Try for Maybe<T> {
+        type Output = T;
+        type Residual = Maybe<Infallible>;
+
+        #[inline]
+        fn from_output(output: Self::Output) -> Self {
+            Maybe::Is(output)
+        }
+
+        #[inline]
+        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+            match self {
+                Maybe::Is(value) => ControlFlow::Continue(value),
+                Maybe::Isnt => ControlFlow::Break(Maybe::Isnt),
+            }
+        }
+    }
+
+    impl<T> FromResidual<Maybe<Infallible>> for Maybe<T> {
+        #[inline]
+        fn from_residual(residual: Maybe<Infallible>) -> Self {
+            match residual {
+                Maybe::Isnt => Maybe::Isnt,
+                Maybe::Is(never) => match never {},
+            }
+        }
+    }
+
+    impl<T> Residual<T> for Maybe<Infallible> {
+        type TryType = Maybe<T>;
+    }
+}
+
+#[cfg(feature = "const")]
+#[path = "maybe_consttry_const.rs"]
+mod consttry_const_impl;
+
+#[cfg(not(feature = "const"))]
+#[path = "maybe_consttry_plain.rs"]
+mod consttry_plain_impl;
+
+mod niche {
+    //! Sealed marker trait for types that carry a bit-pattern-zero niche.
+    //!
+    //! Rustc's niche-filling optimisation applies to any 2-variant enum
+    //! where one variant is unit and the other carries a type with an
+    //! invalid bit pattern. This module enumerates the types this crate
+    //! relies on as having a documented all-zeros invalid bit pattern:
+    //! function pointers (non-null by language contract), references
+    //! (non-null by language contract), [`core::ptr::NonNull`], and
+    //! `core::num::NonZero{U,I}*`. In every case the niche value is the
+    //! all-zeros bit pattern (null pointer or integer zero), so a
+    //! single sealed trait captures the full set.
+    //!
+    //! The trait is sealed: `Sealed` is private to this module, and no
+    //! downstream crate can impl it. The exported [`NicheFilled`]
+    //! supertrait shows the bound shape at the call site but cannot be
+    //! implemented outside notko.
+
+    trait Sealed {}
+    /// Marker: `T` carries a bit-pattern-zero niche. Sealed; downstream
+    /// crates cannot extend.
+    ///
+    /// The sealed-trait pattern deliberately uses a private supertrait
+    /// (`Sealed`). `#[allow(private_bounds)]` suppresses rustc's
+    /// warning about the public trait having a private supertrait:
+    /// that is exactly the point. External code sees `NicheFilled` as the
+    /// bound, cannot reach `Sealed`, and therefore cannot impl
+    /// `NicheFilled` for new types.
+    #[allow(private_bounds)]
+    pub trait NicheFilled: Sealed {}
+
+    // References.
+    impl<T: ?Sized> Sealed for &T {}
+    impl<T: ?Sized> NicheFilled for &T {}
+    impl<T: ?Sized> Sealed for &mut T {}
+    impl<T: ?Sized> NicheFilled for &mut T {}
+
+    // NonNull.
+    impl<T: ?Sized> Sealed for core::ptr::NonNull<T> {}
+    impl<T: ?Sized> NicheFilled for core::ptr::NonNull<T> {}
+
+    // NonZero integers. The list is `nonzero`'s, in `Ty => inner` pairs; the
+    // inner primitive is what the layout assertions need and this seal does
+    // not, so it is bound and dropped.
+    macro_rules! impl_nz {
+        ($($ty:path => $inner:ty),* $(,)?) => {
+            $(
+                impl Sealed for $ty {}
+                impl NicheFilled for $ty {}
+            )*
+        };
+    }
+    crate::nonzero::for_each_core_nonzero!(impl_nz);
+
+    // Function pointers at arities 0..=8 with every qualifier
+    // combination (safe / unsafe x plain / extern "C").
+    macro_rules! impl_fn_niche {
+        ($($args:ident),*) => {
+            impl<R, $($args),*> Sealed for fn($($args),*) -> R {}
+            impl<R, $($args),*> NicheFilled for fn($($args),*) -> R {}
+            impl<R, $($args),*> Sealed for unsafe fn($($args),*) -> R {}
+            impl<R, $($args),*> NicheFilled for unsafe fn($($args),*) -> R {}
+            impl<R, $($args),*> Sealed for extern "C" fn($($args),*) -> R {}
+            impl<R, $($args),*> NicheFilled for extern "C" fn($($args),*) -> R {}
+            impl<R, $($args),*> Sealed for unsafe extern "C" fn($($args),*) -> R {}
+            impl<R, $($args),*> NicheFilled for unsafe extern "C" fn($($args),*) -> R {}
+        };
+    }
+    impl_fn_niche!();
+    impl_fn_niche!(A);
+    impl_fn_niche!(A, B);
+    impl_fn_niche!(A, B, C);
+    impl_fn_niche!(A, B, C, D);
+    impl_fn_niche!(A, B, C, D, E);
+    impl_fn_niche!(A, B, C, D, E, F);
+    impl_fn_niche!(A, B, C, D, E, F, G);
+    impl_fn_niche!(A, B, C, D, E, F, G, H);
+}
+
+pub use niche::NicheFilled;
+
+/// Size-parity wrapper for [`Maybe<T>`] where `T` carries a niche.
+///
+/// `MaybeNull<T>` is a `#[repr(transparent)]` newtype over [`Maybe<T>`]
+/// constrained by the sealed [`NicheFilled`] trait. `T` must be one of:
+///
+/// - A function pointer type (`fn(...)`, `unsafe fn(...)`,
+///   `extern "C" fn(...)`, `unsafe extern "C" fn(...)`) at arity
+///   0..=8. Niche: the null function pointer bit pattern.
+/// - A reference `&T` or `&mut T`. Niche: the null pointer bit pattern.
+/// - [`core::ptr::NonNull<T>`]. Niche: null.
+/// - `core::num::NonZeroU*` / `core::num::NonZeroI*` /
+///   `NonZeroUsize` / `NonZeroIsize`. Niche: integer zero.
+///
+/// Every case shares the same invalid bit pattern: all zeros. MaybeNull's
+/// [`MaybeNull::null`] constructor uses that pattern, giving `MaybeNull<T>`
+/// the same in-memory size as `T` itself. Instantiating `MaybeNull<T>`
+/// with a `T` outside the set fails to compile on the trait bound.
+///
+/// The `#[repr(transparent)]` marker makes `MaybeNull<T>` identical in
+/// size, alignment, and ABI to `Maybe<T>`, which for niche-carrying
+/// `T` is identical to `T`. A per-instantiation const assertion
+/// verifies `size_of::<MaybeNull<T>>() == size_of::<T>()` at compile time.
+///
+/// Use at FFI boundaries where the pointer-sized-or-integer-sized
+/// nullable representation IS the point:
+///
+/// ```
+/// use notko::MaybeNull;
+///
+/// #[repr(C)]
+/// pub struct Descriptor {
+///     pub init_fn: MaybeNull<unsafe extern "C" fn() -> u32>,
+/// }
+/// ```
+///
+/// For general-purpose presence without an FFI boundary, use
+/// [`Maybe<T>`] directly.
+#[repr(transparent)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
+pub struct MaybeNull<T: NicheFilled>(Maybe<T>);
+
+impl<T: NicheFilled> MaybeNull<T> {
+    /// Compile-time layout assertion evaluated per instantiation.
+    ///
+    /// [`Self::new`] and [`Self::null`] reference it, so a size regression
+    /// breaks the build at the site that introduced the value. They are not
+    /// the whole guard, and they cannot be: [`From`], [`Clone`] and
+    /// [`Self::into_maybe`] all hand back a `MaybeNull` without going through
+    /// either. What closes it is the block of `const _` bindings below, which
+    /// forces this for every `T` the sealed [`NicheFilled`] trait admits,
+    /// whatever route a value took to exist.
+    const _LAYOUT_ASSERT: () = assert!(
+        core::mem::size_of::<MaybeNull<T>>() == core::mem::size_of::<T>(),
+        "MaybeNull<T> layout regression: niche-filling does not apply to T",
+    );
+
+    /// Construct the null variant: the all-zeros bit pattern (null for
+    /// pointer-shaped `T`, integer zero for `NonZero*`).
+    #[inline]
+    pub const fn null() -> Self {
+        // Not `Self::_LAYOUT_ASSERT;`, which clippy suggests and then reports
+        // as a path statement with no effect, because that is exactly what it
+        // is: the const is never evaluated and the assertion never fires. The
+        // binding is what forces it, per instantiation, at the point a value is
+        // introduced.
+        #[allow(clippy::let_unit_value)]
+        let _ = Self::_LAYOUT_ASSERT;
+        Self(Maybe::Isnt)
+    }
+
+    /// Wrap `value`. Round-trips through the underlying layout without
+    /// discriminant overhead.
+    #[inline]
+    pub const fn new(value: T) -> Self {
+        // Not `Self::_LAYOUT_ASSERT;`, which clippy suggests and then reports
+        // as a path statement with no effect, because that is exactly what it
+        // is: the const is never evaluated and the assertion never fires. The
+        // binding is what forces it, per instantiation, at the point a value is
+        // introduced.
+        #[allow(clippy::let_unit_value)]
+        let _ = Self::_LAYOUT_ASSERT;
+        Self(Maybe::Is(value))
+    }
+
+    /// `true` if this is the null variant.
+    #[inline]
+    pub const fn is_null(&self) -> bool {
+        self.0.isnt()
+    }
+
+    /// `true` if this carries a value.
+    #[inline]
+    pub const fn is_non_null(&self) -> bool {
+        self.0.is()
+    }
+
+    /// View as the underlying [`Maybe`].
+    #[inline]
+    pub const fn as_maybe(&self) -> &Maybe<T> {
+        &self.0
+    }
+
+    /// Consume into the underlying [`Maybe`].
+    #[inline]
+    pub fn into_maybe(self) -> Maybe<T> {
+        self.0
+    }
+}
+
+impl<T: NicheFilled> From<Maybe<T>> for MaybeNull<T> {
+    #[inline]
+    fn from(m: Maybe<T>) -> Self {
+        Self(m)
+    }
+}
+
+impl<T: NicheFilled> From<MaybeNull<T>> for Maybe<T> {
+    #[inline]
+    fn from(n: MaybeNull<T>) -> Self {
+        n.0
+    }
+}
+
+// Per-shape layout verification pinned to `MaybeNull<T>` (not `Maybe<T>`).
+// Each line forces const evaluation of `MaybeNull::<T>::_LAYOUT_ASSERT`
+// for a specific T, so a size regression surfaces at compile time at
+// notko's foundation rather than at a far-away FFI crash site.
+//
+// The set below is the whole impl matrix, not a sample of it. The impls are
+// macro-generated over families, so a hand-written list covers whichever
+// members somebody thought of, and the arities nobody typed out are exactly
+// where a niche would go missing without anything saying so.
+
+// Function pointers: every arity the impl macro covers, times every qualifier
+// combination it generates. Unsized argument types are not expressible here and
+// are not part of that matrix.
+macro_rules! assert_fn_layout {
+    ($($args:ident),*) => {
+        const _: () = MaybeNull::<fn($($args),*) -> u8>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<unsafe fn($($args),*) -> u8>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<extern "C" fn($($args),*) -> u8>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<unsafe extern "C" fn($($args),*) -> u8>::_LAYOUT_ASSERT;
+    };
+}
+assert_fn_layout!();
+assert_fn_layout!(u8);
+assert_fn_layout!(u8, u16);
+assert_fn_layout!(u8, u16, u32);
+assert_fn_layout!(u8, u16, u32, u64);
+assert_fn_layout!(u8, u16, u32, u64, i8);
+assert_fn_layout!(u8, u16, u32, u64, i8, i16);
+assert_fn_layout!(u8, u16, u32, u64, i8, i16, i32);
+assert_fn_layout!(u8, u16, u32, u64, i8, i16, i32, i64);
+
+// References and NonNull. These impls take `T: ?Sized`, so the family is
+// unbounded and no list can name every member of it. What is bounded is the
+// thing the layout actually depends on: a pointer is one word plus its
+// pointee's metadata, and there are exactly three kinds of metadata, none for
+// a sized type, a length for a slice, and a vtable for a trait object. Every
+// pointer in the language is one of those three, so covering all three for each
+// family covers the family.
+macro_rules! assert_pointer_layout {
+    ($sized:ty, $slice:ty, $vtable:ty) => {
+        const _: () = MaybeNull::<$sized>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<$slice>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<$vtable>::_LAYOUT_ASSERT;
+    };
+}
+assert_pointer_layout!(&'static (), &'static [u8], &'static dyn core::fmt::Debug);
+assert_pointer_layout!(
+    &'static mut (),
+    &'static mut [u8],
+    &'static mut dyn core::fmt::Debug
+);
+assert_pointer_layout!(
+    core::ptr::NonNull<()>,
+    core::ptr::NonNull<[u8]>,
+    core::ptr::NonNull<dyn core::fmt::Debug>
+);
+// `str` is a fourth spelling of slice metadata rather than a fourth kind, and
+// it is the one a caller reaches for often enough to be worth pinning by name.
+const _: () = MaybeNull::<&'static str>::_LAYOUT_ASSERT;
+const _: () = MaybeNull::<&'static mut str>::_LAYOUT_ASSERT;
+
+// The same twelve `nonzero` names, so a type added there is asserted here
+// without anybody remembering to come and add it.
+macro_rules! assert_nonzero_niche {
+    ($($nz:ty => $inner:ty),* $(,)?) => {
+        $(const _: () = MaybeNull::<$nz>::_LAYOUT_ASSERT;)*
+    };
+}
+crate::nonzero::for_each_core_nonzero!(assert_nonzero_niche);
+
+#[cfg(test)]
+mod niche_layout_tests {
+    use super::*;
+
+    /// `Maybe::Isnt` for a function-pointer payload is the null bit
+    /// pattern. This is what allows `Maybe<unsafe extern "C" fn(...)>`
+    /// to cross a C ABI boundary as a single nullable function pointer,
+    /// matching the historical `Option<fn>` idiom.
+    #[test]
+    fn maybe_fn_isnt_is_null_bit_pattern() {
+        let m: Maybe<unsafe extern "C" fn()> = Maybe::Isnt;
+        // SAFETY: compile-time assertions above verify that
+        // `Maybe<fn>` has the same size + alignment as `*const ()`.
+        // Transmuting reads the bit pattern.
+        let bits: usize = unsafe { core::mem::transmute(m) };
+        assert_eq!(
+            bits, 0,
+            "Maybe::Isnt for unsafe extern \"C\" fn() must be null",
+        );
+    }
+
+    #[test]
+    fn maybe_ref_isnt_is_null_bit_pattern() {
+        let m: Maybe<&'static u32> = Maybe::Isnt;
+        let bits: usize = unsafe { core::mem::transmute(m) };
+        assert_eq!(bits, 0, "Maybe::Isnt for &T must be null");
+    }
+
+    #[test]
+    fn maybe_nonnull_isnt_is_null_bit_pattern() {
+        let m: Maybe<core::ptr::NonNull<u32>> = Maybe::Isnt;
+        let bits: usize = unsafe { core::mem::transmute(m) };
+        assert_eq!(bits, 0, "Maybe::Isnt for NonNull<T> must be null");
+    }
+
+    #[test]
+    fn maybe_nonzero_isnt_is_zero_bit_pattern() {
+        let m: Maybe<core::num::NonZeroU32> = Maybe::Isnt;
+        let bits: u32 = unsafe { core::mem::transmute(m) };
+        assert_eq!(bits, 0, "Maybe::Isnt for NonZeroU32 must be zero");
+    }
+
+    /// Round-trip: a `Some`-analog value transmuted through Maybe
+    /// recovers the original bit pattern. Proves `Maybe::Is(v)` is
+    /// just `v`'s bit pattern when niche-filling applies.
+    #[test]
+    fn maybe_fn_is_roundtrips_fn_pointer() {
+        unsafe extern "C" fn marker() {}
+        let original = marker as unsafe extern "C" fn();
+        let m: Maybe<unsafe extern "C" fn()> = Maybe::Is(original);
+        let bits: usize = unsafe { core::mem::transmute(m) };
+        assert_ne!(bits, 0, "Maybe::Is(fn) must not be null");
+        assert_eq!(
+            bits, original as usize,
+            "Maybe::Is(fn) must be fn's bit pattern",
+        );
+    }
+
+    /// [`MaybeNull<T>`] is `#[repr(transparent)]` over `Maybe<T>` and
+    /// inherits its niche layout.
+    #[test]
+    fn maybe_null_fn_has_pointer_layout() {
+        let n = MaybeNull::<unsafe extern "C" fn()>::null();
+        assert_eq!(
+            core::mem::size_of_val(&n),
+            core::mem::size_of::<*const ()>(),
+        );
+        let bits: usize = unsafe { core::mem::transmute(n) };
+        assert_eq!(bits, 0);
+    }
+
+    #[test]
+    fn maybe_null_nonzero_has_integer_layout() {
+        let n = MaybeNull::<core::num::NonZeroU32>::null();
+        assert_eq!(core::mem::size_of_val(&n), core::mem::size_of::<u32>(),);
+        let bits: u32 = unsafe { core::mem::transmute(n) };
+        assert_eq!(bits, 0);
+    }
+
+    #[test]
+    fn maybe_null_from_maybe_roundtrip() {
+        let m: Maybe<&'static u32> = Maybe::Isnt;
+        let n: MaybeNull<&'static u32> = MaybeNull::from(m);
+        assert!(n.is_null());
+        let back: Maybe<&'static u32> = n.into_maybe();
+        assert_eq!(back, Maybe::Isnt);
+    }
+
+    // Compile-fail boundary documentation. Uncommenting these should
+    // fail with "the trait bound `u32: NicheFilled` is not satisfied"
+    // and similar. The sealed trait keeps the set closed.
+    //
+    // fn _reject_u32() { let _ = MaybeNull::<u32>::null(); }
+    // fn _reject_struct() {
+    //     pub struct Plain(u32);
+    //     let _ = MaybeNull::<Plain>::null();
+    // }
+    // fn _reject_i64() { let _ = MaybeNull::<i64>::null(); }
+}

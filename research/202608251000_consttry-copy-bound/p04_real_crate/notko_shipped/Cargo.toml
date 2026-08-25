@@ -1,0 +1,33 @@
+[workspace]
+[package]
+name = "notko"
+version = "0.0.1"
+edition = "2024"
+license = "MPL-2.0"
+[lib]
+name = "notko"
+path = "src/lib.rs"
+[features]
+default = ["const"]
+try_trait_v2 = []
+const = []
+[[test]]
+name = "ctor_const_path"
+path = "tests/ctor_const_path.rs"
+required-features = ["const"]
+[[test]]
+name = "ctor_plain_path"
+path = "tests/ctor_plain_path.rs"
+[[test]]
+name = "try_smoke"
+path = "tests/try_smoke.rs"
+required-features = ["try_trait_v2"]
+
+[[test]]
+name = "consttry_notcopy"
+path = "tests/consttry_notcopy.rs"
+required-features = ["const"]
+
+[[test]]
+name = "consttry_parity"
+path = "tests/consttry_parity.rs"
