@@ -195,6 +195,8 @@ fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
         inline,
         panic_fmt,
         source_path: Some(path.to_path_buf()),
+        krate: crate::tiers::default_krate(),
+        gate_feature: crate::tiers::DEFAULT_GATE_FEATURE.to_string(),
     })
 }
 

@@ -9,26 +9,37 @@ repository.workspace = true
 description = "proc-macro attribute #[profile] for AST-rewriting between Hot/Warm/Cold fallibility tiers; used with notko's Just/Outcome primitives"
 readme = "README.md"
 categories = ["development-tools::procedural-macro-helpers"]
-keywords = ["no_std", "no_alloc", "proc-macro", "hot-path", "fallible"]
+keywords = ["proc-macro", "codegen", "hot-path", "fallible", "attribute"]
 
 # Named rather than excluded, so a file added later has to be asked for
 # rather than shipping by accident.
-# `tests/consumer_cfg.rs` is deliberately absent. It builds a fixture crate
-# that path-depends on this repository, so it can only run from a checkout;
-# shipped without its fixture it panics on a missing directory, and shipped
-# with one it would still resolve a path that is not in the package. `cargo
-# package` says so as a warning each time, which is the intended state rather
+# No test ships, and both absences are for the same reason: a test here needs
+# `notko` itself, and the only way to reach it from inside this crate is the
+# path dev-dependency below, which cargo strips on publish. A test that ships
+# without it does not compile, and the consumer meets that before anything
+# else.
+#
+# `tests/smoke.rs` writes `use notko::Just`. In the tarball there is no
+# `notko`, so it fails to resolve and the package's own test run goes red on a
+# fresh machine.
+#
+# `tests/consumer_cfg.rs` builds a fixture crate that path-depends on this
+# repository, so it only runs from a checkout at all. `cargo package` warns
+# about the stripped dependency each time, which is the intended state rather
 # than something to chase.
-include = ["src/**/*.rs", "tests/smoke.rs", "notko-optimizers/*.rs", "README.md", "LICENSE"]
-
-[lib]
-proc-macro = true
+include = ["src/**/*.rs", "notko-optimizers/*.rs", "README.md", "LICENSE"]
 
 [features]
 default = []
-# Flip hot-tier rewrite from Outcome<T, E> to Just<T> + panic-on-Err.
-# Enabled by a framework-consumer crate's own `internal` feature (convention).
+# Read by `tests/smoke.rs`, not by `src/`. The `cfg(feature = "internal")` the
+# macro emits is evaluated in the crate it expanded into, and for the smoke test
+# that crate is this one, so the release arm is unreachable without a feature
+# here to turn on. `DEFAULT_GATE_FEATURE` is where the name comes from, and a
+# consumer that wants a different one passes it to `CustomTier`.
 internal = []
+
+[lib]
+proc-macro = true
 
 [dependencies]
 notko-macros-core = { path = "../notko-macros-core", version = "0.0.1" }

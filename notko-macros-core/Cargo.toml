@@ -9,11 +9,15 @@ repository.workspace = true
 description = "AST-rewrite primitives and tier-discovery logic for notko-macros; reusable by third-party proc-macro crates that author their own fallibility-tier attribute macros"
 readme = "README.md"
 categories = ["development-tools::procedural-macro-helpers"]
-keywords = ["no_std", "no_alloc", "proc-macro", "hot-path", "fallible"]
+keywords = ["proc-macro", "codegen", "hot-path", "fallible", "attribute"]
 
 # Named rather than excluded, so a file added later has to be asked for
 # rather than shipping by accident.
-include = ["src/**/*.rs", "tests/**/*.rs", "README.md", "LICENSE"]
+# Named one at a time rather than globbed. A glob cannot tell a test about the
+# crate from a test about this repository, so it ships both, and the second kind
+# fails on a consumer's first `cargo test` rather than at any gate here.
+# `extension.rs` reaches for nothing outside the package, so it ships.
+include = ["src/**/*.rs", "tests/extension.rs", "README.md", "LICENSE"]
 
 [dependencies]
 syn = { version = "2", features = ["full", "parsing", "visit-mut", "extra-traits"] }

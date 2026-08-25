@@ -36,6 +36,9 @@
 //!   looks like.
 //! - [`sink::Emit<T>`]: receive an item through a shared reference, fallibly. What an
 //!   installed destination looks like: a log, a port, a file, a channel.
+//! - [`lend::Lend<T>`]: storage a caller hands over to be filled, with
+//!   [`lend::Fill`] carrying back the prefix that was written and
+//!   [`lend::Exhausted`] saying how much was wanted against how much there was.
 //! - [`NonZeroable`]: trait for "this type has a zero sentinel and a
 //!   nonzero guarantee form".
 //! - [`ConstTry`] / [`ConstFromResidual`]: const-callable parallels of
@@ -53,13 +56,6 @@
 //! | Hot  | [`Just<T>`]       | None: no branch. `?` compiles away. |
 //! | Warm | [`Maybe<T>`]      | One-bit discriminant, no payload. |
 //! | Cold | [`Outcome<T, E>`] | Full error payload + branch. |
-//!
-//! One word does double duty here and it is worth knowing before it bites.
-//! `Warm` above is the tier, and it is [`Maybe<T>`]. `#[profile(Warm)]` is the
-//! macro's strategy of the same name, and that one is passthrough: it leaves
-//! the `Result<T, E>` you wrote exactly as it is. So learning the table and
-//! then reaching for the attribute gets you a `Result` where you expected a
-//! `Maybe`. `Hot` and `Cold` mean the same thing in both places.
 //!
 //! The companion `#[profile(Hot | Warm | Cold)]` proc-macro (see the
 //! `notko-macros` crate, re-exported at the root under the `macros`

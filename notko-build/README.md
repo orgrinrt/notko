@@ -56,8 +56,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-That's it. Optimisers contributed by any crate in the dep graph are
-discoverable via `#[profile(Name)]`.
+That's it, with one limit worth knowing before you count on it. `DEP_*` reaches
+your *direct* dependencies only, and only the ones that declare `links` and run
+`collect_and_distribute` themselves. A tier two hops away arrives if the crate
+in between forwards it, and does not if that crate does nothing. So the reach is
+whatever the chain actually cooperates on, not the whole graph.
 
 ### Provider crate (publishes optimisers to downstream dependents)
 

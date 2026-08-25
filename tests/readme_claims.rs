@@ -219,72 +219,117 @@ fn the_readme_the_manifest_names_is_the_one_that_is_there() {
     }
 }
 
-/// The tests this crate publishes have to run from an unpacked tarball, where
-/// the repository is not there.
+/// The tests any crate here publishes have to run from an unpacked tarball,
+/// where neither the repository nor its sibling crates are there.
 ///
-/// Two kinds of test live under `tests/`. Most check the crate and belong in
-/// the package. This file checks the repository: it reads the workspace
+/// Two kinds of test live under a `tests/`. Most check the crate and belong in
+/// the package. Some check the repository: this file reads the workspace
 /// manifest's member list, which cargo's generated manifest does not carry, so
 /// shipping it produces a crate whose own suite panics on the first line.
-/// `cargo package` will not catch that, because packaging compiles the tests
-/// and never runs them.
+///
+/// The second class is subtler and is what this check missed while covering
+/// only the root crate. `notko-macros` shipped a test importing `notko`, which
+/// it reaches through a dev-dependency carrying a path and no version. Cargo
+/// strips exactly those on publish, so the tarball's test could not resolve the
+/// import at all.
+///
+/// Neither shows up in `cargo package`, because packaging compiles the tests
+/// and never runs them, and the second does not even compile.
 #[test]
 fn a_shipped_test_does_not_reach_for_the_repository() {
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let toml = fs::read_to_string(manifest_dir.join("Cargo.toml")).expect("no manifest");
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
-    let include = toml
-        .split_once("include = [")
-        .expect("the manifest names no `include`, so everything ships and this check is moot")
-        .1
-        .split_once(']')
-        .expect("`include` is not closed")
-        .0;
-
-    let shipped: Vec<&str> = include
-        .split('"')
-        .filter(|s| s.starts_with("tests/") && s.ends_with(".rs"))
+    // Every crate in the workspace, not just the one this file sits in. The
+    // defect this check exists for recurred in a sibling while the root stayed
+    // clean, and a check that looks at one crate reports on one crate.
+    let crates: Vec<PathBuf> = std::iter::once(root.clone())
+        .chain(
+            ["notko-macros", "notko-macros-core", "notko-build"]
+                .iter()
+                .map(|c| root.join(c)),
+        )
         .collect();
+    assert_eq!(crates.len(), 4, "the crate list is not what it says it is");
 
-    // A glob under `tests/` defeats the whole check: it matches every file
-    // including the ones that must not ship, and it reads as one entry to
-    // anything comparing strings, so the loop below silently finds nothing
-    // wrong. It is also the thing being forbidden on its own merits, since
-    // deciding per file is the point.
-    let globbed: Vec<&&str> = shipped.iter().filter(|e| e.contains('*')).collect();
-    assert!(
-        globbed.is_empty(),
-        "`include` reaches into `tests/` with a glob: {globbed:?}\n\
-         A glob cannot tell a crate test from a repository check, so it ships \
-         both. Name the files that belong in the package instead."
-    );
+    let mut checked_any_file = false;
 
-    assert!(
-        !shipped.is_empty(),
-        "no test file is named in `include`, so this check would hold over an \
-         empty set. If that is deliberate, delete this test rather than \
-         leaving it to pass on nothing."
-    );
+    for dir in &crates {
+        let label = dir.file_name().unwrap().to_string_lossy().to_string();
+        let toml = fs::read_to_string(dir.join("Cargo.toml"))
+            .unwrap_or_else(|e| panic!("{label} has no readable manifest: {e}"));
 
-    // What a tarball does not have: the workspace manifest, and the repository
-    // git would answer questions about.
-    const ABSENT: [&str; 2] = ["workspace manifest", "members = ["];
-
-    for file in &shipped {
-        let body = fs::read_to_string(manifest_dir.join(file))
-            .unwrap_or_else(|e| panic!("`include` names {file}, which is not readable: {e}"));
-
-        for needle in ABSENT {
-            assert!(
-                !body.contains(needle),
-                "{file} is published and reaches for `{needle}`, which an \
-                 unpacked tarball does not have. Either drop it from `include` \
-                 because it is a check about this repository, or stop it \
-                 depending on the repository because it is a check about the \
-                 crate."
+        let Some(include) = toml
+            .split_once("include = [")
+            .map(|(_, rest)| rest.split_once(']').expect("`include` is not closed").0)
+        else {
+            panic!(
+                "{label} names no `include`, so everything in it ships, \
+                 repository checks included"
             );
+        };
+
+        let shipped: Vec<&str> = include
+            .split('"')
+            .filter(|s| s.starts_with("tests/") && s.ends_with(".rs"))
+            .collect();
+
+        // A glob under `tests/` defeats the whole check: it matches every file
+        // including the ones that must not ship, and it reads as one entry to
+        // anything comparing strings, so the loop below silently finds nothing
+        // wrong. It is also the thing being forbidden on its own merits, since
+        // deciding per file is the point.
+        let globbed: Vec<&&str> = shipped.iter().filter(|e| e.contains('*')).collect();
+        assert!(
+            globbed.is_empty(),
+            "{label}'s `include` reaches into `tests/` with a glob: {globbed:?}\n\
+             A glob cannot tell a crate test from a repository check, so it ships \
+             both. Name the files that belong in the package instead."
+        );
+
+        // Crates cargo removes from the published manifest: a dev-dependency
+        // with a path and no version. A shipped test importing one of these
+        // does not compile in the tarball, and nothing before the consumer's
+        // first `cargo test` says so.
+        let stripped = stripped_dev_deps(&toml);
+
+        for file in &shipped {
+            let body = fs::read_to_string(dir.join(file)).unwrap_or_else(|e| {
+                panic!("{label}'s `include` names {file}, which is not readable: {e}")
+            });
+            checked_any_file = true;
+
+            for needle in ABSENT {
+                assert!(
+                    !body.contains(needle),
+                    "{label}/{file} is published and reaches for `{needle}`, which \
+                     an unpacked tarball does not have. Either drop it from \
+                     `include` because it is a check about this repository, or \
+                     stop it depending on the repository because it is a check \
+                     about the crate."
+                );
+            }
+
+            for dep in &stripped {
+                let underscored = dep.replace('-', "_");
+                let imports = body.contains(&format!("use {underscored}::"))
+                    || body.contains(&format!("{underscored}::"));
+                assert!(
+                    !imports,
+                    "{label}/{file} is published and imports `{dep}`, which \
+                     reaches it only through a dev-dependency carrying a path \
+                     and no version. Cargo strips those on publish, so this \
+                     test cannot compile from the tarball. Either drop it from \
+                     `include`, or give the dependency a registry version."
+                );
+            }
         }
     }
+
+    assert!(
+        checked_any_file,
+        "no crate named a test file in `include`, so every assertion above held \
+         over an empty set"
+    );
 
     // The control. Without it the loop passes on any needle nothing contains,
     // including a typo, and this file is the proof the needles are findable in
@@ -298,3 +343,56 @@ fn a_shipped_test_does_not_reach_for_the_repository() {
         );
     }
 }
+
+/// What a tarball does not have: the workspace manifest, and the repository git
+/// would answer questions about.
+const ABSENT: [&str; 2] = ["workspace manifest", "members = ["];
+
+/// Dependency names under `[dev-dependencies]` that carry a path and no
+/// version, which is exactly the set cargo drops when it publishes.
+fn stripped_dev_deps(toml: &str) -> Vec<String> {
+    let Some((_, rest)) = toml.split_once("[dev-dependencies]") else {
+        return Vec::new();
+    };
+    let section = rest.split("\n[").next().unwrap_or(rest);
+    section
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                return None;
+            }
+            let (name, spec) = line.split_once('=')?;
+            if spec.contains("path") && !spec.contains("version") {
+                Some(name.trim().to_string())
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+#[test]
+fn a_path_only_dev_dependency_is_recognised_as_stripped() {
+    let found = stripped_dev_deps(
+        "[dev-dependencies]\n\
+         # a comment\n\
+         local = { path = \"..\" }\n\
+         pinned = { path = \"../x\", version = \"0.0.1\" }\n\
+         registry = \"3\"\n\
+         \n\
+         [profile.release]\n\
+         local_but_out_of_section = { path = \"..\" }\n",
+    );
+    assert_eq!(
+        found,
+        vec!["local".to_string()],
+        "a versioned path dep, a registry dep, or a line past the section end \
+         was picked up, or the path-only one was missed"
+    );
+    assert!(
+        stripped_dev_deps("[dependencies]\nlocal = { path = \"..\" }").is_empty(),
+        "a normal dependency was read as a dev-dependency"
+    );
+}
+

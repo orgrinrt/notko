@@ -50,12 +50,24 @@ pub fn profile_trace(attr: TokenStream, item: TokenStream) -> TokenStream {
         inline: false,
         panic_fmt: Some("trace invariant violated: {err:?}".into()),
         source_path: None,
+        // the crate the rewrite emits through, and the cargo feature its hot
+        // arm is gated on. both are yours: leave them at the defaults and you
+        // are asking your users to depend on notko under that exact name and
+        // to share one switch with everybody else who did the same.
+        krate: syn::parse_quote!(::my_runtime),
+        gate_feature: "my_release_arm".to_string(),
     };
     notko_macros_core::rewrite::rewrite_fn(tier, input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }
 ```
+
+The two paths at the bottom are the ones worth a second look. A rewrite has to
+name some crate for the type it produces, and whatever it names becomes a
+requirement on your users' crates rather than on yours. Same for the feature the
+hot arm is gated on: that `cfg` is read where the attribute expanded, so leaving
+it at the default means anyone who flips it flips yours too.
 
 Do note the parse is matched, not unwrapped. In a proc-macro an `unwrap` gives whoever used your
 attribute a panic with no span on it, where `to_compile_error` points at their own code.

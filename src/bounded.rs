@@ -41,7 +41,7 @@ pub enum BoundError<I> {
 /// construction ([`Self::try_new`]) with a [`BoundError`] naming the
 /// offending value and the bound it crossed.
 ///
-/// Arvo impls this trait on its `UFixed` / `IFixed` newtypes. Downstream
+/// A numeric newtype implements this for its own range. Downstream
 /// consumers take `T: Boundable` (+ associated bounds) rather than concrete
 /// types. Monomorphisation picks the storage shape at each call site.
 ///

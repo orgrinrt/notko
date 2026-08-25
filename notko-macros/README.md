@@ -25,7 +25,7 @@ defines them, so you'll want that as a dependency too.
 |------|--------------------|--------------------|
 | `Hot` | `Outcome<T, E>` wrapping; `Ok(x)` → `Outcome::Ok(x)`, `Err(e)` → `Outcome::Err(e)` | `Just<T>`; `Ok(x)` → `Just::new(x)`, `Err(e)` → `panic!(...)` |
 | `Cold` | `Outcome<T, E>` always | Same |
-| `Warm` | Passthrough | Passthrough |
+| `Warm` | `Maybe<T>` | `Maybe<T>` |
 
 `Hot` gets `#[inline]`. `Cold` and `Warm` do not.
 
@@ -45,6 +45,12 @@ Without that line the code still compiles and still behaves correctly, on the
 `Outcome<T, E>` arm, but every `#[profile]` in the crate warns that `internal`
 is not a value `feature` can take. Declaring it makes the warning go away, and
 gets you the switch.
+
+`internal` is the name `#[profile]` uses, and it is the default rather than a
+fixture. If you're building your own attribute on
+[`notko-macros-core`](https://crates.io/crates/notko-macros-core) it takes a
+name of its own, which is what keeps two frameworks in one dependency graph
+from sharing a switch neither of them can turn off separately.
 
 Leave it off and `Hot` stays `Outcome<T, E>`, which is the arm a published api
 wants: `Result`-family signatures, errors that can be handled. Turn it on in a
