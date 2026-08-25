@@ -89,13 +89,19 @@ impl<T: NonZeroable + NicheFilled> Slot<T> {
     /// rather than `Copy`. Naming it directly would need the const
     /// feature, and this method exists in both configurations, so it
     /// takes the bound that works in both. `Copy` implies `Destruct`,
-    /// so nothing unsound gets through; the cost is only that a
-    /// hypothetical non-`Copy` payload would be refused.
+    /// so nothing unsound gets through; the cost is that a non-`Copy`
+    /// payload is refused here while every other method on `Slot`
+    /// takes it.
     ///
-    /// There is none. `NonZeroable` is sealed and implemented for the
-    /// `core::num::NonZero*` family alone, every one of which is
-    /// `Copy`, so the bound holds at every call site that can build a
-    /// `Slot<T>` at all.
+    /// That payload is reachable, so the cost is real rather than
+    /// theoretical. `NicheFilled` is sealed and `NonZeroable` is not,
+    /// and what a `Slot<T>` admits is the two together: the sealed
+    /// list covers `&T`, `&mut T`, `NonNull<T>`, the function pointer
+    /// shapes and the `core::num::NonZero*` family, and a crate may
+    /// implement `NonZeroable` for a reference to a type of its own.
+    /// `&mut T` is the one member of that list that is not `Copy`, so
+    /// a `Slot<&mut Theirs>` builds, borrows and reports, and refuses
+    /// this one method.
     pub const fn into_maybe(self) -> Maybe<T>
     where
         T: Copy,
