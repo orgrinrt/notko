@@ -17,30 +17,55 @@ pub fn is_err_call(call: &ExprCall) -> bool {
     is_bare_ctor(&call.func, "Err") && call.args.len() == 1
 }
 
-/// Whether an expression is the bare constructor `name`, one segment and no
-/// qualification.
+/// Whether an expression names `Result`'s constructor `name`, as far as a
+/// proc macro can tell without resolving anything.
 ///
-/// The single segment is the whole of the check and it is not a detail. A
-/// proc macro cannot resolve names, so the only honest question it can ask is
-/// what the author wrote. Comparing the last segment instead answers yes for
-/// `Status::Ok`, `http::StatusCode::Ok` and every other type whose variant
-/// happens to share a spelling with `Result`'s, and the consumer then gets an
-/// error naming a path they never typed inside a function that mentions none
-/// of ours.
+/// Two accepted shapes, and the second is what keeps this in step with
+/// [`result_inner_types`]:
 ///
-/// Declining `Result::Ok` and `core::result::Result::Ok` is the cost. Both are
-/// legal and both are rare, and declining is silent and harmless where getting
-/// it wrong is neither.
+/// - `Ok(x)`, one segment, with or without a turbofish. `Ok::<u32, E>(x)` is
+///   the same constructor with its parameters spelled out.
+/// - `Result::Ok(x)` and any qualification of it, such as
+///   `core::result::Result::Ok(x)`, plus the same for `Outcome`.
+///
+/// What is declined is a last segment that merely shares the spelling:
+/// `Status::Ok`, `http::StatusCode::Ok`, and every other type whose variant is
+/// called `Ok`. Comparing the last segment alone answers yes for all of them,
+/// and the consumer then gets an error naming a path they never typed inside a
+/// function that mentions none of ours.
+///
+/// The owner segment is the whole of the check and it is not a detail. It is
+/// also the reason the two ends have to agree: [`result_inner_types`] reads a
+/// return type by its last segment, so a signature written
+/// `core::result::Result<u32, E>` is lifted. A body check that declined
+/// `Result::Ok` then left the function returning one type and constructing
+/// another, which is a compile error in the consumer's crate rather than the
+/// quiet no-op declining is supposed to be.
 pub fn is_bare_ctor(func: &Expr, name: &str) -> bool {
     let Expr::Path(p) = func else { return false };
-    p.qself.is_none() && p.path.leading_colon.is_none() && path_is_bare(&p.path, name)
+    p.qself.is_none() && names_result_ctor(&p.path, name)
 }
 
-/// Whether a path is exactly `name`, one segment carrying no arguments.
-pub fn path_is_bare(path: &Path, name: &str) -> bool {
-    path.segments.len() == 1
-        && path.segments[0].ident == name
-        && path.segments[0].arguments.is_none()
+/// Whether a path names `Result`'s or `Outcome`'s constructor `name`.
+pub fn names_result_ctor(path: &Path, name: &str) -> bool {
+    let segments = &path.segments;
+    let Some(last) = segments.last() else {
+        return false;
+    };
+    if last.ident != name {
+        return false;
+    }
+    match segments.len() {
+        // `Ok(x)`, or `Ok::<T, E>(x)`. A leading `::` would make it a path
+        // into a crate root, where a bare constructor never lives.
+        1 => path.leading_colon.is_none(),
+        // `Result::Ok(x)`, however far it is qualified. The owner is what
+        // distinguishes it from `Status::Ok`.
+        _ => {
+            let owner = &segments[segments.len() - 2].ident;
+            owner == "Result" || owner == "Outcome"
+        }
+    }
 }
 
 /// `T` and `E` from a return type of `Result<T, E>` or `Outcome<T, E>`.

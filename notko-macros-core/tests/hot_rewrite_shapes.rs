@@ -70,18 +70,88 @@ fn a_guard_is_never_dropped() {
     // A guard decides which arm runs. Discarding one keeps the arm and loses
     // the condition, so the release build takes a branch the debug build did
     // not, from the same source, with no diagnostic anywhere.
-    let src = r#"fn f(r: Result<u32, E>) -> Result<&'static str, E> {
+    // Two arms, because three are declined by the arm count before the guard
+    // check is ever reached. Written with three, this test stayed green with
+    // the guard check deleted, and the probe then showed the guard silently
+    // dropped.
+    let src = r#"fn f(r: Result<u32, E>) -> Result<u32, E> {
         match r {
-            Ok(n) if n > 100 => Ok("big"),
-            Ok(_) => Ok("small"),
+            Ok(n) if n > 100 => Ok(n),
             Err(e) => Err(e),
         }
     }"#;
     let rel = release_arm(src);
     assert!(
-        rel.contains("> 100") || rel.contains("100"),
+        rel.contains("100"),
         "the guard is gone from the release arm:\n{rel}"
     );
+    assert!(
+        !rel.contains("unwrap"),
+        "the match was collapsed and the guard went with it:\n{rel}"
+    );
+    // Both arms, because divergence between them is the whole subject: the
+    // guard surviving in debug and not in release is exactly the failure.
+    let all = emitted(src);
+    assert_eq!(
+        all.matches("100").count(),
+        2,
+        "the guard is not in both arms:\n{all}"
+    );
+}
+
+#[test]
+fn the_constructor_is_recognised_however_it_is_written() {
+    // The two ends have to agree. `result_inner_types` reads a return type by
+    // its last segment, so every spelling below is lifted in the signature.
+    // A body check that declined the qualified ones left the function
+    // returning `Outcome` and constructing `Result`, which is a compile error
+    // in the consumer's crate rather than the quiet no-op declining is for.
+    for (label, src) in [
+        (
+            "turbofish",
+            r#"fn f() -> Result<u32, E> { Ok::<u32, E>(1) }"#,
+        ),
+        (
+            "one qualification",
+            r#"fn f() -> Result<u32, E> { Result::Ok(1) }"#,
+        ),
+        (
+            "fully qualified",
+            r#"fn f() -> core::result::Result<u32, E> { core::result::Result::Ok(1) }"#,
+        ),
+        (
+            "err side",
+            r#"fn f(e: E) -> Result<u32, E> { Result::Err(e) }"#,
+        ),
+    ] {
+        let out = emitted(src);
+        assert!(
+            !out.contains("Result :: Ok") && !out.contains("Result :: Err"),
+            "{label}: the body still constructs a Result while the signature \
+             was lifted:\n{out}"
+        );
+        assert!(
+            out.contains("Outcome :: Ok") || out.contains("Outcome :: Err"),
+            "{label}: the constructor was not rewritten at all:\n{out}"
+        );
+    }
+}
+
+#[test]
+fn a_variant_that_merely_shares_the_spelling_is_left_alone() {
+    // The owner segment is what tells `Result::Ok` from somebody else's `Ok`.
+    // Accepting on the last segment alone rewrites this one and hands the
+    // consumer an error naming a path they never typed.
+    for src in [
+        r#"fn f() -> u32 { Status::Ok(1) }"#,
+        r#"fn f() -> u32 { http::StatusCode::Ok(1) }"#,
+    ] {
+        let out = emitted(src);
+        assert!(
+            !out.contains("Outcome"),
+            "somebody else's variant was rewritten:\n{out}"
+        );
+    }
 }
 
 #[test]

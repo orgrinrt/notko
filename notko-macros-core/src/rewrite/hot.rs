@@ -14,7 +14,7 @@ use quote::quote;
 use syn::visit_mut::VisitMut;
 use syn::{Expr, ExprMatch, ExprReturn, ItemFn, Pat, Path, Result, Type, parse_quote};
 
-use super::helpers::{is_err_call, is_ok_call, path_is_bare, result_inner_types};
+use super::helpers::{is_err_call, is_ok_call, names_result_ctor, result_inner_types};
 use super::outcome::OutcomeRewriter;
 use crate::tiers::CustomTier;
 
@@ -186,9 +186,10 @@ fn build_panic_expr(fmt: &str, err_val: Expr) -> Expr {
 /// either arm, since a guard decides which arm runs and dropping one keeps the
 /// arm and loses the condition; any arm count other than two, since keeping one
 /// and discarding the rest is not a partial rewrite but a different program; a
-/// refutable pattern inside `Ok`, since `let 0 = ...` does not compile; a
-/// qualified path, since `Status::Ok` is somebody else's variant that happens
-/// to share a spelling.
+/// refutable pattern inside `Ok`, since `let 0 = ...` does not compile; and a
+/// path whose owner is somebody else, since `Status::Ok` is a variant that
+/// happens to share a spelling. `Result::Ok` and `Ok` are the same
+/// constructor and both are accepted.
 ///
 /// Either arm order is accepted. `Err` first is unusual and means the same
 /// thing.
@@ -209,7 +210,7 @@ fn rewrite_match(m: &ExprMatch) -> Option<Expr> {
         if ts.qself.is_some() || ts.elems.len() != 1 {
             return None;
         }
-        if path_is_bare(&ts.path, "Ok") {
+        if names_result_ctor(&ts.path, "Ok") {
             // The binding lands in a `let`, so it has to be irrefutable.
             match ts.elems.first() {
                 Some(Pat::Ident(_) | Pat::Wild(_)) => {}
@@ -221,7 +222,7 @@ fn rewrite_match(m: &ExprMatch) -> Option<Expr> {
             {
                 return None;
             }
-        } else if path_is_bare(&ts.path, "Err") {
+        } else if names_result_ctor(&ts.path, "Err") {
             if saw_err {
                 return None;
             }
@@ -231,10 +232,11 @@ fn rewrite_match(m: &ExprMatch) -> Option<Expr> {
         }
     }
 
+    // Two arms, each one of `Ok` or `Err`, and a second `Ok` or a second `Err`
+    // already returned. So an `Ok` arm having been found means the other is
+    // `Err`, and `saw_err` has nothing left to say.
     let (binding, body) = ok_arm?;
-    if !saw_err {
-        return None;
-    }
+    debug_assert!(saw_err, "two arms, one Ok, and the other was not Err");
     let scrutinee = &m.expr;
     Some(parse_quote! {
         {
