@@ -251,3 +251,130 @@ an unvetted-gate finding, but the unconditional form means that test cannot buil
 stable-toolchain configuration even with `default-features = false`, which is the configuration
 `Cargo.toml` advertises for stable consumers. Worth a look by whoever owns that file; it is
 outside my question and I have not touched it.
+
+---
+
+# Phase two: reconciliation with `FINDINGS.md`
+
+**My phase-one commit landed first**, as `bcc2bab`, "docs: independent second read of the
+const_destruct vetting", with `SECOND_READ.md` and the eleven probes under
+`second_read_probes/`. The working tree was clean afterwards. Nothing above this line has been
+edited since; everything below was written after reading section 7 and the sections it points
+at. Probe `j_` is the one probe added in phase two, and it is marked as such in its own header.
+
+## The short version
+
+We reach the same tier and differ on which of two rows inside it. Section 7 proposes **ALLOWED**;
+I proposed **WATCH**. Both are the rule's tier 2, both permit the gate, and the rule's own tier-2
+text says outright that "a feature can be allowed and still carry known incomplete-implementation
+rough edges". The tables then split that tier in two, and WATCH is the row for a feature with "a
+known incomplete-implementation rough edge to be aware of".
+
+So the honest statement is not that we disagree about whether this may ship. We agree it may, on
+the same evidence, reached separately. We differ because **I found two open rough edges that
+section 7 does not mention**, and those are exactly what the WATCH row exists to record.
+
+## Where we agree, independently
+
+Every one of these I had established before opening `FINDINGS.md`, and my phase-one text says so
+at the `file:line` I found it:
+
+- **Not forbidden.** No `I-unsound`, no sound subset split off, `#[rustc_deny_explicit_impl]`.
+  Section 7 names the same three, and names the split-off subset as the discriminator that caught
+  full `specialization`, which is the same reading of the rule I gave.
+- **Not remove-stale.** The gate name is live on the pin.
+- **The std-internal carve-out applies at its source**, `core/src/lib.rs:104` and
+  `alloc/src/lib.rs:106`. I found these in the pinned `rust-src` before the grep leak, so this is
+  genuine convergence rather than my having read theirs.
+- **No stable wrapper suffices.**
+- **Blocked behind the const-traits umbrella #143874**, already carried at WATCH.
+- **A second independent read is owed and the row is not to be landed on one.** Section 7 says
+  this itself and did not edit `unstable-features.md`. Neither have I.
+
+Two independently built instruments agreeing on the carve-out is worth more than either alone.
+Both readings, though, sit on one shared input: the same pinned `rust-src` tree. That is a fact
+about one toolchain, which is the toolchain that governs, but our agreement about `core`'s
+reliance is one instrument read twice rather than two instruments.
+
+## Where I do not agree
+
+**The tier label, on grounds section 7 could not have weighed because it did not have them.**
+Section 7's staleness bullet reports "one open design question, whether the name `Destruct`
+survives stabilisation". Grepping `FINDINGS.md` for `148189`, `151502`, "Copy should imply" and
+"rendered" returns nothing, so neither open issue was in view. There are three open questions,
+not one, and the naming one is the least substantive of them:
+
+1. **#148189, "`Copy` should imply `const Destruct`"** (open, `needs-triage`, filed 2025-10-27
+   out of clarfonthey's comment in the tracking thread). This one is not incidental to this
+   investigation, it is **on its exact subject**. The document's title is that the narrowing
+   comes from the `Copy` bound, and upstream has an open issue saying `Copy` ought to imply the
+   very trait being proposed as the replacement. Whichever way that lands, anyone reasoning about
+   the interaction of a `Copy` bound with const drop needs it in front of them.
+2. **The opening post's own "Unresolved Questions"**: whether `~const` bounds are allowed on
+   `const Drop` impls. compiler-errors argues for it and says nightly implements it; my probes
+   `d_` and `e2_` confirm the pin still does. So the feature's current behaviour rests on a
+   question its own tracking issue lists as unresolved.
+3. **#151502**, rustdoc does not render `[const] Destruct` bounds. Cosmetic, and it touches the
+   documentation surface of any public API that takes the bound.
+
+None is a soundness matter and none changes the permission. They change which row.
+
+## What I checked rather than took
+
+- **`~const Destruct` still compiles on the pin.** Section 7 asserts it from `p01/e` and `p01/g`.
+  Probe `j_` reproduces it independently under forced const evaluation, and it holds. Their claim
+  is good.
+- **The bound count, which needs a small correction.** Section 7 reports **158** `[const]
+  Destruct` bound sites across `core` and `alloc`; I measured **157**. The gap resolves cleanly
+  and neither of us miscounted the pattern we used: `[const] Destruct` matches 157, and adding
+  `~const Destruct` reaches 158. But **the 158th is not a bound**, it is a mention inside a
+  comment, `core/src/num/nonzero.rs:269`: `// FIXME(const_hack): the T: ~const Destruct should be
+  inferred from the Self: ~const Destruct.` So core carries **157 real bound sites and zero live
+  `~const` bounds**.
+
+  This matters only because section 7's proposed `// SAFETY:` text says "158 bound sites between
+  them", and that text is destined for `src/lib.rs`. A shipped comment should not claim 158 bound
+  sites when 157 are bounds and one is a FIXME. Use 157, or say "roughly 160", which is the
+  honest register for a figure that moves with every toolchain bump anyway.
+- **The absence of any `I-unsound`**, searched independently by two queries rather than inferred
+  from the tracking issue's label set.
+- **`#[rustc_deny_explicit_impl]` actually refuses.** Section 7 cites the attribute at
+  `core/src/marker.rs:1059-1061`. Probe `f_` compiles an explicit impl and gets `E0322`, so the
+  attribute is enforced rather than merely present.
+- **Activity through 2026**, which section 7's staleness bullet does not cover: PRs #153874
+  (2026-03) and #155616 (2026-04), and the `T-libs` label added 2026-08-12. This strengthens
+  their conclusion rather than weakening it.
+
+## One scoping nuance, not an error
+
+Section 7 says "`Copy` is the only stable proxy". As a statement about **bounds that discharge
+the drop obligation on a by-value `T`**, that is right, and my probes `c_` and `i_` agree. As a
+flat statement it is narrower than it reads: taking `&T`, or `ManuallyDrop<T>`, avoids the
+obligation on stable by never incurring it. Those are not proxies for the bound, they are
+different signatures, so the conclusion holds for the question asked. Worth stating precisely
+because the sentence is going into a justification comment.
+
+## What their reading has that mine does not
+
+I deliberately did not price notko's own need, and said so in phase one. Sections 1 through 6 do
+exactly that, with a test matrix, and that is the design question this vetting serves. My file
+answers only "which tier", which is what I was asked. Nothing in my reading bears on their
+finding that the narrowing comes from `Copy` rather than from constness, and I did not check it.
+
+## Where this leaves the two-expert rule
+
+`expert-dispatch-defends-the-canon.md` requires two independent readings, each grounded in quoted
+canon, and sends a disagreement to the human rather than to a third expert. Stating it plainly so
+op can act on it without re-deriving:
+
+- **Agreed, by two independent readings**: `const_destruct` is sound as far as anything visible
+  says, is actively developed, has no subset split off, is enabled by `core` and `alloc`
+  themselves, has no stable substitute, and **may be enabled** under the rule. That is the
+  substantive call and it has its two readings.
+- **Not agreed**: whether the row goes under "Allowed" or under "Watch". I hold WATCH, because
+  two rough edges are open and the WATCH row is defined as the place to record exactly that. I
+  regard this as a documentation-precision difference inside one tier rather than a conflict, but
+  it is a difference and it is op's to settle rather than mine to declare converged.
+- **Owed either way**: neither of us has edited `unstable-features.md`, and neither should
+  without op. The row text I would land is in my phase-one section above; section 7's is in
+  `FINDINGS.md`. They differ in the rough-edge column and in the count.
