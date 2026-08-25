@@ -85,12 +85,12 @@ impl VisitMut for OutcomeRewriter {
                     let val = call.args.first().unwrap().clone();
                     let k = &self.krate;
                     Some(parse_quote! { #k::Outcome::Ok(#val) })
-                }
+                },
                 Expr::Call(call) if is_err_call(call) => {
                     let val = call.args.first().unwrap().clone();
                     let k = &self.krate;
                     Some(parse_quote! { #k::Outcome::Err(#val) })
-                }
+                },
                 _ => None,
             };
             if let Some(r) = replacement {

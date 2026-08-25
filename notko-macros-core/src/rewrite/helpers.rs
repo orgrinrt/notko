@@ -64,7 +64,7 @@ pub fn names_result_ctor(path: &Path, name: &str) -> bool {
         _ => {
             let owner = &segments[segments.len() - 2].ident;
             owner == "Result" || owner == "Outcome"
-        }
+        },
     }
 }
 
@@ -100,9 +100,11 @@ pub fn result_inner_types(ret: &ReturnType) -> Option<(Type, Type)> {
     let PathArguments::AngleBracketed(args) = &last.arguments else {
         return None;
     };
-    let mut types = args.args.iter().filter_map(|a| match a {
-        GenericArgument::Type(t) => Some(t.clone()),
-        _ => None,
+    let mut types = args.args.iter().filter_map(|a| {
+        match a {
+            GenericArgument::Type(t) => Some(t.clone()),
+            _ => None,
+        }
     });
     let t = types.next()?;
     let e = types.next()?;

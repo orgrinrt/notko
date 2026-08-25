@@ -97,7 +97,7 @@ fn inline_attr(tier: &CustomTier) -> TokenStream {
 /// - `match scrut { Ok(x) => body, Err(_) => _ }` → `{ let x = scrut.unwrap(); body }`
 pub struct HotRewriter {
     panic_fmt: String,
-    krate: Path,
+    krate:     Path,
 }
 
 impl HotRewriter {
@@ -128,13 +128,13 @@ impl VisitMut for HotRewriter {
                     let panic_expr = build_panic_expr(&self.panic_fmt, val);
                     *expr = panic_expr;
                 }
-            }
+            },
             Expr::Match(m) => {
                 if let Some(rewritten) = rewrite_match(m) {
                     *expr = rewritten;
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -146,11 +146,11 @@ impl VisitMut for HotRewriter {
                     let val = call.args.first().unwrap().clone();
                     let k = &self.krate;
                     Some(parse_quote! { #k::Just::new(#val) })
-                }
+                },
                 Expr::Call(call) if is_err_call(call) => {
                     let val = call.args.first().unwrap().clone();
                     Some(build_panic_expr(&self.panic_fmt, val))
-                }
+                },
                 _ => None,
             };
             if let Some(r) = replacement {
@@ -213,7 +213,7 @@ fn rewrite_match(m: &ExprMatch) -> Option<Expr> {
         if names_result_ctor(&ts.path, "Ok") {
             // The binding lands in a `let`, so it has to be irrefutable.
             match ts.elems.first() {
-                Some(Pat::Ident(_) | Pat::Wild(_)) => {}
+                Some(Pat::Ident(_) | Pat::Wild(_)) => {},
                 _ => return None,
             }
             if ok_arm

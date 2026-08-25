@@ -356,18 +356,20 @@ impl<T> ExactSizeIterator for MaybeIter<T> {}
 impl<T> core::iter::FusedIterator for MaybeIter<T> {}
 
 impl<T> IntoIterator for Maybe<T> {
-    type Item = T;
     type IntoIter = MaybeIter<T>;
+    type Item = T;
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        MaybeIter { inner: self }
+        MaybeIter {
+            inner: self,
+        }
     }
 }
 
 impl<'a, T> IntoIterator for &'a Maybe<T> {
-    type Item = &'a T;
     type IntoIter = MaybeIter<&'a T>;
+    type Item = &'a T;
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
@@ -413,9 +415,10 @@ impl<T: fmt::Debug> fmt::Debug for Maybe<T> {
 
 #[cfg(feature = "try_trait_v2")]
 mod try_impl {
-    use super::Maybe;
     use core::convert::Infallible;
     use core::ops::{ControlFlow, FromResidual, Residual, Try};
+
+    use super::Maybe;
 
     impl<T> Try for Maybe<T> {
         type Output = T;

@@ -5,8 +5,7 @@
 
 //! Smoke tests for the Maybe combinator surface.
 
-use notko::Maybe;
-use notko::Outcome;
+use notko::{Maybe, Outcome};
 
 use crate::heapless_min::CollectToSmallVec;
 
@@ -210,7 +209,7 @@ fn as_mut() {
 mod heapless_min {
     pub struct SmallVec<A> {
         pub values: A,
-        len: usize,
+        len:        usize,
     }
 
     pub trait CollectToSmallVec: Iterator + Sized {
@@ -220,7 +219,7 @@ mod heapless_min {
         {
             let mut out = SmallVec {
                 values: [Default::default(); 2],
-                len: 0,
+                len:    0,
             };
             for x in self {
                 if out.len < 2 {

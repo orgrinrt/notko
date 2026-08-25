@@ -130,8 +130,9 @@ impl<T: NonZeroable + NicheFilled> Default for Slot<T> {
 // for. Drift between the claimed layout and the one rustc realizes is a
 // build error rather than something an FFI boundary discovers later.
 mod layout_assertions {
-    use super::Slot;
     use core::mem::size_of;
+
+    use super::Slot;
 
     // The list mirrors `impl_nonzeroable_for_core!` in `nonzero.rs`. A
     // hand-written subset of it drifts silently, since every assertion that

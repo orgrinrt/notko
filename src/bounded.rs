@@ -22,7 +22,7 @@ pub enum BoundError<I> {
         /// The rejected value.
         value: I,
         /// The minimum permitted value (`MIN`).
-        min: I,
+        min:   I,
     },
     /// Value was greater than `MAX`. Carries the offending value and
     /// the `MAX` bound it failed.
@@ -30,7 +30,7 @@ pub enum BoundError<I> {
         /// The rejected value.
         value: I,
         /// The maximum permitted value (`MAX`).
-        max: I,
+        max:   I,
     },
 }
 
@@ -57,7 +57,9 @@ pub enum BoundError<I> {
 /// ```
 /// use notko::{BoundError, Boundable, Outcome};
 ///
-/// fn clamp_into<T: Boundable<Inner = u32>>(value: u32) -> Outcome<T, BoundError<u32>> {
+/// fn clamp_into<T: Boundable<Inner = u32>>(
+///     value: u32,
+/// ) -> Outcome<T, BoundError<u32>> {
 ///     T::try_new(value)
 /// }
 /// ```

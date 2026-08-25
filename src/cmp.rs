@@ -20,8 +20,10 @@ use crate::Maybe;
 /// vocabulary of this crate:
 ///
 /// ```
-/// use notko::{Maybe, cmp::PartialOrdExt};
 /// use core::cmp::Ordering;
+///
+/// use notko::Maybe;
+/// use notko::cmp::PartialOrdExt;
 ///
 /// let a = 1.0_f64;
 /// let b = 2.0_f64;

@@ -15,9 +15,9 @@ use notko_macros_core::tiers::{Cold, CustomTier, Hot, Strategy, Tier, Warm};
 /// proc-macro crate publishing its own attribute.
 pub struct Trace;
 impl Tier for Trace {
+    const INLINE: bool = false;
     const NAME: &'static str = "Trace";
     const STRATEGY: Strategy = Strategy::Cold;
-    const INLINE: bool = false;
 }
 
 #[test]
@@ -64,11 +64,11 @@ fn the_readme_authoring_example_still_builds() {
         }
     };
     let tier = CustomTier {
-        strategy: Strategy::Hot,
-        inline: true,
-        panic_fmt: Some("asserted invariant violated: {err:?}".into()),
-        source_path: None,
-        krate: syn::parse_quote!(::my_runtime),
+        strategy:     Strategy::Hot,
+        inline:       true,
+        panic_fmt:    Some("asserted invariant violated: {err:?}".into()),
+        source_path:  None,
+        krate:        syn::parse_quote!(::my_runtime),
         gate_feature: "my_release_arm".to_string(),
     };
     let out = notko_macros_core::rewrite::rewrite_fn(tier, input)

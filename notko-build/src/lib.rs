@@ -12,10 +12,8 @@
 //! [notko-macros]: https://crates.io/crates/notko-macros
 
 use std::collections::BTreeMap;
-use std::env;
-use std::fs;
-use std::io;
 use std::path::{Path, PathBuf};
+use std::{env, fs, io};
 
 /// The name cargo will pass to dependents. Crates that wish to propagate
 /// their own optimisers must declare `links = "notko-optimisers-<crate>"`
@@ -42,8 +40,8 @@ pub enum Error {
     Io(io::Error),
     /// Two sources provided the same tier name. Paths to both are included.
     Collision {
-        name: String,
-        first: PathBuf,
+        name:   String,
+        first:  PathBuf,
         second: PathBuf,
     },
 }
@@ -53,20 +51,22 @@ impl std::fmt::Display for Error {
         match self {
             Error::MissingEnv(var) => {
                 write!(f, "notko-build: required cargo env var `{var}` was not set")
-            }
+            },
             Error::Io(e) => write!(f, "notko-build: io error: {e}"),
             Error::Collision {
                 name,
                 first,
                 second,
-            } => write!(
-                f,
-                "notko-build: tier `{name}` provided by two sources: \
+            } => {
+                write!(
+                    f,
+                    "notko-build: tier `{name}` provided by two sources: \
                  `{}` and `{}`. resolve by renaming one or dropping a \
                  local override in your crate's notko-optimisers/ dir.",
-                first.display(),
-                second.display()
-            ),
+                    first.display(),
+                    second.display()
+                )
+            },
         }
     }
 }
@@ -158,7 +158,7 @@ enum Source {
 /// The source that contributed a tier, kept so a later clash can be judged.
 #[derive(Debug, Clone)]
 struct Origin {
-    path: PathBuf,
+    path:   PathBuf,
     source: Source,
 }
 
@@ -234,20 +234,17 @@ fn copy_tree(
             Some(existing) if existing.source == Source::Local => continue,
             Some(existing) => {
                 return Err(Error::Collision {
-                    name: tier_name,
-                    first: existing.path.clone(),
+                    name:   tier_name,
+                    first:  existing.path.clone(),
                     second: path,
                 });
-            }
+            },
             None => {
-                seen.insert(
-                    tier_name.clone(),
-                    Origin {
-                        path: path.clone(),
-                        source,
-                    },
-                );
-            }
+                seen.insert(tier_name.clone(), Origin {
+                    path: path.clone(),
+                    source,
+                });
+            },
         }
 
         fs::copy(&path, dst.join(name))?;
@@ -326,7 +323,7 @@ mod tests {
                 assert_eq!(name, "trace");
                 assert_eq!(first, dep_a.join("trace.rs"));
                 assert_eq!(second, dep_b.join("trace.rs"));
-            }
+            },
             other => panic!("expected Collision, got {other:?}"),
         }
     }
@@ -363,11 +360,7 @@ mod tests {
             write(&dep_a.join("trace.rs"), "// a loses\n");
             write(&dep_b.join("audit.rs"), "// b only\n");
 
-            let deps = if extra_first {
-                vec![dep_b, dep_a]
-            } else {
-                vec![dep_a, dep_b]
-            };
+            let deps = if extra_first { vec![dep_b, dep_a] } else { vec![dep_a, dep_b] };
             let dir = accumulate(&local, &deps, &out).unwrap();
 
             assert_eq!(read(&dir.join("trace.rs")), "// local wins\n");

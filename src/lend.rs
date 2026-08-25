@@ -75,7 +75,7 @@ pub struct Exhausted {
     /// bound converges and a caller told nothing does not.
     pub wanted: usize,
     /// How much the lend held.
-    pub had: usize,
+    pub had:    usize,
 }
 
 /// A borrowed cursor over lent storage, filled by pushing.
@@ -91,7 +91,7 @@ pub struct Exhausted {
 #[derive(Debug)]
 pub struct Fill<'a, T> {
     slots: &'a mut [T],
-    used: usize,
+    used:  usize,
 }
 
 impl<'a, T> Fill<'a, T> {
@@ -104,7 +104,7 @@ impl<'a, T> Fill<'a, T> {
     pub fn new(storage: &'a mut (impl Lend<T> + ?Sized)) -> Self {
         Self {
             slots: storage.lend(),
-            used: 0,
+            used:  0,
         }
     }
 
@@ -138,7 +138,7 @@ impl<'a, T> Fill<'a, T> {
                 // and inventing the true total would mean knowing how much the
                 // caller still intends to push.
                 wanted: self.used + 1,
-                had: self.slots.len(),
+                had:    self.slots.len(),
             });
         }
         self.slots[self.used] = item;
@@ -171,7 +171,10 @@ impl<'a, T> Fill<'a, T> {
         let had = self.slots.len();
         let wanted = self.used.saturating_add(items.len());
         if wanted > had {
-            return Outcome::Err(Exhausted { wanted, had });
+            return Outcome::Err(Exhausted {
+                wanted,
+                had,
+            });
         }
         for item in items {
             // `wanted` came from `len()`, which is safe to implement and safe
@@ -192,7 +195,7 @@ impl<'a, T> Fill<'a, T> {
     /// The filled prefix, giving the lend back.
     #[must_use]
     pub fn finish(self) -> &'a [T] {
-        &self.slots[..self.used]
+        &self.slots[.. self.used]
     }
 
     /// The filled prefix, still writable.
@@ -201,7 +204,7 @@ impl<'a, T> Fill<'a, T> {
     /// common enough to be worth having and rare enough not to be the default.
     #[must_use]
     pub fn finish_mut(self) -> &'a mut [T] {
-        &mut self.slots[..self.used]
+        &mut self.slots[.. self.used]
     }
 }
 
@@ -285,7 +288,7 @@ mod tests {
         // The point of the trait: storage from an arena and storage on the
         // stack are the same to a filler.
         let mut backing = [0u8; 16];
-        let mut region: &mut [u8] = &mut backing[4..8];
+        let mut region: &mut [u8] = &mut backing[4 .. 8];
         let mut fill = Fill::new(&mut region);
         assert_eq!(fill.capacity(), 4);
         assert!(fill.extend([7, 7, 7, 7]).is_ok());
@@ -312,7 +315,7 @@ mod tests {
         // impl could not be reached through it: lending a slice meant lending a `&mut` to
         // a `&mut [T]`. This is the shape the module documentation describes.
         let mut backing = [0u8; 8];
-        let region: &mut [u8] = &mut backing[2..6];
+        let region: &mut [u8] = &mut backing[2 .. 6];
         let mut fill = Fill::new(region);
         assert_eq!(fill.capacity(), 4);
         assert!(fill.extend([1, 2, 3, 4]).is_ok());
@@ -337,7 +340,7 @@ mod tests {
     /// quantified over what `len` reports, and a test that only ever sees an
     /// honest one cannot tell the difference.
     struct Liar<I> {
-        inner: I,
+        inner:   I,
         claimed: usize,
     }
 
@@ -367,7 +370,7 @@ mod tests {
         // Six items, reported as two. The capacity check passes on the
         // reported number, so the loop is what has to hold the line.
         let liar = Liar {
-            inner: [1u8, 2, 3, 4, 5, 6].into_iter(),
+            inner:   [1u8, 2, 3, 4, 5, 6].into_iter(),
             claimed: 2,
         };
 
@@ -390,7 +393,7 @@ mod tests {
         // Two items, reported as nine. Over-reporting can only cost a refusal
         // of a batch that would have fit, and it must not cost a write.
         let liar = Liar {
-            inner: [1u8, 2].into_iter(),
+            inner:   [1u8, 2].into_iter(),
             claimed: 9,
         };
 

@@ -12,16 +12,16 @@
 
 #![cfg_attr(feature = "const", feature(const_trait_impl))]
 
-use core::ops::ControlFlow;
-use notko::{ConstTry, Maybe, Outcome};
-
 // Only the const-evaluated proofs below reach these, and those are gated. The
 // two runtime tests at the end are not, so this target still carries coverage
 // under `--no-default-features`.
 #[cfg(feature = "const")]
 use core::convert::Infallible;
+use core::ops::ControlFlow;
+
 #[cfg(feature = "const")]
 use notko::{ConstFromResidual, Just};
+use notko::{ConstTry, Maybe, Outcome};
 
 #[cfg(feature = "const")]
 const _JUST_BRANCH: () = {
@@ -55,9 +55,11 @@ const _MAYBE_ISNT_BRANCH: () = {
     let m: Maybe<u32> = Maybe::Isnt;
     match <Maybe<u32> as ConstTry>::branch(m) {
         ControlFlow::Continue(_) => panic!("Maybe::Isnt branch should Break"),
-        ControlFlow::Break(residual) => match residual {
-            Maybe::Isnt => {}
-            Maybe::Is(_) => panic!("residual should be Isnt"),
+        ControlFlow::Break(residual) => {
+            match residual {
+                Maybe::Isnt => {},
+                Maybe::Is(_) => panic!("residual should be Isnt"),
+            }
         },
     }
 };
@@ -76,9 +78,11 @@ const _OUTCOME_ERR_BRANCH: () = {
     let o: Outcome<u32, u32> = Outcome::Err(7);
     match <Outcome<u32, u32> as ConstTry>::branch(o) {
         ControlFlow::Continue(_) => panic!("Outcome::Err should Break"),
-        ControlFlow::Break(residual) => match residual {
-            Outcome::Err(e) => assert!(e == 7),
-            Outcome::Ok(_) => panic!("residual should be Err"),
+        ControlFlow::Break(residual) => {
+            match residual {
+                Outcome::Err(e) => assert!(e == 7),
+                Outcome::Ok(_) => panic!("residual should be Err"),
+            }
         },
     }
 };
@@ -91,7 +95,7 @@ const _MAYBE_FROM_RESIDUAL: () = {
         <Maybe<u32> as ConstFromResidual<Maybe<Infallible>>>::from_residual(residual);
     match <Maybe<u32> as ConstTry>::branch(m) {
         ControlFlow::Continue(_) => panic!("from_residual(Isnt) should branch to Break"),
-        ControlFlow::Break(_) => {}
+        ControlFlow::Break(_) => {},
     }
 };
 
@@ -110,9 +114,11 @@ fn outcome_branch_runtime() {
     let o: Outcome<u32, &'static str> = Outcome::Err("nope");
     match <Outcome<u32, &'static str> as ConstTry>::branch(o) {
         ControlFlow::Continue(_) => panic!("Outcome::Err should break"),
-        ControlFlow::Break(residual) => match residual {
-            Outcome::Err(e) => assert_eq!(e, "nope"),
-            Outcome::Ok(_) => panic!("residual should be Err"),
+        ControlFlow::Break(residual) => {
+            match residual {
+                Outcome::Err(e) => assert_eq!(e, "nope"),
+                Outcome::Ok(_) => panic!("residual should be Err"),
+            }
         },
     }
 }

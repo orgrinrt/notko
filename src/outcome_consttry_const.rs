@@ -6,11 +6,12 @@
 //! Const-variant ConstTry / ConstFromResidual impls on `Outcome<T, E>`.
 //! Loaded only when feature `const` is enabled.
 
-use super::Outcome;
-use crate::{ConstFromResidual, ConstTry};
 use core::convert::Infallible;
 use core::marker::Destruct;
 use core::ops::ControlFlow;
+
+use super::Outcome;
+use crate::{ConstFromResidual, ConstTry};
 
 const impl<T: [const] Destruct, E: [const] Destruct> ConstTry for Outcome<T, E> {
     type Output = T;
