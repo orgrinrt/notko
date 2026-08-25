@@ -24,17 +24,17 @@ use core::fmt;
 /// The optimization is applied automatically by the compiler on any
 /// 2-variant enum with one unit variant and one payload-carrying variant
 /// whose payload type has a niche. Size parity with the underlying
-/// pointer type is verified at compile time below for the shapes the
-/// stack's FFI boundaries rely on. If a future rustc changes its
+/// pointer type is verified at compile time below, for the shapes that
+/// actually cross an FFI boundary. If a future rustc changes its
 /// niche-filling behavior for user enums, those assertions fail
 /// compilation immediately.
 ///
-/// The previous `#[repr(C)]` marker is removed: it was forcing a tagged
-/// union layout (explicit discriminant + payload + padding) that blocked
-/// niche-filling, and no consumer depended on the resulting layout.
-/// Types that need explicit C-ABI representation at FFI boundaries
-/// should use a `#[repr(C)]` struct with the shape they actually need,
-/// not `Maybe` (tagged unions are not a native C construct anyway).
+/// Deliberately not `#[repr(C)]`. Forcing a tagged union layout, meaning
+/// an explicit discriminant plus payload plus padding, blocks the very
+/// niche-filling this type exists for. Anything that needs an explicit
+/// C ABI representation should use a `#[repr(C)]` struct shaped the way
+/// it actually needs, not `Maybe`, since a tagged union isn't a native C
+/// construct anyway.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 #[must_use = "Maybe<T> may carry a value; ignoring it discards a presence check"]
 pub enum Maybe<T> {
@@ -565,7 +565,7 @@ pub use niche::NicheFilled;
 /// Use at FFI boundaries where the pointer-sized-or-integer-sized
 /// nullable representation IS the point:
 ///
-/// ```ignore
+/// ```
 /// use notko::MaybeNull;
 ///
 /// #[repr(C)]
@@ -707,11 +707,7 @@ macro_rules! assert_pointer_layout {
         const _: () = MaybeNull::<$vtable>::_LAYOUT_ASSERT;
     };
 }
-assert_pointer_layout!(
-    &'static (),
-    &'static [u8],
-    &'static dyn core::fmt::Debug
-);
+assert_pointer_layout!(&'static (), &'static [u8], &'static dyn core::fmt::Debug);
 assert_pointer_layout!(
     &'static mut (),
     &'static mut [u8],

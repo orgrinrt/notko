@@ -13,7 +13,7 @@ use core::fmt;
 ///
 /// Use as the hot-path type for positions that logically could be
 /// [`crate::Outcome`] / [`crate::Maybe`] but whose error / absent variant
-/// has been proven unreachable (codegen, reified invariants).
+/// has been proven unreachable (codegen, invariants made concrete).
 ///
 /// Implements [`core::ops::Try`] (with the dedicated empty residual
 /// `JustResidual`) when the `try_trait_v2` feature is enabled, so `?` on a

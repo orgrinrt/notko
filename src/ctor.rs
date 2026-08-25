@@ -5,16 +5,13 @@
 
 //! `HasTrivialCtor`: type ships a no-arg constructor.
 //!
-//! Granular contract trait. A type that impls `HasTrivialCtor` declares
-//! it has a `fn new() -> Self` taking no arguments. Useful for marker
-//! and phantom-data wrappers that need a uniform construction
-//! convention (e.g., `Column::<Player>::new()`,
-//! `Virtual::<Tick>::new()`) without the consumer learning a bespoke
-//! per-type spelling.
+//! Granular contract trait. A type that impls `HasTrivialCtor` is saying
+//! it has a `fn new() -> Self` taking no arguments. Handy for markers and
+//! phantom wrappers, where you want `Type::<T>::new()` to mean the same
+//! thing everywhere instead of every wrapper inventing its own spelling.
 //!
-//! Reusable across the workspace. Independent of any specific
-//! framework. Any wrapper, marker, or unit-shaped type that wants the
-//! convention impls this trait.
+//! Independent of any specific framework. Any wrapper, marker, or
+//! unit-shaped type that wants the convention impls this trait.
 //!
 //! # Module layout
 //!

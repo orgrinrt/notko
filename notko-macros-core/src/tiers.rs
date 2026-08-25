@@ -18,7 +18,7 @@
 //!
 //! # Extension in downstream crates
 //!
-//! ```ignore
+//! ```
 //! use notko_macros_core::tiers::{Tier, Strategy};
 //!
 //! pub struct Trace;

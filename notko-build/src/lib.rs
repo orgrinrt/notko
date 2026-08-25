@@ -9,7 +9,7 @@
 //! One entry point: [`collect_and_distribute`]. Call it from a consumer
 //! crate's `build.rs`.
 //!
-//! [notko-macros]: https://github.com/orgrinrt/notko/tree/dev/notko-macros
+//! [notko-macros]: https://crates.io/crates/notko-macros
 
 use std::collections::BTreeMap;
 use std::env;
@@ -219,10 +219,13 @@ fn copy_tree(
                 });
             }
             None => {
-                seen.insert(tier_name.clone(), Origin {
-                    path: path.clone(),
-                    source,
-                });
+                seen.insert(
+                    tier_name.clone(),
+                    Origin {
+                        path: path.clone(),
+                        source,
+                    },
+                );
             }
         }
 

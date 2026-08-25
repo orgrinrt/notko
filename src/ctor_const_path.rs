@@ -8,16 +8,14 @@
 
 /// The type ships a no-arg const constructor.
 ///
-/// A type implementing `HasTrivialCtor` declares an associated
-/// `const fn new() -> Self` callable in const contexts with no
-/// arguments. Useful for marker types, phantom-data wrappers, and
-/// any other type whose construction is a typestate signal rather
-/// than runtime-data carrying.
+/// A type implementing `HasTrivialCtor` is saying it has an associated
+/// `const fn new() -> Self` you can call in a const context with no
+/// arguments. Handy for markers and phantom wrappers, and for anything
+/// else whose construction is a typestate signal and carries no runtime
+/// data.
 ///
-/// The trait is fundamentally about a const-no-arg constructor
-/// convention. Production wrappers in the workspace (Column, Virtual,
-/// LinkedBin, and similar) impl it to give consumers a uniform
-/// `Type::<...>::new()` spelling.
+/// The point is that `Type::<T>::new()` means the same thing everywhere,
+/// instead of every wrapper inventing its own spelling.
 pub const trait HasTrivialCtor: Sized {
     /// Construct a value with no arguments.
     fn new() -> Self;

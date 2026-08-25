@@ -5,6 +5,9 @@ resolver = "2"
 [workspace.package]
 version = "0.0.1"
 edition = "2024"
+# Describes the `--no-default-features` path, which is the one that builds on
+# stable. The default feature set turns on const-trait machinery and needs a
+# nightly compiler regardless of this number.
 rust-version = "1.85"
 license = "MPL-2.0"
 homepage = "https://github.com/orgrinrt/notko"
@@ -22,9 +25,29 @@ description = "Fallibility primitives whose branch cost is chosen at the call si
 readme = "README.md"
 categories = ["no-std", "rust-patterns"]
 keywords = ["no_std", "no_alloc", "primitives", "fallible"]
-# Named rather than excluded, so a file added later has to be asked for
-# instead of shipping by default.
-include = ["src/**/*.rs", "tests/**/*.rs", "README.md", "LICENSE"]
+# Tests are named one at a time, because the two kinds here want opposite
+# answers. Most of them check the crate and belong in the package. One checks
+# this repository: `readme_claims.rs` reads the workspace manifest's member
+# list, which cargo's generated manifest does not have, so in an unpacked
+# tarball it panics rather than testing anything. A glob cannot tell them
+# apart, and the decision is the point.
+include = [
+    "src/**/*.rs",
+    "tests/bounded.rs",
+    "tests/cmp_ext.rs",
+    "tests/consttry_smoke.rs",
+    "tests/ctor_const_path.rs",
+    "tests/ctor_plain_path.rs",
+    "tests/iter_ext.rs",
+    "tests/just_combinators.rs",
+    "tests/maybe_combinators.rs",
+    "tests/nonzero.rs",
+    "tests/outcome_combinators.rs",
+    "tests/slot_layout.rs",
+    "tests/try_smoke.rs",
+    "README.md",
+    "LICENSE",
+]
 
 [lib]
 name = "notko"
@@ -48,9 +71,8 @@ required-features = ["const"]
 name = "ctor_plain_path"
 path = "tests/ctor_plain_path.rs"
 
-# `?` on Just/Maybe/Outcome only exists with `try_trait_v2`. Previously a
-# crate-root `#![cfg]` compiled this to an empty binary when the feature was off,
-# reporting zero tests, which reads as "nothing to check" rather than "skipped".
+# `?` only exists with `try_trait_v2`, so the target is skipped rather than
+# compiled to an empty binary that reports zero tests and looks like a pass.
 [[test]]
 name = "try_smoke"
 path = "tests/try_smoke.rs"
@@ -63,15 +85,14 @@ try_trait_v2 = []
 # Re-export `#[profile]` from notko-macros at the crate root.
 macros = ["dep:notko-macros"]
 # Enable const-trait machinery: ConstTry, ConstFromResidual, Slot's
-# const inherent methods. Requires nightly. Default-on for the
-# stack this was written for; consumers on stable Rust opt out via
-# default-features = false.
+# const inherent methods. Requires nightly. Default-on; consumers on
+# stable Rust opt out via default-features = false.
 const = []
 # Kitchen-sink: every notko pathway in one feature. Enable it somewhere
 # that is actually compiled (a consumer, or a CI all-features check) so
 # the feature-gated impls (the `try_trait_v2` Try/Residual impls in
 # particular) are exercised rather than lying dormant. Dormant gated code
-# is how a core API change can break the stack unnoticed.
+# is how a core API change can break a consumer unnoticed.
 all = ["const", "macros", "try_trait_v2"]
 
 [dependencies]

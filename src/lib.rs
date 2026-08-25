@@ -10,12 +10,11 @@
 
 //! notko: foundation primitives.
 //!
-//! Finnish *notko*: hollow, trough. The ground every downstream crate sits on.
+//! Finnish *notko*: hollow, trough.
 //!
-//! Zero deps, no std, no alloc. Ships the scalar-level vocabulary that stands
-//! in for `core::option::Option`, `core::result::Result`, and bare integer
-//! primitives, so one set of words covers presence, fallibility and width
-//! everywhere above it.
+//! Zero deps, no std, no alloc. Ships the vocabulary that stands in for
+//! `core::option::Option`, `core::result::Result`, and bare integer
+//! primitives, so one set of words covers presence, fallibility and width.
 //!
 //! # Contents
 //!
@@ -43,17 +42,24 @@
 //!   `core::ops::Try` / `FromResidual`. Gated behind the `const` cargo
 //!   feature (default-on).
 //!
-//! # Three tiers of fallibility
+//! # Cost per call site
 //!
 //! [`Just`] / [`Maybe`] / [`Outcome`] put the hot, warm and cold split at
-//! the control-flow level, the same way a numeric strategy marker puts it at
-//! the arithmetic level:
+//! the control-flow level, so what a branch costs is picked where the call
+//! is written instead of being fixed by the type:
 //!
 //! | Tier | Type | Cold path |
 //! |------|------|-----------|
 //! | Hot  | [`Just<T>`]       | None: no branch. `?` compiles away. |
 //! | Warm | [`Maybe<T>`]      | One-bit discriminant, no payload. |
 //! | Cold | [`Outcome<T, E>`] | Full error payload + branch. |
+//!
+//! One word does double duty here and it is worth knowing before it bites.
+//! `Warm` above is the tier, and it is [`Maybe<T>`]. `#[profile(Warm)]` is the
+//! macro's strategy of the same name, and that one is passthrough: it leaves
+//! the `Result<T, E>` you wrote exactly as it is. So learning the table and
+//! then reaching for the attribute gets you a `Result` where you expected a
+//! `Maybe`. `Hot` and `Cold` mean the same thing in both places.
 //!
 //! The companion `#[profile(Hot | Warm | Cold)]` proc-macro (see the
 //! `notko-macros` crate, re-exported at the root under the `macros`
@@ -91,12 +97,30 @@
 //! buys is one word for presence everywhere, not a representation `core`
 //! could not have given.
 //!
-//! # Sanctioned use of std primitives
+//! # Where `Option` stays
 //!
 //! The std types still exist and are still what std trait method signatures
 //! require (`fn next() -> Option<Self::Item>`, `fn partial_cmp() ->
-//! Option<Ordering>`, `fn fmt() -> fmt::Result`). Those impls are the only
-//! sanctioned use of std primitives in stack code.
+//! Option<Ordering>`, `fn fmt() -> fmt::Result`). Those are the places
+//! `Option` is unavoidable, so that's where it stays.
+
+// The README's `rust` blocks are compiled as doctests. Only those: the shell
+// blocks are prose as far as this is concerned, and changing a fence would drop
+// the check with nothing saying so.
+//
+// Without this the examples are the one part of the documentation nothing
+// verifies, which is the part a reader is most likely to copy. Adding it found
+// two that did not build: one calling functions it never defined, and one
+// importing `profile` without the feature that provides it.
+//
+// Gated on `macros` for the same reason `try_smoke` carries
+// `required-features`: one block shows `#[profile]`, which does not exist
+// without it, so under default features this would fail on a feature's absence
+// rather than on anything being wrong. `cargo test --all-features` is the run
+// that exercises the examples.
+#[cfg(all(doctest, feature = "macros"))]
+#[doc = include_str!("../README.md")]
+struct Readme;
 
 pub mod bounded;
 pub mod cmp;
