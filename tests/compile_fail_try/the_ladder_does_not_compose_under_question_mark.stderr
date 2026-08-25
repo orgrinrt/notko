@@ -1,0 +1,15 @@
+error[E0277]: the `?` operator can only be used in a function that returns `Result` or `Option` (or another type that implements `FromResidual`)
+  --> tests/compile_fail_try/the_ladder_does_not_compose_under_question_mark.rs:22:20
+   |
+21 | fn outer() -> Just<u32> {
+   | ----------------------- this function should return `Result` or `Option` to accept `?`
+22 |     let n = inner()?;
+   |                    ^ cannot use the `?` operator in a function that returns `Just<u32>`
+   |
+help: the trait `FromResidual<Outcome<Infallible, Oops>>` is not implemented for `Just<u32>`
+      but trait `FromResidual<JustResidual>` is implemented for it
+  --> src/just.rs
+   |
+   |     impl<T> FromResidual<JustResidual> for Just<T> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: for that trait implementation, expected `JustResidual`, found `Outcome<Infallible, Oops>`
