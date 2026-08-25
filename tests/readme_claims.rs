@@ -246,6 +246,19 @@ fn a_shipped_test_does_not_reach_for_the_repository() {
         .filter(|s| s.starts_with("tests/") && s.ends_with(".rs"))
         .collect();
 
+    // A glob under `tests/` defeats the whole check: it matches every file
+    // including the ones that must not ship, and it reads as one entry to
+    // anything comparing strings, so the loop below silently finds nothing
+    // wrong. It is also the thing being forbidden on its own merits, since
+    // deciding per file is the point.
+    let globbed: Vec<&&str> = shipped.iter().filter(|e| e.contains('*')).collect();
+    assert!(
+        globbed.is_empty(),
+        "`include` reaches into `tests/` with a glob: {globbed:?}\n\
+         A glob cannot tell a crate test from a repository check, so it ships \
+         both. Name the files that belong in the package instead."
+    );
+
     assert!(
         !shipped.is_empty(),
         "no test file is named in `include`, so this check would hold over an \
