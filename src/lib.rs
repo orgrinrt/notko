@@ -4,6 +4,12 @@
 //--------------------------------------------------------------------------------------------------
 
 #![no_std]
+// Five unstable features across two optional sets, and neither set is reachable
+// on stable. `try_trait_v2` and its residual companion carry `Try` for the
+// three carriers; the three under `const` carry the const paths, where
+// `const_destruct` is what lets a value be dropped in a const context and is
+// the reason the const carriers can take ownership at all. All five are on the
+// stabilisation pipeline and none has a known soundness hole.
 #![cfg_attr(feature = "try_trait_v2", feature(try_trait_v2))]
 #![cfg_attr(feature = "try_trait_v2", feature(try_trait_v2_residual))]
 #![cfg_attr(feature = "const", feature(const_trait_impl))]

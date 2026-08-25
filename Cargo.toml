@@ -8,6 +8,10 @@ edition = "2024"
 # Describes the `--no-default-features` path, which is the one that builds on
 # stable. The default feature set turns on const-trait machinery and needs a
 # nightly compiler regardless of this number.
+# The floor for the build with the default features off, which is the one that
+# works on stable at all: the default set turns on const-trait machinery that
+# only nightly has. Checked against 1.85.0 itself with `--no-default-features`,
+# rather than inferred from what the code looks like it needs.
 rust-version = "1.85"
 license = "MPL-2.0"
 homepage = "https://github.com/orgrinrt/notko"

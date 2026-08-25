@@ -30,13 +30,18 @@ we'll try to keep the migration notes worth reading. I'd caution against putting
 just yet.
 
 The default feature set needs a nightly compiler, because the const-trait machinery it turns on isn't
-stable yet. On stable, turn the defaults off and the crate builds and works, with the const paths
-absent. Probably the main thing to know before you add it.
+stable yet. On stable, turn the defaults off and the crate builds and works from 1.85
+onwards, with the const paths absent. That's what the `rust-version` in the manifest is about, so don't
+read it as the floor for the default set, which has no floor on stable at all. Probably the main thing
+to know before you add it.
 
-It sits on three unstable features, `try_trait_v2`, `try_trait_v2_residual` and `const_trait_impl`, and
-all three are still moving upstream. We've stayed off the ones with known soundness holes rather than
-working around them, so the surface here is a bit smaller than what nightly would let us do. Might grow
-later, might not.
+It sits on five unstable features, across the two optional sets. `try_trait_v2` and
+`try_trait_v2_residual` carry the `?` operator for the three carriers; `const_trait_impl`,
+`const_destruct` and `const_convert` carry the const paths, and the middle one is what lets a value be
+dropped in a const context, which is why the const carriers can take ownership at all. All five are
+still moving upstream. We've stayed off the ones with known soundness holes rather than working around
+them, so the surface here is a bit smaller than what nightly would let us do. Might grow later, might
+not.
 
 ## Installation
 
