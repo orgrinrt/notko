@@ -16,10 +16,13 @@ use notko::{Maybe, MaybeNull};
 
 #[test]
 fn the_default_is_null_rather_than_the_inner_type_s_own_default() {
-    // A derive would ask `T` for its default and hand back a value, where the
-    // absence of one is the entire subject. `NonZeroU8` has no `Default` at
-    // all, so a derive would not even compile here; a `T` that does have one
-    // is where the difference would have shipped silently.
+    // A derive bounds `T: Default`, which is what rules it out: `NonZeroU8`
+    // has none, so `MaybeNull::<NonZeroU8>::default` would not resolve at all.
+    // The line below is that, asserted by building.
+    //
+    // What a derive would *do* where the bound is met is correct, because the
+    // inner `Maybe<T>` defaults to `Isnt` on its own. The bound is the whole of
+    // the reason, and an earlier version of this comment said the value was.
     let d: MaybeNull<NonZeroU8> = MaybeNull::default();
     assert!(d.is_null(), "the default carried a value");
     assert_eq!(d, MaybeNull::null());
@@ -42,13 +45,10 @@ fn a_struct_holding_one_can_derive_both() {
     }
 
     let d = Descriptor::default();
-    assert_eq!(
-        d,
-        Descriptor {
-            init: MaybeNull::null(),
-            name: 0,
-        }
-    );
+    assert_eq!(d, Descriptor {
+        init: MaybeNull::null(),
+        name: 0,
+    });
     assert!(
         format!("{d:?}").contains("MaybeNull"),
         "the derived Debug did not reach the field: {d:?}"
@@ -82,4 +82,30 @@ fn printing_says_null_and_not_isnt() {
     // The control on the pair: `Maybe` still prints its own way, so the two
     // renderings are distinguishable and neither has quietly become the other.
     assert_eq!(format!("{:?}", Maybe::<NonZeroU8>::Isnt), "Isnt");
+}
+
+#[test]
+fn both_arms_keep_their_shape_under_the_alternate_form() {
+    // `{:#?}` is what a derived `Debug` on a struct holding one of these
+    // reaches for, and it lays out a tuple across lines. An arm that writes its
+    // whole rendering as one string has nothing for the formatter to lay out,
+    // so the two arms disagree about their shape under one specifier and a
+    // pretty-printed struct comes back looking like two different types.
+    //
+    // The null arm is the one that can go wrong, and it did: naming a fixed
+    // word is the obvious way to write it and passes every other assertion in
+    // this file.
+    let present = format!("{:#?}", MaybeNull::new(NonZeroU8::new(7).unwrap()));
+    let absent = format!("{:#?}", MaybeNull::<NonZeroU8>::null());
+
+    for (name, printed) in [("present", &present), ("absent", &absent)] {
+        assert!(
+            printed.starts_with("MaybeNull(\n"),
+            "the {name} arm is not a tuple under the alternate form: {printed:?}"
+        );
+        assert!(
+            printed.ends_with(",\n)"),
+            "the {name} arm does not close like a tuple: {printed:?}"
+        );
+    }
 }

@@ -34,8 +34,8 @@ fn a_mixed_sort_lands_in_the_same_places_as_the_core_one() {
     // The comparison a consumer actually performs, rather than one pair of
     // variants. A payload big enough to sort among itself, so this fails if the
     // variant order is right and the payload order is not.
-    let mut ours = vec![Maybe::Is(2u8), Maybe::Isnt, Maybe::Is(1), Maybe::Isnt];
-    let mut theirs = vec![Some(2u8), None, Some(1), None];
+    let mut ours = [Maybe::Is(2u8), Maybe::Isnt, Maybe::Is(1), Maybe::Isnt];
+    let mut theirs = [Some(2u8), None, Some(1), None];
     ours.sort();
     theirs.sort();
 

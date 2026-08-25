@@ -50,6 +50,7 @@ include = [
     "tests/ordering_parity.rs",
     "tests/outcome_combinators.rs",
     "tests/slot_admits_more_than_the_nonzero_family.rs",
+    "tests/slot_prints_in_its_own_vocabulary.rs",
     "tests/slot_layout.rs",
     "tests/try_smoke.rs",
     "README.md",
