@@ -219,10 +219,13 @@ fn copy_tree(
                 });
             }
             None => {
-                seen.insert(tier_name.clone(), Origin {
-                    path: path.clone(),
-                    source,
-                });
+                seen.insert(
+                    tier_name.clone(),
+                    Origin {
+                        path: path.clone(),
+                        source,
+                    },
+                );
             }
         }
 

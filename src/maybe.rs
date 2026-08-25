@@ -707,11 +707,7 @@ macro_rules! assert_pointer_layout {
         const _: () = MaybeNull::<$vtable>::_LAYOUT_ASSERT;
     };
 }
-assert_pointer_layout!(
-    &'static (),
-    &'static [u8],
-    &'static dyn core::fmt::Debug
-);
+assert_pointer_layout!(&'static (), &'static [u8], &'static dyn core::fmt::Debug);
 assert_pointer_layout!(
     &'static mut (),
     &'static mut [u8],
