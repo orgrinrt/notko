@@ -45,6 +45,7 @@ include = [
     "tests/iter_ext.rs",
     "tests/just_combinators.rs",
     "tests/maybe_combinators.rs",
+    "tests/maybe_null_prints_and_defaults_as_itself.rs",
     "tests/nonzero.rs",
     "tests/ordering_parity.rs",
     "tests/outcome_combinators.rs",

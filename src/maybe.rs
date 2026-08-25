@@ -651,6 +651,31 @@ impl<T: NicheFilled> MaybeNull<T> {
     }
 }
 
+impl<T: NicheFilled> Default for MaybeNull<T> {
+    /// The null variant, which is what a zeroed field of this type already is.
+    ///
+    /// Written out rather than derived, because a derive would ask `T` for its
+    /// own default and produce a value where the absence of one is the point.
+    #[inline]
+    fn default() -> Self {
+        Self::null()
+    }
+}
+
+impl<T: NicheFilled + fmt::Debug> fmt::Debug for MaybeNull<T> {
+    /// The type's own vocabulary, not the one it wraps.
+    ///
+    /// Delegating to [`Maybe`] would print `Isnt` for a value whose whole
+    /// subject is that it is null, and a reader chasing a field that came back
+    /// zero from a foreign call gets told about the wrong layer.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.0 {
+            Maybe::Is(value) => f.debug_tuple("MaybeNull").field(value).finish(),
+            Maybe::Isnt => f.write_str("MaybeNull(null)"),
+        }
+    }
+}
+
 impl<T: NicheFilled> From<Maybe<T>> for MaybeNull<T> {
     #[inline]
     fn from(m: Maybe<T>) -> Self {
