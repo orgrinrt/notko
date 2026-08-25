@@ -11,9 +11,7 @@ use quote::quote;
 use syn::visit_mut::VisitMut;
 use syn::{Expr, ExprReturn, ItemFn, Path, Result, Type, parse_quote};
 
-use super::helpers::{
-    extract_result_inner_types, is_err_call, is_ok_call,
-};
+use super::helpers::{extract_result_inner_types, is_err_call, is_ok_call};
 use crate::tiers::CustomTier;
 
 pub fn rewrite(tier: CustomTier, mut func: ItemFn) -> Result<TokenStream> {
@@ -103,4 +101,3 @@ impl VisitMut for OutcomeRewriter {
 
     fn visit_item_fn_mut(&mut self, _: &mut ItemFn) {}
 }
-

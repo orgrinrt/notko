@@ -53,4 +53,3 @@ pub fn extract_result_inner_types(ret: &ReturnType) -> (Option<Type>, Option<Typ
         }
     }
 }
-

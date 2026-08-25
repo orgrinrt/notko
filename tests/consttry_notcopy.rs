@@ -98,10 +98,9 @@ const _OUTCOME_NOTCOPY_ERR: () = {
 // in the reflexive `E == F` shape the shipped const impl supports.
 const _OUTCOME_FROM_RESIDUAL_REFLEXIVE: () = {
     let residual: Outcome<Infallible, NotCopy> = Outcome::Err(NotCopy(9));
-    let o: Outcome<u32, NotCopy> =
-        <Outcome<u32, NotCopy> as ConstFromResidual<Outcome<Infallible, NotCopy>>>::from_residual(
-            residual,
-        );
+    let o: Outcome<u32, NotCopy> = <Outcome<u32, NotCopy> as ConstFromResidual<
+        Outcome<Infallible, NotCopy>,
+    >>::from_residual(residual);
     match <Outcome<u32, NotCopy> as ConstTry>::branch(o) {
         ControlFlow::Continue(_) => panic!("from_residual(Err) should Break"),
         ControlFlow::Break(residual) => match residual {
@@ -118,7 +117,6 @@ const _JUST_FROM_RESIDUAL_NOTCOPY: () = {
         <Just<NotCopy> as ConstFromResidual<Infallible>>::from_residual(r)
     };
 };
-
 
 // ------------------------------------------------------- cross-error conversion
 
@@ -139,10 +137,9 @@ const impl From<ErrLow> for ErrHigh {
 
 const _OUTCOME_FROM_RESIDUAL_CONVERTS: () = {
     let residual: Outcome<Infallible, ErrLow> = Outcome::Err(ErrLow(4));
-    let o: Outcome<u32, ErrHigh> =
-        <Outcome<u32, ErrHigh> as ConstFromResidual<Outcome<Infallible, ErrLow>>>::from_residual(
-            residual,
-        );
+    let o: Outcome<u32, ErrHigh> = <Outcome<u32, ErrHigh> as ConstFromResidual<
+        Outcome<Infallible, ErrLow>,
+    >>::from_residual(residual);
     match <Outcome<u32, ErrHigh> as ConstTry>::branch(o) {
         ControlFlow::Continue(_) => panic!("Err residual should Break"),
         ControlFlow::Break(residual) => match residual {

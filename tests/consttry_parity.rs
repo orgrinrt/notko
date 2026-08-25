@@ -28,7 +28,6 @@ use notko::{ConstTry, Just, Maybe, Outcome};
 #[derive(PartialEq, Eq, Debug)]
 pub struct NotCopy(pub u32);
 
-
 #[test]
 fn just_notcopy_branch_runtime() {
     match <Just<NotCopy> as ConstTry>::branch(Just::new(NotCopy(42))) {
