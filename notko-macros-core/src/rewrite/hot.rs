@@ -12,7 +12,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::visit_mut::VisitMut;
-use syn::{Expr, ExprMatch, ExprReturn, ItemFn, Pat, Result, Type, parse_quote};
+use syn::{Expr, ExprMatch, ExprReturn, ItemFn, Pat, Path, Result, Type, parse_quote};
 
 use super::helpers::{extract_result_inner_types, is_err_call, is_ok_call};
 use super::outcome::OutcomeRewriter;
@@ -23,12 +23,13 @@ pub fn rewrite(tier: CustomTier, mut func: ItemFn) -> Result<TokenStream> {
 
     let debug_fn = build_debug(&tier, &func, ok_ty.clone(), err_ty.clone());
     let release_fn = build_release(&tier, &mut func, ok_ty, err_ty);
+    let gate = tier.gate_feature.as_str();
 
     Ok(quote! {
-        #[cfg(any(not(feature = "internal"), debug_assertions))]
+        #[cfg(any(not(feature = #gate), debug_assertions))]
         #debug_fn
 
-        #[cfg(all(feature = "internal", not(debug_assertions)))]
+        #[cfg(all(feature = #gate, not(debug_assertions)))]
         #release_fn
     })
 }
@@ -42,11 +43,12 @@ fn build_debug(
     let mut out = func.clone();
     if let Some(t) = ok_ty {
         if let Some(e) = err_ty {
-            out.sig.output = parse_quote! { -> ::notko::Outcome<#t, #e> };
+            let k = &tier.krate;
+            out.sig.output = parse_quote! { -> #k::Outcome<#t, #e> };
         }
     }
     let mut rewriter = OutcomeRewriter {
-        rewrite_diagnose: false,
+        krate: tier.krate.clone(),
     };
     rewriter.visit_block_mut(&mut out.block);
 
@@ -70,10 +72,11 @@ fn build_release(
 ) -> TokenStream {
     let mut out = func.clone();
     if let Some(t) = ok_ty {
-        out.sig.output = parse_quote! { -> ::notko::Just<#t> };
+        let k = &tier.krate;
+        out.sig.output = parse_quote! { -> #k::Just<#t> };
     }
 
-    let mut rewriter = HotRewriter::new(tier.panic_fmt.clone());
+    let mut rewriter = HotRewriter::new(tier.panic_fmt.clone(), tier.krate.clone());
     rewriter.visit_block_mut(&mut out.block);
 
     let inline = inline_attr(tier);
@@ -97,18 +100,20 @@ fn inline_attr(tier: &CustomTier) -> TokenStream {
 }
 
 /// Visitor that rewrites:
-/// - `Ok(x)` → `::notko::Just::new(x)`
+/// - `Ok(x)` → `<krate>::Just::new(x)`
 /// - `Err(e)` → `panic!(<panic_fmt>, err = e)` (default fmt uses `{err:?}`)
 /// - `match scrut { Ok(x) => body, Err(_) => _ }` → `{ let x = scrut.unwrap(); body }`
 pub struct HotRewriter {
     panic_fmt: String,
+    krate: Path,
 }
 
 impl HotRewriter {
-    pub fn new(panic_fmt: Option<String>) -> Self {
+    pub fn new(panic_fmt: Option<String>, krate: Path) -> Self {
         Self {
             panic_fmt: panic_fmt
                 .unwrap_or_else(|| "hot path invariant violated: {err:?}".to_string()),
+            krate,
         }
     }
 }
@@ -124,7 +129,8 @@ impl VisitMut for HotRewriter {
             Expr::Call(call) => {
                 if is_ok_call(call) {
                     let val = call.args.first().unwrap().clone();
-                    *expr = parse_quote! { ::notko::Just::new(#val) };
+                    let k = &self.krate;
+                    *expr = parse_quote! { #k::Just::new(#val) };
                 } else if is_err_call(call) {
                     let val = call.args.first().unwrap().clone();
                     let panic_expr = build_panic_expr(&self.panic_fmt, val);
@@ -146,7 +152,8 @@ impl VisitMut for HotRewriter {
             let replacement = match inner.as_ref() {
                 Expr::Call(call) if is_ok_call(call) => {
                     let val = call.args.first().unwrap().clone();
-                    Some(parse_quote! { ::notko::Just::new(#val) })
+                    let k = &self.krate;
+                    Some(parse_quote! { #k::Just::new(#val) })
                 }
                 Expr::Call(call) if is_err_call(call) => {
                     let val = call.args.first().unwrap().clone();

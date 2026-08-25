@@ -15,6 +15,7 @@ use crate::tiers::{CustomTier, Strategy};
 
 pub mod helpers;
 mod hot;
+mod maybe;
 mod outcome;
 
 pub use hot::HotRewriter;
@@ -35,6 +36,7 @@ pub fn entry(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
 pub fn rewrite_fn(tier: CustomTier, input: ItemFn) -> Result<TokenStream> {
     match tier.strategy {
         Strategy::Passthrough => Ok(quote! { #input }),
+        Strategy::Warm => maybe::rewrite(tier, input),
         Strategy::Hot => hot::rewrite(tier, input),
         Strategy::Cold => outcome::rewrite(tier, input),
     }

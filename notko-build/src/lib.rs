@@ -98,13 +98,7 @@ pub fn collect_and_distribute() -> Result<(), Error> {
         env::var("CARGO_MANIFEST_DIR").map_err(|_| Error::MissingEnv("CARGO_MANIFEST_DIR"))?;
     let out_dir = env::var("OUT_DIR").map_err(|_| Error::MissingEnv("OUT_DIR"))?;
 
-    let dep_dirs: Vec<PathBuf> = env::vars()
-        .filter_map(|(key, value)| {
-            let rest = key.strip_prefix("DEP_")?;
-            rest.ends_with("_NOTKO_OPTIMISER_PATH")
-                .then(|| PathBuf::from(value))
-        })
-        .collect();
+    let dep_dirs = dep_dirs_from(env::vars());
 
     let accumulated_dir = accumulate(
         &Path::new(&manifest_dir).join(LOCAL_DIR),
@@ -168,17 +162,44 @@ struct Origin {
     source: Source,
 }
 
+/// The dependency-contributed directories in a build script's environment.
+///
+/// Takes the variables rather than reading them, for the reason [`accumulate`]
+/// is split out: the process environment is shared and tests are not, so a
+/// filter that reads it directly can only be checked by hand.
+fn dep_dirs_from(vars: impl Iterator<Item = (String, String)>) -> Vec<PathBuf> {
+    vars.filter_map(|(key, value)| {
+        let rest = key.strip_prefix("DEP_")?;
+        rest.ends_with("_NOTKO_OPTIMISER_PATH")
+            .then(|| PathBuf::from(value))
+    })
+    .collect()
+}
+
+/// The `cargo:` lines a build script emits for an accumulated directory.
+///
+/// Built rather than printed, so what goes to stdout can be asserted on. A
+/// wrong key here is silent: cargo ignores an instruction it does not
+/// recognise, and the consumer's proc-macro simply finds nothing.
+fn metadata_lines(accumulated_dir: &Path) -> [String; 2] {
+    [
+        // The proc-macro reads this during expansion of this crate's own rlib.
+        format!(
+            "cargo:rustc-env={}={}",
+            EXPANSION_ENV_VAR,
+            accumulated_dir.display()
+        ),
+        // Propagate to downstream dependents via build-script metadata. Only
+        // takes effect if the consumer's Cargo.toml declares a `links = ...`
+        // value, otherwise cargo silently drops it.
+        format!("cargo:{}={}", META_KEY, accumulated_dir.display()),
+    ]
+}
+
 fn emit_metadata(accumulated_dir: &Path) {
-    // The proc-macro reads this during expansion of this crate's own rlib.
-    println!(
-        "cargo:rustc-env={}={}",
-        EXPANSION_ENV_VAR,
-        accumulated_dir.display()
-    );
-    // Propagate to downstream dependents via build-script metadata. Only
-    // takes effect if the consumer's Cargo.toml declares a `links = ...`
-    // value, otherwise cargo silently drops it.
-    println!("cargo:{}={}", META_KEY, accumulated_dir.display());
+    for line in metadata_lines(accumulated_dir) {
+        println!("{line}");
+    }
 }
 
 /// Copy every `.rs` file directly under `src` into `dst`, registering each
@@ -373,5 +394,71 @@ mod tests {
 
         let dir = accumulate(&local, &[PathBuf::from("/nonexistent/notko")], &out).unwrap();
         assert_eq!(read(&dir.join("trace.rs")), "// local\n");
+    }
+
+    fn v(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
+        pairs
+            .iter()
+            .map(|(k, x)| (k.to_string(), x.to_string()))
+            .collect()
+    }
+
+    #[test]
+    fn only_the_dep_vars_naming_an_optimiser_path_are_collected() {
+        let got = dep_dirs_from(
+            v(&[
+                ("DEP_NOTKO_OPTIMISERS_FOO_NOTKO_OPTIMISER_PATH", "/a"),
+                ("DEP_NOTKO_OPTIMISERS_BAR_NOTKO_OPTIMISER_PATH", "/b"),
+                // Right prefix, wrong suffix: another crate's `links` metadata.
+                ("DEP_OPENSSL_INCLUDE", "/openssl"),
+                // Right suffix, no prefix: not something cargo set for a dep.
+                ("MY_NOTKO_OPTIMISER_PATH", "/mine"),
+                // Neither.
+                ("PATH", "/usr/bin"),
+                ("OUT_DIR", "/out"),
+            ])
+            .into_iter(),
+        );
+        assert_eq!(got, vec![PathBuf::from("/a"), PathBuf::from("/b")]);
+    }
+
+    #[test]
+    fn an_environment_with_no_dependency_paths_yields_none() {
+        let got = dep_dirs_from(v(&[("PATH", "/usr/bin"), ("OUT_DIR", "/out")]).into_iter());
+        assert!(got.is_empty(), "picked up {got:?} from an environment with none");
+    }
+
+    #[test]
+    fn the_emitted_lines_carry_the_keys_cargo_and_the_macro_read() {
+        let lines = metadata_lines(Path::new("/out/notko-optimisers"));
+
+        // The exact spellings, because both are silent when wrong: cargo
+        // ignores an instruction it does not recognise, and the proc-macro
+        // reads an environment variable by name and finds nothing.
+        assert_eq!(
+            lines[0],
+            "cargo:rustc-env=NOTKO_OPTIMISERS_PATH=/out/notko-optimisers"
+        );
+        assert_eq!(
+            lines[1],
+            "cargo:notko-optimiser-path=/out/notko-optimisers"
+        );
+    }
+
+    #[test]
+    fn the_two_spellings_are_the_ones_documented() {
+        // The directory a crate authors is spelled with a z and the machine
+        // side with an s. Getting either wrong finds nothing and says nothing,
+        // so both are pinned here rather than left to the reader.
+        assert_eq!(LOCAL_DIR, "notko-optimizers");
+        assert_eq!(OUT_SUBDIR, "notko-optimisers");
+        assert!(
+            EXPANSION_ENV_VAR.contains("OPTIMISERS"),
+            "the env var lost its s: {EXPANSION_ENV_VAR}"
+        );
+        assert!(
+            META_KEY.contains("optimiser"),
+            "the metadata key lost its s: {META_KEY}"
+        );
     }
 }

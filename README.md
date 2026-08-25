@@ -133,7 +133,8 @@ fn compute(x: u32) -> Result<u32, Oops> {
 Built-in strategies are `Hot`, `Warm` and `Cold`, passed as idents. `Hot` emits `Outcome<T, E>` in debug
 builds, so the error path stays observable; in release-internal builds, which the consumer opts into
 through its own `internal` feature, it emits `Just<T>` with `Err` lowered to a panic. `Cold` always emits
-`Outcome`. `Warm` is passthrough in every build and preserves the source `Result<T, E>` signature.
+`Outcome`. `Warm` rewrites to `Maybe<T>` in every build, dropping the error, which is what choosing
+that tier decides.
 
 Third-party strategies live in a crate-local `notko-optimizers/<Name>.rs` with a
 `based_on = "Hot" | "Warm" | "Cold"` header. The `based_on` value is case-sensitive, so lowercase doesn't
@@ -205,6 +206,27 @@ default without knowing the concrete type.
 
 `IteratorExt` and `PartialOrdExt` bridge `core::iter::Iterator::next` and
 `core::cmp::PartialOrd::partial_cmp`, which return `Option`, to `Maybe` at the call site. See rustdoc.
+
+## Handing data across a boundary
+
+Two protocols that keep coming up in code that owns no allocator, and that every crate answers privately
+and slightly differently until one of them is named.
+
+`Push<T>` takes an item through an exclusive reference and cannot fail, with `BulkPush<T>` taking a whole
+slice at once for the cases where that is cheaper. Between them they describe a collector somebody owns
+and is filling. `Emit<T>` is the other direction: an item through a shared reference, fallibly, which is
+what an installed destination looks like when it is a log, a port, a file or a channel.
+
+`Lend<T>` covers storage a caller hands over to be filled. You pass the buffer, the callee writes part of
+it, and what comes back is a `Fill` carrying the prefix that was actually written, or an `Exhausted`
+saying how much was wanted against how much there was. That last part is the reason it exists: a bit
+buffer, a row of edit distances, an argument vector and a line being typed have nothing in common except
+that all four want to ask exactly this, and a failure that only says "did not fit" leaves the caller
+guessing at how much bigger to try.
+
+Do note it buys you nothing on bounds checks. A prefix known to be no longer than its capacity says
+nothing about whether some index is inside the part that got filled, so indexing is checked like any
+other slice.
 
 ## Cargo features
 

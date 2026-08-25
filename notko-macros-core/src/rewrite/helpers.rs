@@ -5,7 +5,7 @@
 
 //! Shared AST utilities used by both hot and cold rewriters.
 
-use syn::{Expr, ExprCall, ExprMacro, GenericArgument, PathArguments, ReturnType, StmtMacro, Type};
+use syn::{Expr, ExprCall, GenericArgument, PathArguments, ReturnType, Type};
 
 /// Return `true` if `call` is `Ok(x)` with exactly one argument.
 pub fn is_ok_call(call: &ExprCall) -> bool {
@@ -54,20 +54,3 @@ pub fn extract_result_inner_types(ret: &ReturnType) -> (Option<Type>, Option<Typ
     }
 }
 
-pub fn macro_last_ident_is(mac: &ExprMacro, name: &str) -> bool {
-    mac.mac
-        .path
-        .segments
-        .last()
-        .map(|seg| seg.ident == name)
-        .unwrap_or(false)
-}
-
-pub fn stmt_macro_last_ident_is(mac: &StmtMacro, name: &str) -> bool {
-    mac.mac
-        .path
-        .segments
-        .last()
-        .map(|seg| seg.ident == name)
-        .unwrap_or(false)
-}

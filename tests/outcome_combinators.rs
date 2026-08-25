@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
 //--------------------------------------------------------------------------------------------------
 
-//! Smoke tests for the Outcome combinator surface (round-353).
+//! Smoke tests for the Outcome combinator surface.
 
 use notko::Maybe;
 use notko::Outcome;

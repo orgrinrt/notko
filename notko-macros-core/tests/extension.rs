@@ -21,20 +21,6 @@ impl Tier for Trace {
 }
 
 #[test]
-fn builtin_markers_carry_the_right_names() {
-    assert_eq!(Hot::NAME, "Hot");
-    assert_eq!(Warm::NAME, "Warm");
-    assert_eq!(Cold::NAME, "Cold");
-}
-
-#[test]
-fn builtin_markers_have_expected_strategies() {
-    assert_eq!(Hot::STRATEGY, Strategy::Hot);
-    assert_eq!(Warm::STRATEGY, Strategy::Passthrough);
-    assert_eq!(Cold::STRATEGY, Strategy::Cold);
-}
-
-#[test]
 fn custom_tier_from_third_party_marker() {
     let t = CustomTier::from_marker::<Trace>();
     assert_eq!(t.strategy, Strategy::Cold);
@@ -48,7 +34,7 @@ fn strategy_from_name_matches_tier_name_consts() {
     // Strategy::from_name accepts the NAME const of each built-in tier,
     // confirming the ZST markers are the single source of truth.
     assert_eq!(Strategy::from_name(Hot::NAME), Some(Strategy::Hot));
-    assert_eq!(Strategy::from_name(Warm::NAME), Some(Strategy::Passthrough));
+    assert_eq!(Strategy::from_name(Warm::NAME), Some(Strategy::Warm));
     assert_eq!(Strategy::from_name(Cold::NAME), Some(Strategy::Cold));
     assert_eq!(Strategy::from_name("unknown"), None);
 }

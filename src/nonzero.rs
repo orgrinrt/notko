@@ -11,7 +11,7 @@ use crate::Maybe;
 /// A type where the underlying representation has a distinguishable zero
 /// and an impl that guarantees nonzero at the type level.
 ///
-/// Arvo impls this on its `UFixed` / `IFixed` nonzero flavours. Downstream
+/// A newtype with an excluded zero implements this for itself. Downstream
 /// consumers take `T: NonZeroable` instead of `core::num::NonZeroU*` when
 /// the underlying storage shape should vary by caller.
 ///

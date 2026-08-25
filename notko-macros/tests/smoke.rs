@@ -5,7 +5,7 @@
 
 //! Smoke tests for `#[profile(Tier)]`, in both configurations it rewrites for.
 //!
-//! Cold rewrites to `Outcome<T, E>` and Warm is passthrough, whatever the
+//! Cold rewrites to `Outcome<T, E>` and Warm to `Maybe<T>`, whatever the
 //! configuration. Hot is the one that moves: `Outcome<T, E>` by default, and
 //! `Just<T>` with the error arm panicking under `--features internal` in a
 //! build with `debug_assertions` off.
@@ -106,19 +106,6 @@ fn cold_returns_outcome_err() {
     assert_eq!(o, Outcome::Err(Oops));
 }
 
-// ---- Warm tier ----
-
-#[profile(Warm)]
-fn warm_ok(x: u32) -> Result<u32, Oops> {
-    Ok(x)
-}
-
-#[test]
-fn warm_is_passthrough() {
-    let r: Result<u32, Oops> = warm_ok(42);
-    assert_eq!(r, Ok(42));
-}
-
 // ---- custom tier via notko-optimizers/Trace.rs ----
 //
 // The test fixture at notko-macros/notko-optimizers/Trace.rs declares
@@ -134,4 +121,48 @@ fn trace_ok(x: u32) -> Result<u32, Oops> {
 fn custom_trace_tier_resolves_and_rewrites_like_cold() {
     let o: Outcome<u32, Oops> = trace_ok(42);
     assert_eq!(o, Outcome::Ok(142));
+}
+
+// ---- Warm tier ----
+//
+// The tier table names Warm as `Maybe<T>`, so the attribute produces one. The
+// error is discarded rather than carried, which is what choosing this tier
+// means: a caller who wants the error asks for Cold.
+
+#[profile(Warm)]
+fn warm_ok(x: u32) -> Result<u32, Oops> {
+    Ok(x + 1)
+}
+
+#[profile(Warm)]
+fn warm_err(x: u32) -> Result<u32, Oops> {
+    if x == 0 {
+        return Err(Oops);
+    }
+    Ok(x)
+}
+
+mod warm {
+    use super::*;
+    use notko::Maybe;
+
+    #[test]
+    fn warm_returns_maybe_is() {
+        // The annotation is the assertion: were the rewrite still passthrough,
+        // this would be a `Result` and would not compile as a `Maybe`.
+        let m: Maybe<u32> = warm_ok(41);
+        assert_eq!(m, Maybe::Is(42));
+    }
+
+    #[test]
+    fn warm_discards_the_error() {
+        let m: Maybe<u32> = warm_err(0);
+        assert_eq!(m, Maybe::Isnt);
+    }
+
+    #[test]
+    fn warm_keeps_the_ok_path_through_an_early_return() {
+        let m: Maybe<u32> = warm_err(7);
+        assert_eq!(m, Maybe::Is(7));
+    }
 }
