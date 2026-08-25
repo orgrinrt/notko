@@ -12,26 +12,31 @@
 
 </div>
 
-`Option<T>` decides for you that absence costs a discriminant and a branch. `notko` moves that decision to
-the call site: three types covering proven-present, ordinary absence, and a data-carrying error path, so a
-value whose presence an invariant already guarantees stops paying for a check nobody needs. A `#[profile]`
-attribute is the function-scoped form, rewriting a body to the tier you tag it with.
+`Option<T>` has already decided for you what absence costs: a discriminant and a branch, everywhere,
+whether or not you need them. Usually that's fine and you'd never notice. But when an invariant has
+already proved the value is there, you're still paying for a check nobody needs, and there's no way to
+say so in the type. So we ship three of them instead, one for proven-present, one for ordinary absence,
+one that carries an error, and you pick per call site. There's a `#[profile]` attribute further down
+too, for when you'd rather tag a whole function than choose at every site.
 
-`notko` is `#![no_std]`, no alloc, no platform dependencies. The optional proc-macro crate uses std at
-compile time only, which is where a macro runs and not where its output lands.
+It's `#![no_std]`, no alloc, no platform deps. The proc-macro crate is the exception and does use std,
+but only at compile time, which is the only place a macro ever runs, so none of it reaches your binary.
 
 ## Status
 
-Early, so the api hasn't settled and a `0.0.x` bump can move it. Every release is tagged, and the log
-between two tags is what actually moved. I'd pin an exact version rather than a range for now.
+Early days, so the api hasn't settled and a `0.0.x` bump can move it under you. Every release is tagged
+and the log between two tags is what actually moved, and we'll try to keep the migration notes worth
+reading. I'd pin an exact version, not a range, and I'd caution against putting this anywhere serious
+just yet.
 
 The default feature set needs a nightly compiler, because the const-trait machinery it turns on isn't
-stable yet. On stable, turn the defaults off and the crate builds and works, with the const paths absent.
-That is the one thing worth knowing before adding it.
+stable yet. On stable, turn the defaults off and the crate builds and works, with the const paths
+absent. Probably the main thing to know before you add it.
 
-The three unstable features it sits on, `try_trait_v2`, `try_trait_v2_residual` and `const_trait_impl`,
-are all still moving upstream. Anything with a known soundness hole is left alone rather than worked around, so the surface here
-is smaller than what nightly would allow.
+It sits on three unstable features, `try_trait_v2`, `try_trait_v2_residual` and `const_trait_impl`, and
+all three are still moving upstream. We've stayed off the ones with known soundness holes rather than
+working around them, so the surface here is a bit smaller than what nightly would let us do. Might grow
+later, might not.
 
 ## Installation
 
@@ -45,9 +50,8 @@ On stable Rust, and anywhere the const paths aren't wanted:
 cargo add notko --no-default-features
 ```
 
-Pin the exact version rather than a range. The api hasn't settled and `0.0.x`
-releases are incompatible with each other by semver's own rules anyway, so a
-caret gets you a break rather than a fix.
+Worth knowing that `0.0.x` releases are all mutually incompatible by semver's own rules, so a caret
+range here buys you a break, not a fix. Pin the exact one.
 
 ## Usage
 
@@ -68,8 +72,8 @@ fn post_validated(value: u32) -> Just<u32> {
 }
 ```
 
-With the `try_trait_v2` feature, `?` works on all three. The feature needs a nightly compiler for `notko`
-itself; your own crate needs no feature gate of its own:
+With the `try_trait_v2` feature, `?` works on all three. It needs a nightly compiler, since that is what
+`notko` itself compiles under, but your own crate needs no feature gate of its own:
 
 ```rust
 use notko::{Maybe, Outcome};
@@ -81,29 +85,32 @@ fn compose() -> Outcome<u32, &'static str> {
 }
 ```
 
-`notko::prelude` re-exports the common surface in one import.
+There's a `notko::prelude` too, if you'd rather pull the common surface in one import.
 
 ## Cost per call site
 
 `Just<T>` is the proven-present case. `#[repr(transparent)]`, no discriminant, no branch, and with
 `try_trait_v2` a `?` on it compiles to nothing at all. Reach for it where an invariant proves the error
-variant unreachable: post-validation paths, codegen-reduced hot loops, wrappers that reify a guarantee.
+variant unreachable: post-validation paths, codegen-reduced hot loops, wrappers that make a guarantee
+concrete.
 
 `Maybe<T>` is the ordinary-absence case, and for pointer-shaped `T` (`&T`, `NonNull<T>`, every `NonZero*`,
 function pointers) Rust niche-fills the enum so the whole thing is the size of `T`. Absence costs no extra
 storage in those cases. Compile-time size assertions in `maybe.rs` pin the layout per supported shape.
 
-`Outcome<T, E>` is the case where the error path carries data. Its layout is ordinary Rust repr; an
-FFI-critical result layout wraps in a dedicated `#[repr(C)]` struct rather than relying on the default.
+`Outcome<T, E>` is the case where the error path carries data. Its layout is ordinary Rust repr, so if
+you need an exact result layout across an FFI boundary, wrap the payload in your own `#[repr(C)]` struct
+instead of leaning on this one.
 
-`Just` and `Maybe` both iterate, through `JustIter` and `MaybeIter`. `Outcome` implements `Default` as
-`Ok(T::default())`, which exists so a contract can declare a default without its owner having to invent an
-error value.
+`Just` and `Maybe` both iterate, through `JustIter` and `MaybeIter`. `Outcome` gets a `Default` of
+`Ok(T::default())`, which is there so a trait can name a default without whoever writes it having to
+make up an error value that never happens.
 
 ## Strategy-driven rewrite
 
-`#[profile]` tags a function with a strategy and rewrites the body to the matching tier. Without it you
-pick the type at every call site; with it you write one ordinary surface and the strategy lowers it.
+`#[profile]` tags a function with a strategy and rewrites the body to the matching tier. Without it
+you're picking the type at every call site yourself, which gets old. With it you write one ordinary
+`Result` surface and the macro rewrites it for you.
 
 The authoring form is plain `Result` with `Ok` and `Err`. The macro rewrites the signature and the body:
 
@@ -125,10 +132,10 @@ builds, so the error path stays observable; in release-internal builds, which th
 through its own `internal` feature, it emits `Just<T>` with `Err` lowered to a panic. `Cold` always emits
 `Outcome`. `Warm` is passthrough in every build and preserves the source `Result<T, E>` signature.
 
-Third-party strategies live in a crate-local `notko-optimizers/<name>.rs` with a
-`based_on = "Hot" | "Warm" | "Cold"` header. The value is case-sensitive; lowercase does not match and
-fails the build. A sibling proc-macro crate reusing `notko-macros-core` is the other route. See
-[`notko-macros`](https://github.com/orgrinrt/notko/tree/main/notko-macros).
+Third-party strategies live in a crate-local `notko-optimizers/<Name>.rs` with a
+`based_on = "Hot" | "Warm" | "Cold"` header. The `based_on` value is case-sensitive, so lowercase doesn't
+match and fails the build. A sibling proc-macro crate reusing `notko-macros-core` is the other route. See
+[`notko-macros`](https://crates.io/crates/notko-macros).
 
 Enable the `macros` feature to get `profile` re-exported at `notko`'s root.
 
@@ -147,8 +154,8 @@ knowing that only works if you already know niche-fill is what guarantees it.
 guaranteed null bit pattern, where the sealed `NicheFilled` trait admits only types whose all-zeros
 pattern is invalid: `&T`, `&mut T`, `NonNull<T>`, every `NonZero*`, and `extern` / `unsafe extern` / plain
 / `unsafe` fn pointers of arities zero through eight. `MaybeNull<u32>` does not compile, because `u32` has
-no invalid pattern. `MaybeNull<&T>` does, laid out exactly as `Option<&T>` would be, and a reader needs no
-knowledge of niche-fill to see it.
+no invalid pattern. `MaybeNull<&T>` does, and it lays out exactly like `Option<&T>` would, except now you
+can see that from the signature without knowing anything about niche-fill.
 
 The cost is that the niche set is fixed at the language level, so extending it takes a `notko` release
 rather than a downstream impl.
@@ -174,17 +181,17 @@ impl ExtensionDescriptor {
 }
 ```
 
-A `const` layout assertion is forced for every shape `NicheFilled` admits, so the build fails if a future
-rustc ever regresses niche-filling for one of them. `NicheFilled` is sealed and its pointer families are
-covered at all three metadata kinds, which is what makes that a claim about the whole set rather than about
-the members somebody happened to list.
+There's a `const` layout assertion forced for every shape `NicheFilled` admits, so if some future rustc
+regresses niche-filling for one of them, the build breaks instead of the ABI. And since `NicheFilled` is
+sealed and covers the pointer families at all three metadata kinds, that's the whole set, not just
+whichever ones we happened to write down.
 
 ### Value invariants
 
 `Boundable` declares that a type is bounded to `[MIN, MAX]`. Its `try_new` constructor returns
 `Outcome<Self, BoundError<I>>`, and `BoundError` names whether the rejected value was `Below { value, min }`
-or `Above { value, max }`. The bound is checked at construction, so consumers rely on it rather than
-re-checking at every read.
+or `Above { value, max }`. The bound is checked once at construction, so nothing downstream has to check
+it again on every read.
 
 `NonZeroable` declares that a type has a zero sentinel and a nonzero guarantee form. Combined with
 `Slot<T>`, a `T: NonZeroable + NicheFilled` becomes a pointer-niche-shaped wrapper whose `Slot::NONE`
@@ -200,12 +207,17 @@ default without knowing the concrete type.
 
 | Feature | Default | Effect |
 |---|---|---|
-| `const` | on | Declares `ConstTry`, `ConstFromResidual` and `HasTrivialCtor` as `const trait`s. Requires nightly. Turn off with `default-features = false` to build on stable; the traits then exist in plain form. |
-| `try_trait_v2` | off | Impl `core::ops::Try` for `Just` / `Maybe` / `Outcome`, enabling `?`. Requires nightly. |
-| `macros` | off | Re-export `#[profile]` from `notko-macros` at the crate root. |
-| `all` | off | Every pathway at once: `const`, `macros` and `try_trait_v2`. Worth enabling somewhere that actually compiles, so the gated `Try` impls are exercised rather than sitting dormant, since dormant gated code is how an upstream API change breaks a consumer unnoticed. |
+| `const` | on | `ConstTry`, `ConstFromResidual` and `HasTrivialCtor` become `const trait`s. Needs nightly. |
+| `try_trait_v2` | off | `core::ops::Try` for `Just` / `Maybe` / `Outcome`, so `?` works. Needs nightly. |
+| `macros` | off | Re-exports `#[profile]` from `notko-macros` at the crate root. |
+| `all` | off | All three at once. |
 
-Without `try_trait_v2` the types still work; only `?` is unavailable.
+Without `try_trait_v2` the types all still work, you just don't get `?`. And on stable,
+`default-features = false` gets you everything except the const paths, which then exist in plain
+non-const form.
+
+`all` is worth turning on somewhere that actually compiles, a consumer or a CI check, because gated code
+nobody builds is how an upstream change breaks you without anyone noticing until much later.
 
 ## Support
 
