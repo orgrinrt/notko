@@ -15,7 +15,7 @@ use core::fmt;
 /// edge cases at the C ABI boundary, and the documented guidance
 /// for FFI-critical result layouts is to wrap the payload in a
 /// dedicated `#[repr(C)]` struct rather than rely on Outcome's
-/// default. See `lib.rs` module-level doc.
+/// default. See [crate] for the layout notes.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 #[must_use = "Outcome<T, E> may carry an error; ignoring it discards the failure path"]
 pub enum Outcome<T, E> {

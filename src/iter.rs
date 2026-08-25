@@ -5,12 +5,10 @@
 
 //! [`IteratorExt`]: adapter from `core::iter::Iterator::next` to [`Maybe`].
 //!
-//! Bridges the std `Iterator::next() -> Option<Item>` boundary to the
-//! stack's [`Maybe`] vocabulary. Every consumer that ships a custom
-//! `Iterator` impl reaches for `lint:allow(no-bare-option)` because the
-//! trait method signature names `Option`. The adapter lets call sites
-//! use `Maybe` without paying that cost; the std signature stays where
-//! it must (the `Iterator` impl body itself).
+//! Bridges `Iterator::next() -> Option<Item>` over to [`Maybe`]. The trait
+//! signature names `Option` and there's nothing to be done about that, so
+//! the `Option` stays inside the `Iterator` impl where it has to be, and
+//! this lets the call site go back to `Maybe`.
 
 use crate::Maybe;
 

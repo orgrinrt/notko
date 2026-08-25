@@ -10,12 +10,11 @@
 
 //! notko: foundation primitives.
 //!
-//! Finnish *notko*: hollow, trough. The ground every downstream crate sits on.
+//! Finnish *notko*: hollow, trough.
 //!
-//! Zero deps, no std, no alloc. Ships the scalar-level vocabulary that stands
-//! in for `core::option::Option`, `core::result::Result`, and bare integer
-//! primitives, so one set of words covers presence, fallibility and width
-//! everywhere above it.
+//! Zero deps, no std, no alloc. Ships the vocabulary that stands in for
+//! `core::option::Option`, `core::result::Result`, and bare integer
+//! primitives, so one set of words covers presence, fallibility and width.
 //!
 //! # Contents
 //!
@@ -43,11 +42,11 @@
 //!   `core::ops::Try` / `FromResidual`. Gated behind the `const` cargo
 //!   feature (default-on).
 //!
-//! # Three tiers of fallibility
+//! # Cost per call site
 //!
 //! [`Just`] / [`Maybe`] / [`Outcome`] put the hot, warm and cold split at
-//! the control-flow level, the same way a numeric strategy marker puts it at
-//! the arithmetic level:
+//! the control-flow level, so what a branch costs is picked where the call
+//! is written instead of being fixed by the type:
 //!
 //! | Tier | Type | Cold path |
 //! |------|------|-----------|
@@ -91,12 +90,12 @@
 //! buys is one word for presence everywhere, not a representation `core`
 //! could not have given.
 //!
-//! # Sanctioned use of std primitives
+//! # Where `Option` stays
 //!
 //! The std types still exist and are still what std trait method signatures
 //! require (`fn next() -> Option<Self::Item>`, `fn partial_cmp() ->
-//! Option<Ordering>`, `fn fmt() -> fmt::Result`). Those impls are the only
-//! sanctioned use of std primitives in stack code.
+//! Option<Ordering>`, `fn fmt() -> fmt::Result`). Those are the places
+//! `Option` is unavoidable, so that's where it stays.
 
 pub mod bounded;
 pub mod cmp;

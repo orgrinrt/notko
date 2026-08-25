@@ -5,16 +5,15 @@
 
 //! Storage a caller lends, and the filled prefix that comes back.
 //!
-//! Four places in this stack had grown their own version of one protocol:
-//! hand me storage, fill part of it, give me back the part you filled, and if
-//! it was too small tell me how much you wanted rather than only that you
-//! failed. Each spelled it differently, each invented its own failure type,
-//! and none of them could be handed storage built for another.
+//! Hand me storage, fill part of it, give me back the part you filled, and
+//! if it was too small tell me how much you actually wanted, not just that
+//! you failed.
 //!
-//! It belongs here because it is the shape of a question with no domain in it.
-//! A bit buffer, a row of edit distances, an argument vector and a line being
-//! typed are unrelated things that all need to ask it, and the crate everything
-//! already depends on is the only place they can share an answer.
+//! It's a question with no domain in it. A bit buffer, a row of edit
+//! distances, an argument vector and a line being typed have nothing in
+//! common except that all four need to ask exactly this, and each one that
+//! answers it privately answers it slightly differently and can't be handed
+//! storage built for another.
 //!
 //! # What this buys, and what it does not
 //!

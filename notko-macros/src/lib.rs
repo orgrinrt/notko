@@ -12,7 +12,7 @@
 //! See the crate README for the tier table, usage patterns, and the shape
 //! of custom-tier `notko-optimizers/<Name>.rs` files.
 //!
-//! [`notko-macros-core`]: https://github.com/orgrinrt/notko/tree/dev/notko-macros-core
+//! [`notko-macros-core`]: https://crates.io/crates/notko-macros-core
 
 use proc_macro::TokenStream;
 

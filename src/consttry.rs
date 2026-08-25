@@ -25,11 +25,11 @@
 //! The const-variant impls in `just.rs` / `maybe.rs` / `outcome.rs`
 //! carry an extra `T: Copy` bound (and `E: Copy` for Outcome). The
 //! restriction exists because const fn cannot evaluate destructors
-//! for arbitrary generic `T` under current rustc nightly. Consumers
-//! pushing non-Copy types through `branch` / `from_output` reach for
-//! the non-const variant via `default-features = false`. Substrate
-//! consumers (Bool, USize, Cap, Bits, NUSize) are all Copy, so the
-//! restriction is invisible at the typical call site.
+//! for arbitrary generic `T` under current rustc nightly. If you're
+//! pushing a non-Copy type through `branch` / `from_output`, reach for
+//! the non-const variant via `default-features = false`. In practice
+//! most of what goes through here is `Copy` anyway, so the restriction
+//! rarely shows up at a call site.
 //!
 //! # Module layout
 //!
