@@ -3,6 +3,8 @@
 <div align="center" style="text-align: center;">
 
 [![GitHub Stars](https://img.shields.io/github/stars/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/stargazers)
+[![Crates.io](https://img.shields.io/crates/v/notko)](https://crates.io/crates/notko)
+[![docs.rs](https://img.shields.io/docsrs/notko)](https://docs.rs/notko)
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/issues)
 ![License](https://img.shields.io/github/license/orgrinrt/notko?color=%23009689)
 
@@ -33,23 +35,19 @@ is smaller than what nightly would allow.
 
 ## Installation
 
-Not on crates.io yet, so for now it comes off the repository:
-
-```toml
-[dependencies]
-notko = { git = "https://github.com/orgrinrt/notko.git", branch = "dev" }
+```bash
+cargo add notko
 ```
 
 On stable Rust, and anywhere the const paths aren't wanted:
 
-```toml
-[dependencies]
-notko = { git = "https://github.com/orgrinrt/notko.git", branch = "dev", default-features = false }
+```bash
+cargo add notko --no-default-features
 ```
 
-Once it publishes, pin the exact version rather than a range. The api hasn't
-settled and `0.0.x` releases are incompatible with each other by semver's own
-rules anyway.
+Pin the exact version rather than a range. The api hasn't settled and `0.0.x`
+releases are incompatible with each other by semver's own rules anyway, so a
+caret gets you a break rather than a fix.
 
 ## Usage
 
