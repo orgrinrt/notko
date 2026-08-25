@@ -15,14 +15,17 @@ use quote::quote;
 use syn::visit_mut::VisitMut;
 use syn::{Expr, ExprReturn, ItemFn, Path, Result, Type, parse_quote};
 
-use super::helpers::{extract_result_inner_types, is_err_call, is_ok_call};
+use super::helpers::{is_err_call, is_ok_call, result_inner_types};
 use crate::tiers::CustomTier;
 
 pub fn rewrite(tier: CustomTier, mut func: ItemFn) -> Result<TokenStream> {
-    let (ok_ty, err_ty) = extract_result_inner_types(&func.sig.output);
-    if let (Some(t), Some(_)) = (ok_ty, err_ty) {
-        set_maybe_return(&tier.krate, &mut func, t);
-    }
+    // Nothing to lift, so nothing to rewrite. The body is left alone as well
+    // as the signature: rewriting one without the other produces a function
+    // returning one type and constructing another.
+    let Some((t, _)) = result_inner_types(&func.sig.output) else {
+        return Ok(quote! { #func });
+    };
+    set_maybe_return(&tier.krate, &mut func, t);
 
     let mut rewriter = MaybeRewriter {
         krate: tier.krate.clone(),
