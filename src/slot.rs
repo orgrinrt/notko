@@ -62,8 +62,27 @@ use crate::{Maybe, NicheFilled, NonZeroable};
 /// Layout: identical to `T` (`#[repr(transparent)]` over `Maybe<T>`,
 /// which niche-fills when `T: NicheFilled`).
 #[repr(transparent)]
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub struct Slot<T: NonZeroable + NicheFilled>(Maybe<T>);
+
+impl<T: NonZeroable + NicheFilled + core::fmt::Debug> core::fmt::Debug for Slot<T> {
+    /// The type's own vocabulary, not the one it wraps.
+    ///
+    /// A derive delegates to the inner [`Maybe`] and prints `Slot(Isnt)`, which
+    /// names a variant this type's surface does not have: it says `NONE`,
+    /// `is_none` and `some`. A reader chasing an empty field is told about the
+    /// wrong layer, in a word they cannot find.
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match &self.0 {
+            Maybe::Is(value) => f.debug_tuple("Slot").field(value).finish(),
+            // `format_args!` rather than a written-out string, so the alternate
+            // form stays a tuple like the present one. A `write_str` of the
+            // whole rendering is what `{:#?}` cannot lay out, and the two arms
+            // then disagree about their shape under one format specifier.
+            Maybe::Isnt => f.debug_tuple("Slot").field(&format_args!("none")).finish(),
+        }
+    }
+}
 
 impl<T: NonZeroable + NicheFilled> Slot<T> {
     /// The absent value. Equivalent to `Slot(Maybe::Isnt)`.

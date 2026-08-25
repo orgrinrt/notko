@@ -651,6 +651,41 @@ impl<T: NicheFilled> MaybeNull<T> {
     }
 }
 
+impl<T: NicheFilled> Default for MaybeNull<T> {
+    /// The null variant, which is what a zeroed field of this type already is.
+    ///
+    /// Written out rather than derived, because a derive bounds `T: Default`
+    /// and most of what this type is for does not have one. `NonZeroU8` is the
+    /// ordinary case and it does not, so the derived impl exists and no value
+    /// of it can reach the impl at all.
+    #[inline]
+    fn default() -> Self {
+        Self::null()
+    }
+}
+
+impl<T: NicheFilled + fmt::Debug> fmt::Debug for MaybeNull<T> {
+    /// The type's own vocabulary, not the one it wraps.
+    ///
+    /// Delegating to [`Maybe`] would print `Isnt` for a value whose whole
+    /// subject is that it is null, and a reader chasing a field that came back
+    /// zero from a foreign call gets told about the wrong layer.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.0 {
+            Maybe::Is(value) => f.debug_tuple("MaybeNull").field(value).finish(),
+            // `format_args!` rather than a written-out string, so the alternate
+            // form stays a tuple like the present one. A `write_str` of the
+            // whole rendering is what `{:#?}` cannot lay out, and the two arms
+            // then disagree about their shape under one format specifier.
+            Maybe::Isnt => {
+                f.debug_tuple("MaybeNull")
+                    .field(&format_args!("null"))
+                    .finish()
+            },
+        }
+    }
+}
+
 impl<T: NicheFilled> From<Maybe<T>> for MaybeNull<T> {
     #[inline]
     fn from(m: Maybe<T>) -> Self {
