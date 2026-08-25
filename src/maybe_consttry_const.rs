@@ -9,9 +9,10 @@
 use super::Maybe;
 use crate::{ConstFromResidual, ConstTry};
 use core::convert::Infallible;
+use core::marker::Destruct;
 use core::ops::ControlFlow;
 
-const impl<T: Copy> ConstTry for Maybe<T> {
+const impl<T: [const] Destruct> ConstTry for Maybe<T> {
     type Output = T;
     type Residual = Maybe<Infallible>;
 
@@ -29,7 +30,7 @@ const impl<T: Copy> ConstTry for Maybe<T> {
     }
 }
 
-const impl<T: Copy> ConstFromResidual<Maybe<Infallible>> for Maybe<T> {
+const impl<T: [const] Destruct> ConstFromResidual<Maybe<Infallible>> for Maybe<T> {
     #[inline]
     fn from_residual(residual: Maybe<Infallible>) -> Self {
         match residual {

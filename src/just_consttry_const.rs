@@ -9,9 +9,10 @@
 use super::Just;
 use crate::{ConstFromResidual, ConstTry};
 use core::convert::Infallible;
+use core::marker::Destruct;
 use core::ops::ControlFlow;
 
-const impl<T: Copy> ConstTry for Just<T> {
+const impl<T: [const] Destruct> ConstTry for Just<T> {
     type Output = T;
     type Residual = Infallible;
 
@@ -26,7 +27,7 @@ const impl<T: Copy> ConstTry for Just<T> {
     }
 }
 
-const impl<T: Copy> ConstFromResidual<Infallible> for Just<T> {
+const impl<T: [const] Destruct> ConstFromResidual<Infallible> for Just<T> {
     #[inline]
     fn from_residual(residual: Infallible) -> Self {
         match residual {}

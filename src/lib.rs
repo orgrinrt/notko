@@ -7,6 +7,8 @@
 #![cfg_attr(feature = "try_trait_v2", feature(try_trait_v2))]
 #![cfg_attr(feature = "try_trait_v2", feature(try_trait_v2_residual))]
 #![cfg_attr(feature = "const", feature(const_trait_impl))]
+#![cfg_attr(feature = "const", feature(const_destruct))]
+#![cfg_attr(feature = "const", feature(const_convert))]
 
 //! notko: foundation primitives.
 //!

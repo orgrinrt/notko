@@ -9,9 +9,10 @@
 use super::Outcome;
 use crate::{ConstFromResidual, ConstTry};
 use core::convert::Infallible;
+use core::marker::Destruct;
 use core::ops::ControlFlow;
 
-const impl<T: Copy, E: Copy> ConstTry for Outcome<T, E> {
+const impl<T: [const] Destruct, E: [const] Destruct> ConstTry for Outcome<T, E> {
     type Output = T;
     type Residual = Outcome<Infallible, E>;
 
@@ -34,11 +35,15 @@ const impl<T: Copy, E: Copy> ConstTry for Outcome<T, E> {
 // needing `E -> F` conversion through ConstFromResidual reach for the
 // non-const path via `default-features = false`. See the `# Divergence`
 // section on `ConstFromResidual`'s declaration in `consttry_const_path.rs`.
-const impl<T: Copy, E: Copy> ConstFromResidual<Outcome<Infallible, E>> for Outcome<T, E> {
+const impl<T, E, F: [const] From<E> + [const] Destruct> ConstFromResidual<Outcome<Infallible, E>>
+    for Outcome<T, F>
+where
+    E: [const] Destruct,
+{
     #[inline]
     fn from_residual(residual: Outcome<Infallible, E>) -> Self {
         match residual {
-            Outcome::Err(err) => Outcome::Err(err),
+            Outcome::Err(err) => Outcome::Err(F::from(err)),
             Outcome::Ok(never) => match never {},
         }
     }
