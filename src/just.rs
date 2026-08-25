@@ -148,8 +148,10 @@ impl<T> Just<T> {
         self.0
     }
 
-    /// Return the inner value. The `Default` bound is documentation only;
-    /// `Just<T>` always carries a value. Tier-symmetric mirror of
+    /// Return the inner value. `Just<T>` always carries one, so the default is
+    /// never reached, but the bound is a real one: a payload without `Default`
+    /// is refused here and accepted by every other method on `Just`. It is the
+    /// price of the mirror being exact. Tier-symmetric mirror of
     /// [`crate::Maybe::unwrap_or_default`] /
     /// [`crate::Outcome::unwrap_or_default`].
     #[inline]

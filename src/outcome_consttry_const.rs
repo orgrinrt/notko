@@ -30,11 +30,6 @@ const impl<T: [const] Destruct, E: [const] Destruct> ConstTry for Outcome<T, E> 
     }
 }
 
-// `From` in const trait bounds is not yet stable; ConstFromResidual on Outcome
-// omits the `F: From<E>` conversion variant in the const path. Consumers
-// needing `E -> F` conversion through ConstFromResidual reach for the
-// non-const path via `default-features = false`. See the `# Divergence`
-// section on `ConstFromResidual`'s declaration in `consttry_const_path.rs`.
 const impl<T, E, F: [const] From<E> + [const] Destruct> ConstFromResidual<Outcome<Infallible, E>>
     for Outcome<T, F>
 where

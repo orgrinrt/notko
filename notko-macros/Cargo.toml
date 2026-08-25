@@ -27,7 +27,7 @@ keywords = ["proc-macro", "codegen", "hot-path", "fallible", "attribute"]
 # repository, so it only runs from a checkout at all. `cargo package` warns
 # about the stripped dependency each time, which is the intended state rather
 # than something to chase.
-include = ["src/**/*.rs", "notko-optimizers/*.rs", "README.md", "LICENSE"]
+include = ["src/**/*.rs", "notko-optimisers/*.rs", "README.md", "LICENSE"]
 
 [features]
 default = []

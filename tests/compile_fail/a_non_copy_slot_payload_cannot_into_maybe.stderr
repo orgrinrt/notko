@@ -1,0 +1,15 @@
+error[E0277]: the trait bound `&mut Theirs: Copy` is not satisfied
+  --> tests/compile_fail/a_non_copy_slot_payload_cannot_into_maybe.rs:21:44
+   |
+21 |     let _ = notko::Slot::some(&mut theirs).into_maybe();
+   |                                            ^^^^^^^^^^ the trait `Copy` is not implemented for `&mut Theirs`
+   |
+   = note: `Copy` is implemented for `&Theirs`, but not for `&mut Theirs`
+note: required by a bound in `Slot::<T>::into_maybe`
+  --> src/slot.rs
+   |
+   |     pub const fn into_maybe(self) -> Maybe<T>
+   |                  ---------- required by a bound in this associated function
+   |     where
+   |         T: Copy,
+   |            ^^^^ required by this bound in `Slot::<T>::into_maybe`

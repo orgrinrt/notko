@@ -242,14 +242,19 @@ fn a_shipped_test_does_not_reach_for_the_repository() {
     // Every crate in the workspace, not just the one this file sits in. The
     // defect this check exists for recurred in a sibling while the root stayed
     // clean, and a check that looks at one crate reports on one crate.
+    //
+    // Read off the members rather than typed out. The list used to be a literal
+    // followed by an assertion that it had four entries, which is the literal
+    // agreeing with itself: a crate added to the workspace and left out of the
+    // literal was never checked, and nothing said so.
     let crates: Vec<PathBuf> = std::iter::once(root.clone())
-        .chain(
-            ["notko-macros", "notko-macros-core", "notko-build"]
-                .iter()
-                .map(|c| root.join(c)),
-        )
+        .chain(crates().into_iter().map(|(dir, _)| dir))
+        .filter(|d| d.join("Cargo.toml").is_file())
         .collect();
-    assert_eq!(crates.len(), 4, "the crate list is not what it says it is");
+    assert!(
+        crates.len() > 1,
+        "the workspace members were not read: {crates:?}"
+    );
 
     let mut checked_any_file = false;
 
@@ -415,6 +420,13 @@ fn reaches_for_the_repository(body: &str, stripped: &[String]) -> Vec<String> {
     // directory of fixtures beside a test does not travel with it.
     if body.contains("tests/fixtures") {
         why.push("reads a fixture tree, which a package does not carry".into());
+    }
+
+    // A compile-fail harness is the same thing under another name: a directory
+    // of sources plus the diagnostics they must produce, none of which is a
+    // file `include` could sensibly name one at a time.
+    if body.contains("compile_fail(") {
+        why.push("drives a compile-fail tree, which a package does not carry".into());
     }
 
     // Spawning the toolchain against the tree is a check about the tree.
@@ -622,5 +634,87 @@ fn the_doc_include_gate_names_every_feature_the_readme_reaches_for() {
     assert!(
         runnable.contains("?;") || runnable.contains("#[profile"),
         "neither needle appears in any runnable block, so nothing was checked"
+    );
+}
+
+/// The `#![cfg_attr(..., feature(...))]` gates in the crate root, by name.
+fn unstable_gates() -> Vec<String> {
+    let text = fs::read_to_string(root().join("src/lib.rs")).expect("the crate root");
+    text.lines()
+        .filter_map(|l| {
+            let l = l.trim();
+            if !l.starts_with("#![cfg_attr(") {
+                return None;
+            }
+            let inner = l.split("feature(").nth(1)?;
+            Some(inner.split(')').next()?.to_string())
+        })
+        .collect()
+}
+
+#[test]
+fn the_readme_counts_the_unstable_features_the_crate_root_gates() {
+    // The readme said three where the root gated five, and it named two the
+    // default set does not turn on while omitting two it does. Every word of
+    // it was true when written; what changed underneath was the const set
+    // growing, and prose does not notice that.
+    let gates = unstable_gates();
+    let readme = fs::read_to_string(root().join("README.md")).expect("the readme");
+
+    let numbers = [
+        (1, "one"),
+        (2, "two"),
+        (3, "three"),
+        (4, "four"),
+        (5, "five"),
+        (6, "six"),
+        (7, "seven"),
+        (8, "eight"),
+    ];
+    let spelled = numbers
+        .iter()
+        .find(|(n, _)| *n == gates.len())
+        .map(|(_, w)| *w)
+        .unwrap_or_else(|| panic!("no spelling for {} gates", gates.len()));
+    assert!(
+        readme.contains(&format!("{spelled} unstable features")),
+        "the crate root gates {} features and the readme does not say {spelled}: {gates:?}",
+        gates.len()
+    );
+
+    for gate in &gates {
+        assert!(
+            readme.contains(&format!("`{gate}`")),
+            "`{gate}` is gated in the crate root and named nowhere in the readme"
+        );
+    }
+}
+
+#[test]
+fn the_msrv_says_which_build_it_is_the_msrv_of() {
+    // `rust-version` is one number and this crate has two builds. The default
+    // set needs nightly, so the number is the floor for the build with the
+    // defaults off, and a reader who takes it for the default one gets a
+    // feature-gate error rather than the version error the key exists to give.
+    // Verified against the toolchain it names, with the defaults off.
+    let manifest = fs::read_to_string(root().join("Cargo.toml")).expect("workspace manifest");
+    let line = manifest
+        .lines()
+        .find(|l| l.trim_start().starts_with("rust-version"))
+        .expect("rust-version is set, per the publishing rules");
+    let version = line
+        .split('"')
+        .nth(1)
+        .expect("rust-version carries a version string");
+
+    let readme = fs::read_to_string(root().join("README.md")).expect("the readme");
+    assert!(
+        readme.contains(version),
+        "the manifest claims {version} and the readme never mentions it, so \
+         nobody reading the crate learns which build it is the floor for"
+    );
+    assert!(
+        readme.contains("default-features = false") || readme.contains("turn the defaults off"),
+        "the readme does not say how to reach the build {version} applies to"
     );
 }

@@ -5,9 +5,10 @@ resolver = "2"
 [workspace.package]
 version = "0.0.1"
 edition = "2024"
-# Describes the `--no-default-features` path, which is the one that builds on
-# stable. The default feature set turns on const-trait machinery and needs a
-# nightly compiler regardless of this number.
+# The floor for the build with the default features off, which is the one that
+# works on stable at all: the default set turns on const-trait machinery that
+# only nightly has. Checked against 1.85.0 itself with `--no-default-features`,
+# rather than inferred from what the code looks like it needs.
 rust-version = "1.85"
 license = "MPL-2.0"
 homepage = "https://github.com/orgrinrt/notko"
@@ -35,6 +36,7 @@ include = [
     "src/**/*.rs",
     "tests/bounded.rs",
     "tests/cmp_ext.rs",
+    "tests/const_error_conversion.rs",
     "tests/consttry_notcopy.rs",
     "tests/consttry_parity.rs",
     "tests/consttry_smoke.rs",
@@ -46,6 +48,7 @@ include = [
     "tests/nonzero.rs",
     "tests/ordering_parity.rs",
     "tests/outcome_combinators.rs",
+    "tests/slot_admits_more_than_the_nonzero_family.rs",
     "tests/slot_layout.rs",
     "tests/try_smoke.rs",
     "README.md",
@@ -87,6 +90,15 @@ path = "tests/consttry_parity.rs"
 # because the plain path genuinely is not const-callable. Const-callability is
 # what the feature legitimately switches; which types it reaches is what it
 # must not, and that half is the target above.
+# The body is already behind a `#[cfg]`, which is not enough: auto-discovery
+# compiles the target, and a crate-level `#![cfg_attr(..., feature(...))]` in a
+# configuration where the gate is off leaves the `impl const` inside it
+# unbuildable. `required-features` skips the target instead.
+[[test]]
+name = "const_error_conversion"
+path = "tests/const_error_conversion.rs"
+required-features = ["const"]
+
 [[test]]
 name = "consttry_notcopy"
 path = "tests/consttry_notcopy.rs"
@@ -98,6 +110,21 @@ required-features = ["const"]
 name = "try_smoke"
 path = "tests/try_smoke.rs"
 required-features = ["try_trait_v2"]
+
+# Same reason, and the cases in it are builds that must fail rather than tests
+# that must pass.
+[[test]]
+name = "the_ladder_composes_under_question_mark"
+path = "tests/the_ladder_composes_under_question_mark.rs"
+required-features = ["try_trait_v2"]
+
+[dev-dependencies]
+# The one dependency here, and it is a dev one, so nothing a consumer installs
+# grows by it. It exists because several of this crate's guarantees are
+# refusals, and a refusal nothing pins can be deleted by accident: a bound
+# loosened later restores the illegal state and every remaining test passes,
+# because none of them names it.
+trybuild = "1"
 
 [features]
 default = ["const"]

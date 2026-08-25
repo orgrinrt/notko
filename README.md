@@ -30,13 +30,18 @@ we'll try to keep the migration notes worth reading. I'd caution against putting
 just yet.
 
 The default feature set needs a nightly compiler, because the const-trait machinery it turns on isn't
-stable yet. On stable, turn the defaults off and the crate builds and works, with the const paths
-absent. Probably the main thing to know before you add it.
+stable yet. On stable, turn the defaults off and the crate builds and works from 1.85
+onwards, with the const paths absent. That's what the `rust-version` in the manifest is about, so don't
+read it as the floor for the default set, which has no floor on stable at all. Probably the main thing
+to know before you add it.
 
-It sits on three unstable features, `try_trait_v2`, `try_trait_v2_residual` and `const_trait_impl`, and
-all three are still moving upstream. We've stayed off the ones with known soundness holes rather than
-working around them, so the surface here is a bit smaller than what nightly would let us do. Might grow
-later, might not.
+It sits on five unstable features, across the two optional sets. `try_trait_v2` and
+`try_trait_v2_residual` carry the `?` operator for the three carriers; `const_trait_impl`,
+`const_destruct` and `const_convert` carry the const paths, and the middle one is what lets a value be
+dropped in a const context, which is why the const carriers can take ownership at all. All five are
+still moving upstream. We've stayed off the ones with known soundness holes rather than working around
+them, so the surface here is a bit smaller than what nightly would let us do. Might grow later, might
+not.
 
 ## Installation
 
@@ -137,7 +142,7 @@ through its own `internal` feature, it emits `Just<T>` with `Err` lowered to a p
 `Outcome`. `Warm` rewrites to `Maybe<T>` in every build, dropping the error, which is what choosing
 that tier decides.
 
-Third-party strategies live in a crate-local `notko-optimizers/<Name>.rs` with a
+Third-party strategies live in a crate-local `notko-optimisers/<Name>.rs` with a
 `based_on = "Hot" | "Warm" | "Cold"` header. The `based_on` value is case-sensitive, so lowercase doesn't
 match and fails the build. A sibling proc-macro crate reusing `notko-macros-core` is the other route. See
 [`notko-macros`](https://crates.io/crates/notko-macros).

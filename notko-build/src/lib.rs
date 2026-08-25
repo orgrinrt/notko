@@ -27,7 +27,7 @@ const META_KEY: &str = "notko-optimiser-path";
 const EXPANSION_ENV_VAR: &str = "NOTKO_OPTIMISERS_PATH";
 
 /// Local-relative dir each crate uses to ship its own optimiser .rs files.
-const LOCAL_DIR: &str = "notko-optimizers";
+const LOCAL_DIR: &str = "notko-optimisers";
 
 /// Sub-dir inside `$OUT_DIR` where accumulated optimiser files are written.
 const OUT_SUBDIR: &str = "notko-optimisers";
@@ -63,7 +63,7 @@ impl std::fmt::Display for Error {
                 f,
                 "notko-build: tier `{name}` provided by two sources: \
                  `{}` and `{}`. resolve by renaming one or dropping a \
-                 local override in your crate's notko-optimizers/ dir.",
+                 local override in your crate's notko-optimisers/ dir.",
                 first.display(),
                 second.display()
             ),
@@ -87,7 +87,7 @@ impl From<io::Error> for Error {
 }
 
 /// Call from a consumer crate's `build.rs`. Scans crate-local
-/// `notko-optimizers/` and dependency-propagated paths, accumulates them
+/// `notko-optimisers/` and dependency-propagated paths, accumulates them
 /// into `$OUT_DIR/notko-optimisers/`, and emits cargo instructions to
 /// expose the accumulated dir to the notko-macros proc-macro and to
 /// downstream dependents.
@@ -149,7 +149,7 @@ fn accumulate(
 /// shadow or a clash.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Source {
-    /// The consuming crate's own `notko-optimizers/` directory.
+    /// The consuming crate's own `notko-optimisers/` directory.
     Local,
     /// A directory a dependency propagated through build-script metadata.
     Dep,
@@ -291,8 +291,8 @@ mod tests {
     fn copy_tree_collects_rs_files_and_ignores_the_rest() {
         let src = tmp_dir("copy-src");
         let dst = tmp_dir("copy-dst");
-        write(&src.join("trace.rs"), "//! @notko-optimizer\n");
-        write(&src.join("audit.rs"), "//! @notko-optimizer\n");
+        write(&src.join("trace.rs"), "//! @notko-optimiser\n");
+        write(&src.join("audit.rs"), "//! @notko-optimiser\n");
         write(&src.join("README.md"), "ignore me");
         fs::create_dir_all(src.join("nested.rs")).unwrap();
 
@@ -446,19 +446,16 @@ mod tests {
     }
 
     #[test]
-    fn the_two_spellings_are_the_ones_documented() {
-        // The directory a crate authors is spelled with a z and the machine
-        // side with an s. Getting either wrong finds nothing and says nothing,
-        // so both are pinned here rather than left to the reader.
-        assert_eq!(LOCAL_DIR, "notko-optimizers");
-        assert_eq!(OUT_SUBDIR, "notko-optimisers");
-        assert!(
-            EXPANSION_ENV_VAR.contains("OPTIMISERS"),
-            "the env var lost its s: {EXPANSION_ENV_VAR}"
-        );
-        assert!(
-            META_KEY.contains("optimiser"),
-            "the metadata key lost its s: {META_KEY}"
+    fn the_directory_a_crate_ships_its_own_files_in_is_the_documented_one() {
+        // The fourth name, and the one the emitted lines above cannot reach:
+        // it names a directory in the consumer's source tree rather than
+        // anything this writes out. Wrong, and the scan simply finds nothing
+        // and says nothing, which is the same silence as the other three.
+        assert_eq!(LOCAL_DIR, "notko-optimisers");
+        assert_eq!(
+            LOCAL_DIR, OUT_SUBDIR,
+            "the directory a crate ships and the one this accumulates into are \
+             documented as the same name; a reader who learns one has learned both"
         );
     }
 }

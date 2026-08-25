@@ -33,4 +33,7 @@ include = [
     "notko-build/src/**/*.rs",
 ]
 
-exclude = ["**/target/**"]
+# The compile-fail fixtures are inputs to a harness rather than published
+# source: they do not ship, and the diagnostics recorded beside them carry line
+# numbers, so a header prepended to one silently invalidates its `.stderr`.
+exclude = ["**/target/**", "tests/compile_fail/**", "tests/compile_fail_try/**"]

@@ -106,9 +106,9 @@ fn cold_returns_outcome_err() {
     assert_eq!(o, Outcome::Err(Oops));
 }
 
-// ---- custom tier via notko-optimizers/Trace.rs ----
+// ---- custom tier via notko-optimisers/Trace.rs ----
 //
-// The test fixture at notko-macros/notko-optimizers/Trace.rs declares
+// The test fixture at notko-macros/notko-optimisers/Trace.rs declares
 // based_on = "Cold", so `#[profile(Trace)]` should rewrite the function
 // the same way cold would.
 

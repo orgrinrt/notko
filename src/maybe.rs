@@ -820,14 +820,9 @@ mod niche_layout_tests {
         assert_eq!(back, Maybe::Isnt);
     }
 
-    // Compile-fail boundary documentation. Uncommenting these should
-    // fail with "the trait bound `u32: NicheFilled` is not satisfied"
-    // and similar. The sealed trait keeps the set closed.
-    //
-    // fn _reject_u32() { let _ = MaybeNull::<u32>::null(); }
-    // fn _reject_struct() {
-    //     pub struct Plain(u32);
-    //     let _ = MaybeNull::<Plain>::null();
-    // }
-    // fn _reject_i64() { let _ = MaybeNull::<i64>::null(); }
+    // The refusals this seal exists for are in `tests/compile_fail/`, as
+    // builds that fail with the diagnostic they must produce recorded beside
+    // them. They lived here as commented-out functions, which is a refusal
+    // nothing pins: a bound loosened later restores the illegal state and
+    // every test in this module still passes, because none of them names it.
 }

@@ -29,21 +29,10 @@ pub const trait ConstTry {
 
 /// Const-callable parallel of `core::ops::FromResidual`.
 ///
-/// # Divergence from `core::ops::FromResidual`
-///
-/// The non-const variant of `ConstFromResidual` mirrors core's
-/// shape exactly, including the `F: From<E>` cross-error
-/// conversion. The const variant on `Outcome<T, E>` (in
-/// `outcome.rs`) does NOT include the `F: From<E>` conversion
-/// case because const trait bounds with `From` are not yet
-/// stable. Code authored against the const path cannot do the
-/// implicit error conversion that `?`-on-`Result` consumers
-/// expect; explicit `Outcome::Err(e.into())` is the workaround.
-///
-/// Tracking issue for `From` in const trait bounds:
-/// rust-lang/rust#143874 (and adjacent const-trait stabilization
-/// work). When `From` lifts, the const variant's bound matches
-/// core's shape and this divergence note can be removed.
+/// Mirrors core's shape, the `F: From<E>` cross-error conversion included, in
+/// both configurations. So an error converts into another on the way out of a
+/// const context exactly as it does at runtime, and nothing here asks for an
+/// explicit `Outcome::Err(e.into())` that the runtime path would not.
 pub const trait ConstFromResidual<R = <Self as ConstTry>::Residual> {
     /// Construct Self from a residual value.
     fn from_residual(residual: R) -> Self;

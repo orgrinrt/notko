@@ -10,7 +10,7 @@
 use notko_macros_core::tiers::{Cold, CustomTier, Hot, Strategy, Tier, Warm};
 
 /// A hypothetical third-party tier. In a real downstream crate this would
-/// come paired with either a `notko-optimizers/Trace.rs` config file (for
+/// come paired with either a `notko-optimisers/Trace.rs` config file (for
 /// consumption through notko-macros' built-in attribute) or a sibling
 /// proc-macro crate publishing its own attribute.
 pub struct Trace;

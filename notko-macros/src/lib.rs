@@ -10,7 +10,7 @@
 //! crates can reuse it.
 //!
 //! See the crate README for the tier table, usage patterns, and the shape
-//! of custom-tier `notko-optimizers/<Name>.rs` files.
+//! of custom-tier `notko-optimisers/<Name>.rs` files.
 //!
 //! [`notko-macros-core`]: https://crates.io/crates/notko-macros-core
 
@@ -22,7 +22,7 @@ use proc_macro::TokenStream;
 /// Built-ins: `Hot`, `Warm`, `Cold`. The argument is a bare ident matching
 /// the ZST marker's name in [`notko_macros_core::tiers`]. Unknown profile
 /// names are resolved by looking up
-/// `<CARGO_MANIFEST_DIR>/notko-optimizers/<Name>.rs` at expansion time.
+/// `<CARGO_MANIFEST_DIR>/notko-optimisers/<Name>.rs` at expansion time.
 #[proc_macro_attribute]
 pub fn profile(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = proc_macro2::TokenStream::from(attr);
