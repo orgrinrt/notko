@@ -1,0 +1,17 @@
+### c_generic_const_drop_no_feature.rs
+### rustc 1.98.0-nightly (57d06900f 2026-05-27)
+### expected: fail
+
+error[E0493]: destructor of `T` cannot be evaluated at compile-time
+ --> c_generic_const_drop_no_feature.rs:4:21
+  |
+4 | const fn consume<T>(_t: T) {}
+  |                     ^^      - value is dropped here
+  |                     |
+  |                     the destructor for this type cannot be evaluated in constant functions
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0493`.
+
+### rustc exit status: 1
