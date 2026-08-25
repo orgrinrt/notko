@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! Hot-strategy rewrite.
 //!
 //! Emits two cfg-gated versions of the function:
@@ -150,7 +155,9 @@ impl VisitMut for HotRewriter {
                 _ => None,
             };
             if let Some(r) = replacement {
-                *inner = Box::new(r);
+                // Writing through the box rather than replacing it, so the
+                // rewrite reuses the allocation the tree already holds.
+                **inner = r;
             }
         }
     }

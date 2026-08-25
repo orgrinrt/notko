@@ -2,9 +2,10 @@
 
 Non-proc-macro library crate housing the AST-rewrite primitives and
 tier-discovery logic that power [notko-macros]'s
-`#[profile(Tier)]` attribute. Exposed as a stable API so third-party
-proc-macro crates can author their own fallibility-tier attributes without
-reimplementing the rewrite engine.
+`#[profile(Tier)]` attribute. It is a public library rather than an internal
+one so a third-party proc-macro crate can author its own fallibility-tier
+attribute without reimplementing the rewrite engine. The surface moves with
+the rest of the crates for now; pin an exact version.
 
 [notko-macros]: https://github.com/orgrinrt/notko/tree/dev/notko-macros
 

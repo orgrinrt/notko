@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! [`IteratorExt`]: adapter from `core::iter::Iterator::next` to [`Maybe`].
 //!
 //! Bridges the std `Iterator::next() -> Option<Item>` boundary to the
@@ -13,7 +18,7 @@ use crate::Maybe;
 /// a [`Maybe`] instead of an [`Option`].
 ///
 /// Use at call sites that consume an iterator and want to stay in the
-/// substrate's vocabulary:
+/// vocabulary of this crate:
 ///
 /// ```
 /// use notko::{Maybe, iter::IteratorExt};

@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! Const-context smoke tests for `ConstTry` and `ConstFromResidual`.
 //!
 //! Each test exercises the trait methods inside a `const _: ... = { ... };`

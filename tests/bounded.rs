@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! Smoke tests for [`Boundable`] + [`BoundError`].
 
 use notko::{BoundError, Boundable, Outcome};
@@ -75,6 +80,9 @@ fn value_round_trips() {
 #[test]
 fn bound_error_clone_and_eq() {
     let err: BoundError<u8> = BoundError::Below { value: 5, min: 10 };
+    // The clone call is what this test is about, so clippy's suggestion to
+    // drop it would leave `assert_eq!(err, err)` behind.
+    #[allow(clippy::clone_on_copy)]
     let cloned = err.clone();
     assert_eq!(err, cloned);
 

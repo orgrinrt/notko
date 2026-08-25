@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! Demonstrates the downstream-extension pattern: a third-party crate
 //! defines its own ZST tier marker implementing [`Tier`], and optionally
 //! uses the core rewrite machinery from its own proc-macro attribute.

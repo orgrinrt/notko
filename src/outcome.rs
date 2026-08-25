@@ -1,11 +1,16 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! [`Outcome<T, E>`]: fallibility (replaces `Result<T, E>`).
 
 use core::fmt;
 
 /// Fallible computation outcome.
 ///
-/// Replaces `core::result::Result<T, E>` in the hilavitkutin stack's
-/// public APIs. Layout is platform-standard Rust repr; no `repr(C)`
+/// Stands in for `core::result::Result<T, E>` in a public API, so one
+/// vocabulary covers the three tiers. Layout is platform-standard Rust repr; no `repr(C)`
 /// forcing. Two-payload `repr(C)` enums have implementation-defined
 /// edge cases at the C ABI boundary, and the documented guidance
 /// for FFI-critical result layouts is to wrap the payload in a

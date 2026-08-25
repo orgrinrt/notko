@@ -1,11 +1,16 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! [`Maybe<T>`]: presence (replaces `Option<T>`).
 
 use core::fmt;
 
 /// Presence. Either carries a value ([`Maybe::Is`]) or doesn't ([`Maybe::Isnt`]).
 ///
-/// Replaces `core::option::Option<T>` in the hilavitkutin stack's public APIs.
-/// No dependency on `core::option`.
+/// Stands in for `core::option::Option<T>` in a public API, so presence has one
+/// word across every tier. No dependency on `core::option`.
 ///
 /// # Layout
 ///
@@ -84,6 +89,19 @@ impl<T> Maybe<T> {
         }
     }
 
+    /// Run `f` on the inner value if present, then pass `self` through.
+    ///
+    /// Tier-symmetric mirror of [`crate::Just::inspect`] /
+    /// [`crate::Outcome::inspect`]. The closure does not run on
+    /// [`Maybe::Isnt`].
+    #[inline]
+    pub fn inspect<F: FnOnce(&T)>(self, f: F) -> Self {
+        if let Maybe::Is(ref value) = self {
+            f(value);
+        }
+        self
+    }
+
     /// Map the inner value if present.
     #[inline]
     pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> Maybe<U> {
@@ -95,7 +113,7 @@ impl<T> Maybe<T> {
 
     /// Convert to [`crate::Outcome`], using `err` if [`Maybe::Isnt`].
     ///
-    /// Mirrors `Option::ok_or` for the substrate vocabulary. The eager
+    /// Mirrors `Option::ok_or` in this crate's vocabulary. The eager
     /// form takes `err` by value; see [`Maybe::ok_or_else`] for the
     /// closure-deferred form.
     #[inline]
@@ -445,11 +463,11 @@ mod niche {
     //!
     //! Rustc's niche-filling optimisation applies to any 2-variant enum
     //! where one variant is unit and the other carries a type with an
-    //! invalid bit pattern. This module enumerates the types the stack
+    //! invalid bit pattern. This module enumerates the types this crate
     //! relies on as having a documented all-zeros invalid bit pattern:
     //! function pointers (non-null by language contract), references
     //! (non-null by language contract), [`core::ptr::NonNull`], and
-    //! [`core::num::NonZero*`]. In every case the niche value is the
+    //! `core::num::NonZero{U,I}*`. In every case the niche value is the
     //! all-zeros bit pattern (null pointer or integer zero), so a
     //! single sealed trait captures the full set.
     //!
@@ -481,29 +499,18 @@ mod niche {
     impl<T: ?Sized> Sealed for core::ptr::NonNull<T> {}
     impl<T: ?Sized> NicheFilled for core::ptr::NonNull<T> {}
 
-    // NonZero integers (unsigned + signed + usize + isize).
+    // NonZero integers. The list is `nonzero`'s, in `Ty => inner` pairs; the
+    // inner primitive is what the layout assertions need and this seal does
+    // not, so it is bound and dropped.
     macro_rules! impl_nz {
-        ($($ty:path),* $(,)?) => {
+        ($($ty:path => $inner:ty),* $(,)?) => {
             $(
                 impl Sealed for $ty {}
                 impl NicheFilled for $ty {}
             )*
         };
     }
-    impl_nz!(
-        core::num::NonZeroU8,
-        core::num::NonZeroU16,
-        core::num::NonZeroU32,
-        core::num::NonZeroU64,
-        core::num::NonZeroU128,
-        core::num::NonZeroUsize,
-        core::num::NonZeroI8,
-        core::num::NonZeroI16,
-        core::num::NonZeroI32,
-        core::num::NonZeroI64,
-        core::num::NonZeroI128,
-        core::num::NonZeroIsize,
-    );
+    crate::nonzero::for_each_core_nonzero!(impl_nz);
 
     // Function pointers at arities 0..=8 with every qualifier
     // combination (safe / unsafe x plain / extern "C").
@@ -542,7 +549,7 @@ pub use niche::NicheFilled;
 ///   0..=8. Niche: the null function pointer bit pattern.
 /// - A reference `&T` or `&mut T`. Niche: the null pointer bit pattern.
 /// - [`core::ptr::NonNull<T>`]. Niche: null.
-/// - [`core::num::NonZeroU*`] / [`core::num::NonZeroI*`] /
+/// - `core::num::NonZeroU*` / `core::num::NonZeroI*` /
 ///   `NonZeroUsize` / `NonZeroIsize`. Niche: integer zero.
 ///
 /// Every case shares the same invalid bit pattern: all zeros. MaybeNull's
@@ -575,9 +582,14 @@ pub struct MaybeNull<T: NicheFilled>(Maybe<T>);
 
 impl<T: NicheFilled> MaybeNull<T> {
     /// Compile-time layout assertion evaluated per instantiation.
-    /// Referenced by [`Self::new`] and [`Self::null`] to force
-    /// evaluation so a size regression breaks the build at the
-    /// introduction site.
+    ///
+    /// [`Self::new`] and [`Self::null`] reference it, so a size regression
+    /// breaks the build at the site that introduced the value. They are not
+    /// the whole guard, and they cannot be: [`From`], [`Clone`] and
+    /// [`Self::into_maybe`] all hand back a `MaybeNull` without going through
+    /// either. What closes it is the block of `const _` bindings below, which
+    /// forces this for every `T` the sealed [`NicheFilled`] trait admits,
+    /// whatever route a value took to exist.
     const _LAYOUT_ASSERT: () = assert!(
         core::mem::size_of::<MaybeNull<T>>() == core::mem::size_of::<T>(),
         "MaybeNull<T> layout regression: niche-filling does not apply to T",
@@ -587,6 +599,12 @@ impl<T: NicheFilled> MaybeNull<T> {
     /// pointer-shaped `T`, integer zero for `NonZero*`).
     #[inline]
     pub const fn null() -> Self {
+        // Not `Self::_LAYOUT_ASSERT;`, which clippy suggests and then reports
+        // as a path statement with no effect, because that is exactly what it
+        // is: the const is never evaluated and the assertion never fires. The
+        // binding is what forces it, per instantiation, at the point a value is
+        // introduced.
+        #[allow(clippy::let_unit_value)]
         let _ = Self::_LAYOUT_ASSERT;
         Self(Maybe::Isnt)
     }
@@ -595,6 +613,12 @@ impl<T: NicheFilled> MaybeNull<T> {
     /// discriminant overhead.
     #[inline]
     pub const fn new(value: T) -> Self {
+        // Not `Self::_LAYOUT_ASSERT;`, which clippy suggests and then reports
+        // as a path statement with no effect, because that is exactly what it
+        // is: the const is never evaluated and the assertion never fires. The
+        // binding is what forces it, per instantiation, at the point a value is
+        // introduced.
+        #[allow(clippy::let_unit_value)]
         let _ = Self::_LAYOUT_ASSERT;
         Self(Maybe::Is(value))
     }
@@ -642,25 +666,75 @@ impl<T: NicheFilled> From<MaybeNull<T>> for Maybe<T> {
 // Each line forces const evaluation of `MaybeNull::<T>::_LAYOUT_ASSERT`
 // for a specific T, so a size regression surfaces at compile time at
 // notko's foundation rather than at a far-away FFI crash site.
-const _: () = MaybeNull::<unsafe extern "C" fn()>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<extern "C" fn()>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<unsafe fn()>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<fn()>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<&'static ()>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<&'static mut ()>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::ptr::NonNull<()>>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroU8>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroU16>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroU32>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroU64>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroU128>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroUsize>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroI8>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroI16>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroI32>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroI64>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroI128>::_LAYOUT_ASSERT;
-const _: () = MaybeNull::<core::num::NonZeroIsize>::_LAYOUT_ASSERT;
+//
+// The set below is the whole impl matrix, not a sample of it. The impls are
+// macro-generated over families, so a hand-written list covers whichever
+// members somebody thought of, and the arities nobody typed out are exactly
+// where a niche would go missing without anything saying so.
+
+// Function pointers: every arity the impl macro covers, times every qualifier
+// combination it generates. Unsized argument types are not expressible here and
+// are not part of that matrix.
+macro_rules! assert_fn_layout {
+    ($($args:ident),*) => {
+        const _: () = MaybeNull::<fn($($args),*) -> u8>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<unsafe fn($($args),*) -> u8>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<extern "C" fn($($args),*) -> u8>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<unsafe extern "C" fn($($args),*) -> u8>::_LAYOUT_ASSERT;
+    };
+}
+assert_fn_layout!();
+assert_fn_layout!(u8);
+assert_fn_layout!(u8, u16);
+assert_fn_layout!(u8, u16, u32);
+assert_fn_layout!(u8, u16, u32, u64);
+assert_fn_layout!(u8, u16, u32, u64, i8);
+assert_fn_layout!(u8, u16, u32, u64, i8, i16);
+assert_fn_layout!(u8, u16, u32, u64, i8, i16, i32);
+assert_fn_layout!(u8, u16, u32, u64, i8, i16, i32, i64);
+
+// References and NonNull. These impls take `T: ?Sized`, so the family is
+// unbounded and no list can name every member of it. What is bounded is the
+// thing the layout actually depends on: a pointer is one word plus its
+// pointee's metadata, and there are exactly three kinds of metadata, none for
+// a sized type, a length for a slice, and a vtable for a trait object. Every
+// pointer in the language is one of those three, so covering all three for each
+// family covers the family.
+macro_rules! assert_pointer_layout {
+    ($sized:ty, $slice:ty, $vtable:ty) => {
+        const _: () = MaybeNull::<$sized>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<$slice>::_LAYOUT_ASSERT;
+        const _: () = MaybeNull::<$vtable>::_LAYOUT_ASSERT;
+    };
+}
+assert_pointer_layout!(
+    &'static (),
+    &'static [u8],
+    &'static dyn core::fmt::Debug
+);
+assert_pointer_layout!(
+    &'static mut (),
+    &'static mut [u8],
+    &'static mut dyn core::fmt::Debug
+);
+assert_pointer_layout!(
+    core::ptr::NonNull<()>,
+    core::ptr::NonNull<[u8]>,
+    core::ptr::NonNull<dyn core::fmt::Debug>
+);
+// `str` is a fourth spelling of slice metadata rather than a fourth kind, and
+// it is the one a caller reaches for often enough to be worth pinning by name.
+const _: () = MaybeNull::<&'static str>::_LAYOUT_ASSERT;
+const _: () = MaybeNull::<&'static mut str>::_LAYOUT_ASSERT;
+
+// The same twelve `nonzero` names, so a type added there is asserted here
+// without anybody remembering to come and add it.
+macro_rules! assert_nonzero_niche {
+    ($($nz:ty => $inner:ty),* $(,)?) => {
+        $(const _: () = MaybeNull::<$nz>::_LAYOUT_ASSERT;)*
+    };
+}
+crate::nonzero::for_each_core_nonzero!(assert_nonzero_niche);
 
 #[cfg(test)]
 mod niche_layout_tests {

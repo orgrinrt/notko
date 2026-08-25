@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! Cold / Outcome-based rewrite. Always emits `Outcome<T, E>` regardless of
 //! build profile.
 
@@ -107,7 +112,9 @@ impl VisitMut for OutcomeRewriter {
                 _ => None,
             };
             if let Some(r) = replacement {
-                *inner = Box::new(r);
+                // Writing through the box rather than replacing it, so the
+                // rewrite reuses the allocation the tree already holds.
+                **inner = r;
             }
         }
     }

@@ -20,26 +20,36 @@ compile time only, which is where a macro runs and not where its output lands.
 
 ## Status
 
-Pre-release, and not yet published. Releases are tagged `0.0.0-dNN`, a pre-release-shaped version carrying
-no semver promise; semver starts at the first real release. Until then the public API can move between
-tags, and the dependency is on the git repository.
+Early, so the api hasn't settled and a `0.0.x` bump can move it. Every release is tagged, and the log
+between two tags is what actually moved. I'd pin an exact version rather than a range for now.
 
-Several pieces gate on unstable rustc features (`try_trait_v2`, `try_trait_v2_residual`,
-`const_trait_impl`), tracked as they mature. Features with known soundness holes are skipped rather than worked around.
+The default feature set needs a nightly compiler, because the const-trait machinery it turns on isn't
+stable yet. On stable, turn the defaults off and the crate builds and works, with the const paths absent.
+That is the one thing worth knowing before adding it.
+
+The three unstable features it sits on, `try_trait_v2`, `try_trait_v2_residual` and `const_trait_impl`,
+are all still moving upstream. Anything with a known soundness hole is left alone rather than worked around, so the surface here
+is smaller than what nightly would allow.
 
 ## Installation
 
-```toml
-[dependencies]
-notko = { git = "https://github.com/orgrinrt/notko.git", branch = "main" }
-```
-
-Pin a tag instead of a branch when you want a fixed state:
+Not on crates.io yet, so for now it comes off the repository:
 
 ```toml
 [dependencies]
-notko = { git = "https://github.com/orgrinrt/notko.git", tag = "0.0.0-d01" }
+notko = { git = "https://github.com/orgrinrt/notko.git", branch = "dev" }
 ```
+
+On stable Rust, and anywhere the const paths aren't wanted:
+
+```toml
+[dependencies]
+notko = { git = "https://github.com/orgrinrt/notko.git", branch = "dev", default-features = false }
+```
+
+Once it publishes, pin the exact version rather than a range. The api hasn't
+settled and `0.0.x` releases are incompatible with each other by semver's own
+rules anyway.
 
 ## Usage
 
@@ -166,8 +176,10 @@ impl ExtensionDescriptor {
 }
 ```
 
-A per-instantiation `const _LAYOUT_ASSERT` runs at every call site, so the build fails if a future rustc
-ever regresses niche-filling for one of the supported shapes.
+A `const` layout assertion is forced for every shape `NicheFilled` admits, so the build fails if a future
+rustc ever regresses niche-filling for one of them. `NicheFilled` is sealed and its pointer families are
+covered at all three metadata kinds, which is what makes that a claim about the whole set rather than about
+the members somebody happened to list.
 
 ### Value invariants
 

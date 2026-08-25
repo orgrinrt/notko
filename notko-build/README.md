@@ -18,6 +18,9 @@ assume a typo.
 
 ### Consumer-only crate (uses optimisers from deps)
 
+Neither crate is on crates.io yet, so both come off the repository for now.
+Swap the git dependency for a version once they publish.
+
 ```toml
 # Cargo.toml
 [package]
@@ -25,10 +28,10 @@ name = "my-crate"
 build = "build.rs"
 
 [build-dependencies]
-notko-build = "0.1"
+notko-build = { git = "https://github.com/orgrinrt/notko.git", branch = "dev" }
 
 [dependencies]
-notko-macros = "0.1"
+notko-macros = { git = "https://github.com/orgrinrt/notko.git", branch = "dev" }
 # ... plus whichever crates in your dep tree provide the tiers you want to
 # consume via `#[profile(X)]`
 ```
@@ -54,7 +57,7 @@ build = "build.rs"
 links = "notko-optimisers-my-provider"  # unique; required for cargo metadata propagation
 
 [build-dependencies]
-notko-build = "0.1"
+notko-build = { git = "https://github.com/orgrinrt/notko.git", branch = "dev" }
 ```
 
 Drop your optimiser files into `./notko-optimizers/*.rs`. Each must carry
@@ -79,10 +82,10 @@ and usable by `#[profile(Name)]`.
    environment variables. Cargo sets these on build scripts of crates
    that depend on an optimiser provider.
 3. Copies every `.rs` file into `$OUT_DIR/notko-optimisers/`.
-4. Collisions: two sources providing the same tier name produce a build
-   error unless the consumer's own crate-local file shadows both. The
-   error lists both source paths; resolve by renaming or providing a
-   local override.
+4. Collisions: two dependencies providing the same tier name produce a
+   build error, since nothing ranks one dependency above another. The
+   error lists both source paths; resolve by renaming or by providing a
+   local file of that name, which wins over every dependency's.
 5. Emits:
    - `cargo:rustc-env=NOTKO_OPTIMISERS_PATH=$OUT_DIR/notko-optimisers`,
      which the notko-macros proc-macro reads during expansion.

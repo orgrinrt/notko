@@ -1,0 +1,36 @@
+# Copyright headers, kept current by `ante` rather than by hand.
+#
+# The whole file is the configuration. `ante` reads its settings from a
+# `deno.json` or a `package.json` where a project has one; this workspace has
+# neither, so the standalone form applies.
+#
+# `ante check` reports what is out of date, `ante fix` writes it. The point of
+# configuring it at all is that a year rolling over, a contributor arriving or
+# an address changing is a re-run rather than a hand-edit of forty-odd files.
+
+# MPL-2.0, matching `license` in Cargo.toml, which is the one that governs. The
+# URL is derived from the identifier and is not stated here, so the two cannot
+# disagree.
+spdxLicense = "MPL-2.0"
+
+maintainerEmail = "contact@hiisi.digital"
+
+# Contributors come from git rather than from a list somebody maintains: a list
+# in a config file is a second copy of what the history already knows, and it
+# goes stale silently.
+contributorSelection = "commits"
+maxContributors = 3
+
+# Every crate in the workspace, and the tests, which ship in the package and are
+# as much the published source as the library is.
+include = [
+    "src/**/*.rs",
+    "tests/**/*.rs",
+    "notko-macros/src/**/*.rs",
+    "notko-macros/tests/**/*.rs",
+    "notko-macros-core/src/**/*.rs",
+    "notko-macros-core/tests/**/*.rs",
+    "notko-build/src/**/*.rs",
+]
+
+exclude = ["**/target/**"]

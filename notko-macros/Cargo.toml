@@ -4,11 +4,22 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+homepage.workspace = true
 repository.workspace = true
 description = "proc-macro attribute #[profile] for AST-rewriting between Hot/Warm/Cold fallibility tiers; used with notko's Just/Outcome primitives"
 readme = "README.md"
 categories = ["development-tools::procedural-macro-helpers"]
-keywords = ["no_std", "no_alloc", "proc-macro", "hot-path", "hilavitkutin"]
+keywords = ["no_std", "no_alloc", "proc-macro", "hot-path", "fallible"]
+
+# Named rather than excluded, so a file added later has to be asked for
+# rather than shipping by accident.
+# `tests/consumer_cfg.rs` is deliberately absent. It builds a fixture crate
+# that path-depends on this repository, so it can only run from a checkout;
+# shipped without its fixture it panics on a missing directory, and shipped
+# with one it would still resolve a path that is not in the package. `cargo
+# package` says so as a warning each time, which is the intended state rather
+# than something to chase.
+include = ["src/**/*.rs", "tests/smoke.rs", "notko-optimizers/*.rs", "README.md", "LICENSE"]
 
 [lib]
 proc-macro = true

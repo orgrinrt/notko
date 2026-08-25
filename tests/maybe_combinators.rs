@@ -1,4 +1,9 @@
-//! Smoke tests for the Maybe combinator surface (round-353).
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
+//! Smoke tests for the Maybe combinator surface.
 
 use notko::Maybe;
 use notko::Outcome;
@@ -234,4 +239,19 @@ mod heapless_min {
             self.len
         }
     }
+}
+
+#[test]
+fn inspect_runs_on_is_and_not_on_isnt() {
+    let mut seen = 0_i32;
+    let passed = Maybe::Is(7_i32).inspect(|v| seen = *v);
+    assert_eq!(seen, 7);
+    assert_eq!(passed, Maybe::Is(7));
+
+    // The half that makes this a test: the closure must not run on the
+    // absent arm, and the value must survive either way.
+    let mut ran = false;
+    let passed = Maybe::<i32>::Isnt.inspect(|_| ran = true);
+    assert!(!ran);
+    assert_eq!(passed, Maybe::Isnt);
 }
