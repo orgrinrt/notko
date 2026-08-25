@@ -17,7 +17,13 @@ keywords = ["proc-macro", "codegen", "hot-path", "fallible", "attribute"]
 # crate from a test about this repository, so it ships both, and the second kind
 # fails on a consumer's first `cargo test` rather than at any gate here.
 # `extension.rs` reaches for nothing outside the package, so it ships.
-include = ["src/**/*.rs", "tests/extension.rs", "README.md", "LICENSE"]
+include = [
+    "src/**/*.rs",
+    "tests/extension.rs",
+    "tests/hot_rewrite_shapes.rs",
+    "README.md",
+    "LICENSE",
+]
 
 [dependencies]
 syn = { version = "2", features = ["full", "parsing", "visit-mut", "extra-traits"] }

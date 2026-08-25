@@ -14,15 +14,23 @@ use quote::quote;
 use syn::visit_mut::VisitMut;
 use syn::{Expr, ExprMatch, ExprReturn, ItemFn, Pat, Path, Result, Type, parse_quote};
 
-use super::helpers::{extract_result_inner_types, is_err_call, is_ok_call};
+use super::helpers::{is_err_call, is_ok_call, path_is_bare, result_inner_types};
 use super::outcome::OutcomeRewriter;
 use crate::tiers::CustomTier;
 
 pub fn rewrite(tier: CustomTier, mut func: ItemFn) -> Result<TokenStream> {
-    let (ok_ty, err_ty) = extract_result_inner_types(&func.sig.output);
+    // One function emitted twice under opposite `cfg`s, so anything the two
+    // arms would not do identically is a program that means one thing when it
+    // is tested and another when it ships. An unrecognised return type is one
+    // of those: the debug arm had nothing to lift it to and left it, and the
+    // release arm wrapped it, so a caller compiled in debug and did not in
+    // release. Emit it once, untouched, and there is nothing to diverge.
+    let Some((ok_ty, err_ty)) = result_inner_types(&func.sig.output) else {
+        return Ok(quote! { #func });
+    };
 
     let debug_fn = build_debug(&tier, &func, ok_ty.clone(), err_ty.clone());
-    let release_fn = build_release(&tier, &mut func, ok_ty, err_ty);
+    let release_fn = build_release(&tier, &mut func, ok_ty);
     let gate = tier.gate_feature.as_str();
 
     Ok(quote! {
@@ -34,19 +42,10 @@ pub fn rewrite(tier: CustomTier, mut func: ItemFn) -> Result<TokenStream> {
     })
 }
 
-fn build_debug(
-    tier: &CustomTier,
-    func: &ItemFn,
-    ok_ty: Option<Type>,
-    err_ty: Option<Type>,
-) -> TokenStream {
+fn build_debug(tier: &CustomTier, func: &ItemFn, ok_ty: Type, err_ty: Type) -> TokenStream {
     let mut out = func.clone();
-    if let Some(t) = ok_ty {
-        if let Some(e) = err_ty {
-            let k = &tier.krate;
-            out.sig.output = parse_quote! { -> #k::Outcome<#t, #e> };
-        }
-    }
+    let k = &tier.krate;
+    out.sig.output = parse_quote! { -> #k::Outcome<#ok_ty, #err_ty> };
     let mut rewriter = OutcomeRewriter {
         krate: tier.krate.clone(),
     };
@@ -64,17 +63,10 @@ fn build_debug(
     }
 }
 
-fn build_release(
-    tier: &CustomTier,
-    func: &mut ItemFn,
-    ok_ty: Option<Type>,
-    _err_ty: Option<Type>,
-) -> TokenStream {
+fn build_release(tier: &CustomTier, func: &mut ItemFn, ok_ty: Type) -> TokenStream {
     let mut out = func.clone();
-    if let Some(t) = ok_ty {
-        let k = &tier.krate;
-        out.sig.output = parse_quote! { -> #k::Just<#t> };
-    }
+    let k = &tier.krate;
+    out.sig.output = parse_quote! { -> #k::Just<#ok_ty> };
 
     let mut rewriter = HotRewriter::new(tier.panic_fmt.clone(), tier.krate.clone());
     rewriter.visit_block_mut(&mut out.block);
@@ -182,22 +174,67 @@ fn build_panic_expr(fmt: &str, err_val: Expr) -> Expr {
     }
 }
 
-/// Rewrite `match scrut { Ok(x) => body_ok, Err(_) => body_err }` to
-/// `{ let x = (scrut).unwrap(); body_ok }`. Err arm is discarded; in hot
-/// release, any Err reaching here is an invariant violation that `.unwrap()`
-/// panics on.
+/// Rewrite `match scrut { Ok(x) => ok, Err(_) => err }` to
+/// `{ let x = (scrut).unwrap(); ok }`.
+///
+/// `None` for anything that is not exactly that shape, and the strictness is
+/// the point rather than caution. This runs only in the release arm, so every
+/// shape it handles differently from the debug arm is a program whose meaning
+/// changes when it ships, with no diagnostic on either side.
+///
+/// So all of the following are declined rather than approximated: a guard on
+/// either arm, since a guard decides which arm runs and dropping one keeps the
+/// arm and loses the condition; any arm count other than two, since keeping one
+/// and discarding the rest is not a partial rewrite but a different program; a
+/// refutable pattern inside `Ok`, since `let 0 = ...` does not compile; a
+/// qualified path, since `Status::Ok` is somebody else's variant that happens
+/// to share a spelling.
+///
+/// Either arm order is accepted. `Err` first is unusual and means the same
+/// thing.
 fn rewrite_match(m: &ExprMatch) -> Option<Expr> {
+    if m.arms.len() != 2 {
+        return None;
+    }
+    if m.arms.iter().any(|a| a.guard.is_some()) {
+        return None;
+    }
+
     let mut ok_arm = None;
+    let mut saw_err = false;
     for arm in &m.arms {
-        if let Pat::TupleStruct(ts) = &arm.pat {
-            if let Some(seg) = ts.path.segments.last() {
-                if seg.ident == "Ok" && ts.elems.len() == 1 {
-                    ok_arm = Some((ts.elems.first().unwrap().clone(), arm.body.clone()));
-                }
+        let Pat::TupleStruct(ts) = &arm.pat else {
+            return None;
+        };
+        if ts.qself.is_some() || ts.elems.len() != 1 {
+            return None;
+        }
+        if path_is_bare(&ts.path, "Ok") {
+            // The binding lands in a `let`, so it has to be irrefutable.
+            match ts.elems.first() {
+                Some(Pat::Ident(_) | Pat::Wild(_)) => {}
+                _ => return None,
             }
+            if ok_arm
+                .replace((ts.elems.first().unwrap().clone(), arm.body.clone()))
+                .is_some()
+            {
+                return None;
+            }
+        } else if path_is_bare(&ts.path, "Err") {
+            if saw_err {
+                return None;
+            }
+            saw_err = true;
+        } else {
+            return None;
         }
     }
+
     let (binding, body) = ok_arm?;
+    if !saw_err {
+        return None;
+    }
     let scrutinee = &m.expr;
     Some(parse_quote! {
         {

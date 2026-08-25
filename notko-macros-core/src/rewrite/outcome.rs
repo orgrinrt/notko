@@ -11,14 +11,16 @@ use quote::quote;
 use syn::visit_mut::VisitMut;
 use syn::{Expr, ExprReturn, ItemFn, Path, Result, Type, parse_quote};
 
-use super::helpers::{extract_result_inner_types, is_err_call, is_ok_call};
+use super::helpers::{is_err_call, is_ok_call, result_inner_types};
 use crate::tiers::CustomTier;
 
 pub fn rewrite(tier: CustomTier, mut func: ItemFn) -> Result<TokenStream> {
-    let (ok_ty, err_ty) = extract_result_inner_types(&func.sig.output);
-    if let (Some(t), Some(e)) = (ok_ty, err_ty) {
-        set_outcome_return(&tier.krate, &mut func, t, e);
-    }
+    // See `maybe::rewrite`: an unrecognised return type is emitted untouched,
+    // body included.
+    let Some((t, e)) = result_inner_types(&func.sig.output) else {
+        return Ok(quote! { #func });
+    };
+    set_outcome_return(&tier.krate, &mut func, t, e);
 
     let mut rewriter = OutcomeRewriter {
         krate: tier.krate.clone(),
