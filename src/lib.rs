@@ -111,12 +111,14 @@
 // two that did not build: one calling functions it never defined, and one
 // importing `profile` without the feature that provides it.
 //
-// Gated on `macros` for the same reason `try_smoke` carries
-// `required-features`: one block shows `#[profile]`, which does not exist
-// without it, so under default features this would fail on a feature's absence
-// rather than on anything being wrong. `cargo test --all-features` is the run
-// that exercises the examples.
-#[cfg(all(doctest, feature = "macros"))]
+// Gated on every feature the blocks reach for, for the same reason `try_smoke`
+// carries `required-features`: a block that names something a feature provides
+// fails on that feature's absence rather than on anything being wrong. One
+// block shows `#[profile]`, which `macros` provides; another uses `?` on
+// `Outcome`, which `try_trait_v2` provides. The gate names both, so
+// `cargo test --all-features` is the run that exercises the examples and no
+// narrower configuration compiles them at all.
+#[cfg(all(doctest, feature = "macros", feature = "try_trait_v2"))]
 #[doc = include_str!("../README.md")]
 struct Readme;
 

@@ -425,7 +425,10 @@ mod tests {
     #[test]
     fn an_environment_with_no_dependency_paths_yields_none() {
         let got = dep_dirs_from(v(&[("PATH", "/usr/bin"), ("OUT_DIR", "/out")]).into_iter());
-        assert!(got.is_empty(), "picked up {got:?} from an environment with none");
+        assert!(
+            got.is_empty(),
+            "picked up {got:?} from an environment with none"
+        );
     }
 
     #[test]
@@ -439,10 +442,7 @@ mod tests {
             lines[0],
             "cargo:rustc-env=NOTKO_OPTIMISERS_PATH=/out/notko-optimisers"
         );
-        assert_eq!(
-            lines[1],
-            "cargo:notko-optimiser-path=/out/notko-optimisers"
-        );
+        assert_eq!(lines[1], "cargo:notko-optimiser-path=/out/notko-optimisers");
     }
 
     #[test]

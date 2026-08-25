@@ -64,11 +64,11 @@ fn the_readme_authoring_example_still_builds() {
         }
     };
     let tier = CustomTier {
-        strategy:     Strategy::Hot,
-        inline:       true,
-        panic_fmt:    Some("asserted invariant violated: {err:?}".into()),
-        source_path:  None,
-        krate:        syn::parse_quote!(::my_runtime),
+        strategy: Strategy::Hot,
+        inline: true,
+        panic_fmt: Some("asserted invariant violated: {err:?}".into()),
+        source_path: None,
+        krate: syn::parse_quote!(::my_runtime),
         gate_feature: "my_release_arm".to_string(),
     };
     let out = notko_macros_core::rewrite::rewrite_fn(tier, input)
@@ -99,12 +99,9 @@ fn the_defaults_are_what_the_readme_says_they_are() {
             Ok(path.len() as u32)
         }
     };
-    let out = notko_macros_core::rewrite::rewrite_fn(
-        CustomTier::from_marker::<Hot>(),
-        input,
-    )
-    .expect("a hot rewrite at the defaults")
-    .to_string();
+    let out = notko_macros_core::rewrite::rewrite_fn(CustomTier::from_marker::<Hot>(), input)
+        .expect("a hot rewrite at the defaults")
+        .to_string();
 
     assert!(out.contains(":: notko"), "{out}");
     assert!(out.contains("\"internal\""), "{out}");

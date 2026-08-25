@@ -44,6 +44,7 @@ include = [
     "tests/just_combinators.rs",
     "tests/maybe_combinators.rs",
     "tests/nonzero.rs",
+    "tests/ordering_parity.rs",
     "tests/outcome_combinators.rs",
     "tests/slot_layout.rs",
     "tests/try_smoke.rs",

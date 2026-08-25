@@ -31,13 +31,37 @@ const impl<T> HasTrivialCtor for PhantomMarker<T> {
 }
 
 #[test]
-fn unit_marker_constructs() {
-    let _m = UnitMarker::new();
-}
+fn a_const_impl_still_satisfies_the_plain_bound() {
+    // The `const _` bindings at the bottom are the real assertion here: they
+    // evaluate `new()` at compile time, which is the whole claim of a `const
+    // impl`, and a regression makes the file stop building rather than stop
+    // passing.
+    //
+    // What runtime can add is the half a compile-time binding cannot reach. A
+    // `const impl` is also an ordinary impl, so a generic function taking the
+    // plain bound has to accept it, and a value built through that path has to
+    // be the same thing the const binding holds.
+    fn built<T: HasTrivialCtor>() -> T {
+        T::new()
+    }
 
-#[test]
-fn phantom_marker_constructs_with_turbofish() {
-    let _m: PhantomMarker<u32> = PhantomMarker::<u32>::new();
+    let through_the_bound: UnitMarker = built();
+    assert_eq!(
+        core::mem::size_of_val(&through_the_bound),
+        core::mem::size_of_val(&_UNIT_CONST),
+        "the const path and the generic path disagree about the type"
+    );
+
+    let phantom: PhantomMarker<u32> = built();
+    assert_eq!(
+        core::mem::size_of_val(&phantom),
+        core::mem::size_of_val(&_PHANTOM_CONST)
+    );
+
+    // A marker carrying no data is the premise both paths rest on, so it is
+    // asserted rather than assumed.
+    assert_eq!(core::mem::size_of::<UnitMarker>(), 0);
+    assert_eq!(core::mem::size_of::<PhantomMarker<u32>>(), 0);
 }
 
 const _UNIT_CONST: UnitMarker = UnitMarker::new();
