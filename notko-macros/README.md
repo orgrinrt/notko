@@ -46,8 +46,8 @@ Without that line the code still compiles and still behaves correctly, on the
 is not a value `feature` can take. Declaring it makes the warning go away, and
 gets you the switch.
 
-`internal` is the name `#[profile]` uses, and it is the default rather than a
-fixture. If you're building your own attribute on
+`internal` is the name `#[profile]` uses, and it's a default, not something
+baked in. If you're building your own attribute on
 [`notko-macros-core`](https://crates.io/crates/notko-macros-core) it takes a
 name of its own, which is what keeps two frameworks in one dependency graph
 from sharing a switch neither of them can turn off separately.
@@ -116,7 +116,7 @@ If you want one crate to define `Trace` and others in the dep tree to use it, th
 If the built-in strategies don't cover what you want and you need real AST-level control,
 [`notko-macros-core`](https://crates.io/crates/notko-macros-core) has the pieces this crate is built
 from, under `notko_macros_core::{tiers, parse, discover, rewrite}`. Nothing stops you writing your own
-attribute on top of it. That crate's README has the map.
+attribute on top of it. That crate's readme points at the docs, which is where the surface actually is.
 
 ## Support
 

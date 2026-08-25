@@ -104,8 +104,9 @@ and usable by `#[profile(Name)]`.
      propagates this crate's accumulated optimisers to downstream
      dependents (only takes effect if the crate declares
      `links = "notko-optimisers-..."`).
-   - `cargo:rerun-if-changed=notko-optimizers`, which invalidates the
-     build when optimiser files change.
+   - `cargo:rerun-if-changed=` for the local `notko-optimizers` directory
+     and again for each file in it, which invalidates the build when an
+     optimiser is edited, added or removed.
 
 Two dependencies providing the same tier name is a build error, since nothing ranks one dependency
 above another. The error names both source paths. Resolve it by renaming, or by putting a file of that

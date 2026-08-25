@@ -15,7 +15,7 @@
 `Option<T>` has already decided for you what absence costs: a discriminant and a branch, everywhere,
 whether or not you need them. Usually that's fine and you'd never notice. But when an invariant has
 already proved the value is there, you're still paying for a check nobody needs, and there's no way to
-say so in the type. So we ship three of them instead, one for proven-present, one for ordinary absence,
+say so in the type. So there are three types here rather than one, one for proven-present, one for ordinary absence,
 one that carries an error, and you pick per call site. There's a `#[profile]` attribute further down
 too, for when you'd rather tag a whole function than choose at every site.
 
@@ -24,9 +24,9 @@ but only at compile time, which is the only place a macro ever runs, so none of 
 
 ## Status
 
-Early days, so the api hasn't settled and a `0.0.x` bump can move it under you. Every release is tagged
-and the log between two tags is what actually moved, and we'll try to keep the migration notes worth
-reading. I'd pin an exact version, not a range, and I'd caution against putting this anywhere serious
+Early days, so the api hasn't settled and the next release can move things out from under whatever you
+wrote against this one. Every release is tagged and the log between two tags is what actually moved, and
+we'll try to keep the migration notes worth reading. I'd caution against putting this anywhere serious
 just yet.
 
 The default feature set needs a nightly compiler, because the const-trait machinery it turns on isn't
@@ -50,8 +50,9 @@ On stable Rust, and anywhere the const paths aren't wanted:
 cargo add notko --no-default-features
 ```
 
-Worth knowing that `0.0.x` releases are all mutually incompatible by semver's own rules, so a caret
-range here buys you a break, not a fix. Pin the exact one.
+`cargo add` writes `notko = "0.0.1"`, and on a `0.0.x` version that already means that one and nothing
+else, so there's nothing further to pin. Getting the next one is you changing the number yourself, and
+reading the log between the two tags before you do.
 
 ## Usage
 
@@ -91,10 +92,10 @@ There's a `notko::prelude` too, if you'd rather pull the common surface in one i
 
 ## Cost per call site
 
-`Just<T>` is the proven-present case. `#[repr(transparent)]`, no discriminant, no branch, and with
-`try_trait_v2` a `?` on it compiles to nothing at all. Reach for it where an invariant proves the error
-variant unreachable: post-validation paths, codegen-reduced hot loops, wrappers that make a guarantee
-concrete.
+`Just<T>` is the proven-present case. `#[repr(transparent)]`, so it's the layout of the `T` and nothing
+more, and with `try_trait_v2` a `?` on it has no error arm to branch to. Reach for it where an invariant
+proves the error variant unreachable: post-validation paths, codegen-reduced hot loops, wrappers that
+make a guarantee concrete.
 
 `Maybe<T>` is the ordinary-absence case, and for pointer-shaped `T` (`&T`, `NonNull<T>`, every `NonZero*`,
 function pointers) Rust niche-fills the enum so the whole thing is the size of `T`. Absence costs no extra
@@ -217,9 +218,10 @@ slice at once for the cases where that is cheaper. Between them they describe a 
 and is filling. `Emit<T>` is the other direction: an item through a shared reference, fallibly, which is
 what an installed destination looks like when it is a log, a port, a file or a channel.
 
-`Lend<T>` covers storage a caller hands over to be filled. You pass the buffer, the callee writes part of
-it, and what comes back is a `Fill` carrying the prefix that was actually written, or an `Exhausted`
-saying how much was wanted against how much there was. That last part is the reason it exists: a bit
+`Lend<T>` covers storage a caller hands over to be filled. The lent slice becomes a `Fill`, which is the
+cursor the filler writes through and which hands back the prefix that actually got written when it's
+finished with. A write past the end fails with an `Exhausted` saying how much was wanted against how much
+there was, and that last part is the reason any of it exists: a bit
 buffer, a row of edit distances, an argument vector and a line being typed have nothing in common except
 that all four want to ask exactly this, and a failure that only says "did not fit" leaves the caller
 guessing at how much bigger to try.
