@@ -54,6 +54,5 @@ mod plain_path;
 
 #[cfg(feature = "const")]
 pub use const_path::{ConstFromResidual, ConstTry};
-
 #[cfg(not(feature = "const"))]
 pub use plain_path::{ConstFromResidual, ConstTry};

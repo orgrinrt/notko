@@ -16,7 +16,6 @@
 //! said so.
 
 use core::cmp::Ordering;
-
 use core::num::NonZeroU8;
 
 use notko::{Maybe, MaybeNull, Outcome};
@@ -42,9 +41,11 @@ fn a_mixed_sort_lands_in_the_same_places_as_the_core_one() {
 
     let ours_as_core: Vec<Option<u8>> = ours
         .iter()
-        .map(|m| match m {
-            Maybe::Is(v) => Some(*v),
-            Maybe::Isnt => None,
+        .map(|m| {
+            match m {
+                Maybe::Is(v) => Some(*v),
+                Maybe::Isnt => None,
+            }
         })
         .collect();
     assert_eq!(ours_as_core, theirs);

@@ -47,7 +47,7 @@ impl<T, E> Outcome<T, E> {
             Outcome::Ok(value) => value,
             Outcome::Err(err) => {
                 panic!("called `Outcome::unwrap` on an `Err` value: {err:?}")
-            }
+            },
         }
     }
 
@@ -124,7 +124,7 @@ impl<T, E> Outcome<T, E> {
         match self {
             Outcome::Ok(value) => {
                 panic!("called `Outcome::unwrap_err` on an `Ok` value: {value:?}")
-            }
+            },
             Outcome::Err(err) => err,
         }
     }
@@ -318,9 +318,10 @@ where
 
 #[cfg(feature = "try_trait_v2")]
 mod try_impl {
-    use super::Outcome;
     use core::convert::Infallible;
     use core::ops::{ControlFlow, FromResidual, Residual, Try};
+
+    use super::Outcome;
 
     impl<T, E> Try for Outcome<T, E> {
         type Output = T;

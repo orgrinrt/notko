@@ -143,8 +143,9 @@ fn warm_err(x: u32) -> Result<u32, Oops> {
 }
 
 mod warm {
-    use super::*;
     use notko::Maybe;
+
+    use super::*;
 
     #[test]
     fn warm_returns_maybe_is() {

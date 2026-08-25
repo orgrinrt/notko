@@ -250,8 +250,8 @@ impl<T> ExactSizeIterator for JustIter<T> {
 impl<T> core::iter::FusedIterator for JustIter<T> {}
 
 impl<T> IntoIterator for Just<T> {
-    type Item = T;
     type IntoIter = JustIter<T>;
+    type Item = T;
 
     #[inline]
     fn into_iter(self) -> JustIter<T> {
@@ -262,8 +262,8 @@ impl<T> IntoIterator for Just<T> {
 }
 
 impl<'a, T> IntoIterator for &'a Just<T> {
-    type Item = &'a T;
     type IntoIter = JustIter<&'a T>;
+    type Item = &'a T;
 
     #[inline]
     fn into_iter(self) -> JustIter<&'a T> {
@@ -297,8 +297,9 @@ pub enum JustResidual {}
 
 #[cfg(feature = "try_trait_v2")]
 mod try_impl {
-    use super::{Just, JustResidual};
     use core::ops::{ControlFlow, FromResidual, Residual, Try};
+
+    use super::{Just, JustResidual};
 
     impl<T> Try for Just<T> {
         type Output = T;

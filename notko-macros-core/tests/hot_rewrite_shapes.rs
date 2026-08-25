@@ -36,7 +36,7 @@ fn emitted(src: &str) -> String {
 fn release_arm(src: &str) -> String {
     let all = emitted(src);
     let at = all.rfind("# [cfg").expect("two cfg-gated arms are emitted");
-    all[at..].to_string()
+    all[at ..].to_string()
 }
 
 /// How many `cfg` gates the emission carries, for the shapes where the answer
@@ -48,7 +48,7 @@ fn arms(emitted: &str) -> usize {
 fn debug_arm(src: &str) -> String {
     let all = emitted(src);
     let at = all.rfind("# [cfg").expect("two cfg-gated arms are emitted");
-    all[..at].to_string()
+    all[.. at].to_string()
 }
 
 #[test]

@@ -92,7 +92,7 @@ impl VisitMut for MaybeRewriter {
                 Expr::Call(call) if is_ok_call(call) => {
                     let val = call.args.first().unwrap().clone();
                     Some(parse_quote! { #k::Maybe::Is(#val) })
-                }
+                },
                 Expr::Call(call) if is_err_call(call) => Some(parse_quote! { #k::Maybe::Isnt }),
                 _ => None,
             };

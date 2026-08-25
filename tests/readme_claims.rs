@@ -439,17 +439,17 @@ fn reaches_for_the_repository(body: &str, stripped: &[String]) -> Vec<String> {
     for macro_name in ["include_str!", "include_bytes!", "include!"] {
         let mut rest = body;
         while let Some(at) = rest.find(macro_name) {
-            let after = &rest[at + macro_name.len()..];
+            let after = &rest[at + macro_name.len() ..];
             let Some(open) = after.find('"') else { break };
-            let tail = &after[open + 1..];
+            let tail = &after[open + 1 ..];
             let Some(close) = tail.find('"') else { break };
-            let path = &tail[..close];
+            let path = &tail[.. close];
             if path.matches("../").count() > 1 {
                 why.push(format!(
                     "includes `{path}`, which climbs out of the package"
                 ));
             }
-            rest = &tail[close..];
+            rest = &tail[close ..];
         }
     }
 

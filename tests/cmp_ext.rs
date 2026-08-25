@@ -54,7 +54,7 @@ fn equivalent_to_partial_cmp_into() {
         let from_into: Maybe<Ordering> = a.partial_cmp(&b).into();
         match (from_ext, from_into) {
             (Maybe::Is(x), Maybe::Is(y)) => assert_eq!(x, y),
-            (Maybe::Isnt, Maybe::Isnt) => {}
+            (Maybe::Isnt, Maybe::Isnt) => {},
             _ => panic!("ext / into divergence on {a} vs {b}"),
         }
     }

@@ -22,6 +22,7 @@
 
 use core::convert::Infallible;
 use core::ops::ControlFlow;
+
 use notko::{ConstTry, Just, Maybe, Outcome};
 
 /// Not `Copy`, no destructor.

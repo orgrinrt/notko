@@ -151,7 +151,7 @@ fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
                         ),
                     )
                 })?);
-            }
+            },
             "inline" => {
                 inline = Some(match value {
                     "true" => true,
@@ -164,16 +164,16 @@ fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
                                 path.display()
                             ),
                         ));
-                    }
+                    },
                 });
-            }
+            },
             "panic_fmt" => {
                 panic_fmt = Some(trim_quotes(value).to_string());
-            }
+            },
             _ => {
                 // Unknown keys are tolerated to allow forward-compatibility
                 // with future metadata extensions.
-            }
+            },
         }
     }
 

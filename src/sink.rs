@@ -108,7 +108,7 @@ mod tests {
     /// Takes the bulk path instead of the default, so a test can tell which one ran.
     #[derive(Default)]
     struct BulkAware {
-        items: usize,
+        items:      usize,
         bulk_calls: usize,
     }
 

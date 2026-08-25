@@ -19,13 +19,13 @@
 //! # Extension in downstream crates
 //!
 //! ```
-//! use notko_macros_core::tiers::{Tier, Strategy};
+//! use notko_macros_core::tiers::{Strategy, Tier};
 //!
 //! pub struct Trace;
 //! impl Tier for Trace {
+//!     const INLINE: bool = false;
 //!     const NAME: &'static str = "Trace";
 //!     const STRATEGY: Strategy = Strategy::Cold;
-//!     const INLINE: bool = false;
 //! }
 //! ```
 //!
@@ -59,25 +59,25 @@ pub trait Tier {
 /// rewrites to `Just<T>` with Err mapped to panic. Otherwise: `Outcome<T, E>`.
 pub struct Hot;
 impl Tier for Hot {
+    const INLINE: bool = true;
     const NAME: &'static str = "Hot";
     const STRATEGY: Strategy = Strategy::Hot;
-    const INLINE: bool = true;
 }
 
 /// Warm tier: rewrites to `Maybe<T>`, which is what the tier names.
 pub struct Warm;
 impl Tier for Warm {
+    const INLINE: bool = false;
     const NAME: &'static str = "Warm";
     const STRATEGY: Strategy = Strategy::Warm;
-    const INLINE: bool = false;
 }
 
 /// Cold tier: always `Outcome<T, E>`. `diagnose!(...)` calls preserved.
 pub struct Cold;
 impl Tier for Cold {
+    const INLINE: bool = false;
     const NAME: &'static str = "Cold";
     const STRATEGY: Strategy = Strategy::Cold;
-    const INLINE: bool = false;
 }
 
 /// Rewrite strategy picked for a given tier (built-in or custom).
@@ -141,18 +141,18 @@ pub fn default_krate() -> Path {
 #[derive(Clone, Debug)]
 pub struct CustomTier {
     /// Which built-in strategy this tier uses.
-    pub strategy: Strategy,
+    pub strategy:     Strategy,
     /// If true, emit `#[inline]` on the rewritten function.
-    pub inline: bool,
+    pub inline:       bool,
     /// Optional override of the panic message format for hot-strategy tiers.
-    pub panic_fmt: Option<String>,
+    pub panic_fmt:    Option<String>,
     /// Absolute path to the source file (for potential `include!` of its
     /// helper module by the rewrite layer). None for built-in tiers.
     ///
     /// Currently unread; reserved for the notko-build cross-crate
     /// accumulation path and future helper-module injection.
     #[allow(dead_code)]
-    pub source_path: Option<std::path::PathBuf>,
+    pub source_path:  Option<std::path::PathBuf>,
     /// The crate path the rewrite emits its types through, as in
     /// `::notko::Outcome`.
     ///
@@ -162,7 +162,7 @@ pub struct CustomTier {
     /// demanding `notko` be in scope in its own users' crates, under exactly
     /// that spelling, with nothing to say so until one of them failed to
     /// compile.
-    pub krate: Path,
+    pub krate:        Path,
     /// The cargo feature that selects the release arm of a hot rewrite.
     ///
     /// Emitted as `cfg(feature = ...)` and therefore evaluated in the crate
@@ -176,11 +176,11 @@ impl CustomTier {
     /// Construct a `CustomTier` from a built-in tier marker.
     pub fn from_marker<T: Tier>() -> Self {
         Self {
-            strategy: T::STRATEGY,
-            inline: T::INLINE,
-            panic_fmt: None,
-            source_path: None,
-            krate: default_krate(),
+            strategy:     T::STRATEGY,
+            inline:       T::INLINE,
+            panic_fmt:    None,
+            source_path:  None,
+            krate:        default_krate(),
             gate_feature: DEFAULT_GATE_FEATURE.to_string(),
         }
     }
