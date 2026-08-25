@@ -44,3 +44,114 @@ fn builtin_lookup_ignores_unknown_names() {
     assert!(CustomTier::builtin(Hot::NAME).is_some());
     assert!(CustomTier::builtin(Trace::NAME).is_none());
 }
+
+/// The readme's authoring example, minus the proc-macro wrapper it cannot have
+/// here.
+///
+/// That example is not doctested, because `#[proc_macro_attribute]` only exists
+/// in a proc-macro crate and this is not one. Everything inside it is ordinary
+/// code, though, and everything inside it is what goes stale: a renamed field, a
+/// changed type, a strategy that stops existing. So the body lives here and the
+/// wrapper stays prose.
+///
+/// Nothing enforces the two staying in step. Editing the readme leaves this
+/// green, so it is a note to whoever edits it rather than a property.
+#[test]
+fn the_readme_authoring_example_still_builds() {
+    let input: syn::ItemFn = syn::parse_quote! {
+        fn load(path: &str) -> Result<u32, std::io::Error> {
+            Ok(path.len() as u32)
+        }
+    };
+    let tier = CustomTier {
+        strategy:     Strategy::Hot,
+        inline:       true,
+        panic_fmt:    Some("asserted invariant violated: {err:?}".into()),
+        source_path:  None,
+        krate:        syn::parse_quote!(::my_runtime),
+        gate_feature: "my_release_arm".to_string(),
+    };
+    let out = notko_macros_core::rewrite::rewrite_fn(tier, input)
+        .expect("the readme's example rewrites")
+        .to_string();
+
+    // The two fields the readme singles out are the two a reader is most
+    // likely to leave at the default by accident, so this is the assertion
+    // that says they were read at all.
+    assert!(out.contains("my_runtime"), "{out}");
+    assert!(out.contains("my_release_arm"), "{out}");
+    // And the default the readme warns about is not also present, which the
+    // two above cannot see: an emitter naming both would pass them.
+    assert!(!out.contains(":: notko"), "{out}");
+    assert!(!out.contains("\"internal\""), "{out}");
+}
+
+/// The control for the test above.
+///
+/// Its last two assertions say the defaults are absent, and an emitter that
+/// named neither crate nor feature would satisfy them by writing nothing at
+/// all. So this is the same rewrite left at the defaults, asserting the two
+/// spellings the other one refuses do appear when nobody overrides them.
+#[test]
+fn the_defaults_are_what_the_readme_says_they_are() {
+    let input: syn::ItemFn = syn::parse_quote! {
+        fn load(path: &str) -> Result<u32, std::io::Error> {
+            Ok(path.len() as u32)
+        }
+    };
+    let out = notko_macros_core::rewrite::rewrite_fn(
+        CustomTier::from_marker::<Hot>(),
+        input,
+    )
+    .expect("a hot rewrite at the defaults")
+    .to_string();
+
+    assert!(out.contains(":: notko"), "{out}");
+    assert!(out.contains("\"internal\""), "{out}");
+}
+
+/// Which strategies read which of the two fields the readme singles out.
+///
+/// The readme says one of them is the hot strategy's alone and the other is
+/// read whatever you pick, and a sweep is the only honest way to say that: two
+/// tests at `Hot` establish nothing about the other three, and a paragraph
+/// asserting all four while the suite covers one is how the wrong claim got
+/// written down in the first place.
+#[test]
+fn the_crate_path_is_read_by_every_strategy_and_the_gate_by_hot_alone() {
+    fn emitted(strategy: Strategy) -> String {
+        let input: syn::ItemFn = syn::parse_quote! {
+            fn load(path: &str) -> Result<u32, std::io::Error> {
+                Ok(path.len() as u32)
+            }
+        };
+        let tier = CustomTier {
+            strategy,
+            inline: false,
+            panic_fmt: None,
+            source_path: None,
+            ..CustomTier::from_marker::<Hot>()
+        };
+        notko_macros_core::rewrite::rewrite_fn(tier, input)
+            .expect("a rewrite at every strategy")
+            .to_string()
+    }
+
+    for s in [Strategy::Hot, Strategy::Warm, Strategy::Cold] {
+        assert!(
+            emitted(s).contains(":: notko"),
+            "{s:?} does not name the crate"
+        );
+    }
+    // Passthrough writes the function back untouched, so it names nothing, and
+    // saying "every strategy" without this would be saying it about four.
+    assert!(!emitted(Strategy::Passthrough).contains(":: notko"));
+
+    assert!(emitted(Strategy::Hot).contains("\"internal\""));
+    for s in [Strategy::Warm, Strategy::Cold, Strategy::Passthrough] {
+        assert!(
+            !emitted(s).contains("\"internal\""),
+            "{s:?} reads the gate feature"
+        );
+    }
+}
