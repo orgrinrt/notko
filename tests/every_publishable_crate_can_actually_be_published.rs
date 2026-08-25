@@ -19,23 +19,26 @@ use std::path::{Path, PathBuf};
 /// Read off the members list rather than by walking the directory, so a member
 /// added later is checked without anybody remembering to add it here, and a
 /// directory that is not a member is not checked at all.
+/// The manifest filename, once, so the two places that build a path to one
+/// agree.
+const MANIFEST: &str = "Cargo.toml";
+
 fn manifests() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf();
-    let name = format!("Cargo.{}", "toml");
-    let text = std::fs::read_to_string(root.join(&name)).expect("workspace manifest");
+    let text = std::fs::read_to_string(root.join(MANIFEST)).expect("workspace manifest");
     let members = text
         .split("members = [")
         .nth(1)
         .and_then(|rest| rest.split(']').next())
         .expect("a members list");
 
-    let mut out = vec![root.join(&name)];
+    let mut out = vec![root.join(MANIFEST)];
     for entry in members.split(',') {
         let dir = entry.trim().trim_matches('"').trim();
         if dir.is_empty() || dir == "." {
             continue;
         }
-        let candidate = root.join(dir).join(&name);
+        let candidate = root.join(dir).join(MANIFEST);
         assert!(
             candidate.is_file(),
             "the members list names {dir}, which has no manifest"

@@ -444,4 +444,18 @@ mod tests {
         );
         assert_eq!(lines[1], "cargo:notko-optimiser-path=/out/notko-optimisers");
     }
+
+    #[test]
+    fn the_directory_a_crate_ships_its_own_files_in_is_the_documented_one() {
+        // The fourth name, and the one the emitted lines above cannot reach:
+        // it names a directory in the consumer's source tree rather than
+        // anything this writes out. Wrong, and the scan simply finds nothing
+        // and says nothing, which is the same silence as the other three.
+        assert_eq!(LOCAL_DIR, "notko-optimisers");
+        assert_eq!(
+            LOCAL_DIR, OUT_SUBDIR,
+            "the directory a crate ships and the one this accumulates into are \
+             documented as the same name; a reader who learns one has learned both"
+        );
+    }
 }

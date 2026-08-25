@@ -74,20 +74,24 @@ fn the_nonzero_family_is_a_payload_too() {
 }
 
 #[test]
-fn a_plain_integer_is_not_a_payload() {
-    // The other control, and the one that says the seal is doing something.
-    // `u32` is `NonZeroable`? No, and it is not `NicheFilled` either: it has no
-    // spare bit pattern to fill, which is the whole subject. Asserting that in
-    // a way the compiler checks needs a compile-fail harness this crate does
-    // not carry yet, so what is asserted here is the half that can be: the
-    // types that are admitted, above, and the shape of the one that is not.
+fn the_empty_case_costs_nothing_because_it_lives_in_the_niche() {
+    // What the admitted set buys. A payload with a spare bit pattern lends it
+    // to the empty case, so the slot is the payload's own size and the empty
+    // case is free.
     //
-    // `notko::MaybeNull<u32>` is the same refusal one layer up, and
-    // `src/maybe.rs` carries the commented cases waiting for that harness.
-    assert_eq!(core::mem::size_of::<Slot<core::num::NonZeroU32>>(), 4);
+    // The refusal is the other half and is not assertable here: `Slot<u32>`
+    // does not compile, so nothing in a test that runs can name it. It is
+    // pinned in `tests/compile_fail/slot_rejects_a_plain_integer.rs` with the
+    // diagnostic it must produce, which is what stops a loosened bound
+    // restoring it quietly.
     assert_eq!(
         core::mem::size_of::<Slot<core::num::NonZeroU32>>(),
         core::mem::size_of::<core::num::NonZeroU32>(),
-        "the niche is not being filled, so the seal is admitting the wrong set"
+        "the empty case grew the type, so it is not in the niche"
+    );
+    assert_eq!(
+        core::mem::size_of::<Slot<&'static mut Theirs>>(),
+        core::mem::size_of::<&'static mut Theirs>(),
+        "the payload admitted from outside should be the same story"
     );
 }
