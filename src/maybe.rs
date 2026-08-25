@@ -38,8 +38,8 @@ use core::fmt;
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 #[must_use = "Maybe<T> may carry a value; ignoring it discards a presence check"]
 pub enum Maybe<T> {
-    Is(T),
     Isnt,
+    Is(T),
 }
 
 // The layout contract lives on [`MaybeNull<T>`] further down, not on

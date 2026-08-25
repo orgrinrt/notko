@@ -309,6 +309,42 @@ fn a_shipped_test_does_not_reach_for_the_repository() {
                 );
             }
 
+        // And the other direction, which the check above cannot see. A test
+        // that belongs in the package and is simply not named ships nothing,
+        // silently: `cargo package` does not miss it, `cargo test` in a
+        // checkout runs it, and the only observable difference is in a tarball
+        // nobody unpacks until a consumer does.
+        //
+        // The classifier is the same pair of rules the loop below applies,
+        // read the other way round. A file reaching for the repository or for
+        // a stripped dependency is a check about this repository and belongs
+        // out of `include`. Anything else is a check about the crate and
+        // belongs in it.
+        for entry in fs::read_dir(dir.join("tests")).into_iter().flatten().flatten() {
+            let path = entry.path();
+            if path.extension().is_none_or(|e| e != "rs") {
+                continue;
+            }
+            let name = format!("tests/{}", path.file_name().unwrap().to_string_lossy());
+            if shipped.contains(&name.as_str()) {
+                continue;
+            }
+            let Ok(body) = fs::read_to_string(&path) else {
+                continue;
+            };
+            let about_the_repository = ABSENT.iter().any(|n| body.contains(n))
+                || stripped.iter().any(|dep| {
+                    let u = dep.replace('-', "_");
+                    body.contains(&format!("use {u}::")) || body.contains(&format!("{u}::"))
+                });
+            assert!(
+                about_the_repository,
+                "{label}/{name} is a test about the crate and is not named in \
+                 `include`, so it does not ship. Either name it, or make it \
+                 plainly a check about this repository."
+            );
+        }
+
             for dep in &stripped {
                 let underscored = dep.replace('-', "_");
                 let imports = body.contains(&format!("use {underscored}::"))
