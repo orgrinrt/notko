@@ -1,0 +1,34 @@
+### e3_negative_control_real_drop.rs
+### rustc 1.98.0-nightly (57d06900f 2026-05-27)
+### expected: fail
+
+error[E0367]: `T` does not implement `[const] Destruct`
+  --> e3_negative_control_real_drop.rs:9:23
+   |
+ 9 | struct RealDropper<T>(T);
+   |                       ^
+   |
+note: required for this `Drop` impl
+  --> e3_negative_control_real_drop.rs:10:1
+   |
+10 | impl<T> const Drop for RealDropper<T> { fn drop(&mut self) {} }
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: consider restricting type parameter `T` with unstable trait `Destruct`
+   |
+10 | impl<T: [const] Destruct> const Drop for RealDropper<T> { fn drop(&mut self) {} }
+   |       ++++++++++++++++++
+
+error[E0493]: destructor of `RealDropper<Moose>` cannot be evaluated at compile-time
+  --> e3_negative_control_real_drop.rs:11:14
+   |
+11 | const fn foo(_var: RealDropper<Moose>) {}
+   |              ^^^^                       - value is dropped here
+   |              |
+   |              the destructor for this type cannot be evaluated in constant functions
+
+error: aborting due to 2 previous errors
+
+Some errors have detailed explanations: E0367, E0493.
+For more information about an error, try `rustc --explain E0367`.
+
+### rustc exit status: 1

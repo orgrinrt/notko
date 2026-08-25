@@ -74,3 +74,36 @@ fn slot_as_maybe_borrow_projects() {
         notko::Maybe::Isnt => panic!("expected Is variant"),
     }
 }
+
+/// `into_maybe` carries a `T: Copy` bound and its documentation says the bound
+/// costs nothing, because every type that can appear in a `Slot` is `Copy`.
+/// That is a claim about a sealed trait's implementor list, and a list is
+/// exactly the thing that changes without anybody rereading the paragraph
+/// beside it.
+///
+/// So it is asserted here rather than believed. Each line fails to compile the
+/// day a non-`Copy` type joins the family, which is the day the paragraph
+/// stops being true.
+#[test]
+fn every_payload_a_slot_can_carry_satisfies_the_into_maybe_bound() {
+    const fn takes_a_copy_payload<T: notko::NonZeroable + notko::NicheFilled + Copy>() {}
+
+    takes_a_copy_payload::<NonZeroU8>();
+    takes_a_copy_payload::<NonZeroU16>();
+    takes_a_copy_payload::<NonZeroU32>();
+    takes_a_copy_payload::<NonZeroU64>();
+    takes_a_copy_payload::<NonZeroU128>();
+    takes_a_copy_payload::<NonZeroUsize>();
+    takes_a_copy_payload::<NonZeroI8>();
+    takes_a_copy_payload::<NonZeroI16>();
+    takes_a_copy_payload::<NonZeroI32>();
+    takes_a_copy_payload::<NonZeroI64>();
+    takes_a_copy_payload::<NonZeroI128>();
+    takes_a_copy_payload::<NonZeroIsize>();
+
+    // And the bound is actually reachable, rather than merely expressible: a
+    // call through it, so the assertion is about `into_maybe` and not only
+    // about the trait list.
+    let s = Slot::some(NonZeroU32::new(7).unwrap());
+    assert!(matches!(s.into_maybe(), notko::Maybe::Is(v) if v.get() == 7));
+}

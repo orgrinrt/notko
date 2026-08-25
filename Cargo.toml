@@ -35,6 +35,8 @@ include = [
     "src/**/*.rs",
     "tests/bounded.rs",
     "tests/cmp_ext.rs",
+    "tests/consttry_notcopy.rs",
+    "tests/consttry_parity.rs",
     "tests/consttry_smoke.rs",
     "tests/ctor_const_path.rs",
     "tests/ctor_plain_path.rs",
@@ -70,6 +72,24 @@ required-features = ["const"]
 [[test]]
 name = "ctor_plain_path"
 path = "tests/ctor_plain_path.rs"
+
+# Ungated on purpose, and that is the whole assertion. Both configurations
+# must accept the same types, so a bound one path carries and the other does
+# not makes this fail to build in exactly one of them, and that build failure
+# is what the target is for.
+[[test]]
+name = "consttry_parity"
+path = "tests/consttry_parity.rs"
+
+# The const proofs, which cannot be configuration-neutral: run against the
+# plain path they fail with `cannot call non-const method in constants`,
+# because the plain path genuinely is not const-callable. Const-callability is
+# what the feature legitimately switches; which types it reaches is what it
+# must not, and that half is the target above.
+[[test]]
+name = "consttry_notcopy"
+path = "tests/consttry_notcopy.rs"
+required-features = ["const"]
 
 # `?` only exists with `try_trait_v2`, so the target is skipped rather than
 # compiled to an empty binary that reports zero tests and looks like a pass.

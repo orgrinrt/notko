@@ -1,0 +1,7 @@
+[workspace]
+[package]
+name = "sibling"
+version = "0.0.0"
+edition = "2024"
+[dependencies]
+notko = { path = "../../p04_real_crate/notko_fixed", default-features = true }

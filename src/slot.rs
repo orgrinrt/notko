@@ -82,15 +82,20 @@ impl<T: NonZeroable + NicheFilled> Slot<T> {
     }
 
     /// Consume to the underlying `Maybe<T>`. By-value extraction is
-    /// the `into_*` form; this requires `T: Copy` because const fn
-    /// cannot evaluate destructors of generic `T` under current
-    /// rustc nightly.
+    /// the `into_*` form.
     ///
-    /// In practice the `T: Copy` bound is satisfied automatically by
-    /// every type that is also [`NicheFilled`]: references, `NonNull`,
-    /// every `core::num::NonZero*`, and `fn` pointers are all `Copy`.
-    /// The bound is therefore non-restrictive at every call site that
-    /// can construct a `Slot<T>` in the first place.
+    /// The bound is there because a const fn has to be able to drop
+    /// what it consumes, and the property that names is `Destruct`
+    /// rather than `Copy`. Naming it directly would need the const
+    /// feature, and this method exists in both configurations, so it
+    /// takes the bound that works in both. `Copy` implies `Destruct`,
+    /// so nothing unsound gets through; the cost is only that a
+    /// hypothetical non-`Copy` payload would be refused.
+    ///
+    /// There is none. `NonZeroable` is sealed and implemented for the
+    /// `core::num::NonZero*` family alone, every one of which is
+    /// `Copy`, so the bound holds at every call site that can build a
+    /// `Slot<T>` at all.
     pub const fn into_maybe(self) -> Maybe<T>
     where
         T: Copy,

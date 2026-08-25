@@ -1,0 +1,9 @@
+[workspace]
+[package]
+name = "consumer"
+version = "0.0.0"
+edition = "2024"
+[dependencies]
+# the escape the source doc offers, verbatim
+notko = { path = "../../../..", default-features = false }
+sibling = { path = "../sibling" }

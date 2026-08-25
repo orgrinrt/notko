@@ -1,0 +1,27 @@
+### e_manuallydrop_rough_edge.rs
+### rustc 1.98.0-nightly (57d06900f 2026-05-27)
+### expected: pass
+
+warning: struct `Moose` is never constructed
+ --> e_manuallydrop_rough_edge.rs:8:8
+  |
+8 | struct Moose;
+  |        ^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `ConstDropper` is never constructed
+  --> e_manuallydrop_rough_edge.rs:10:8
+   |
+10 | struct ConstDropper<T>(ManuallyDrop<T>);
+   |        ^^^^^^^^^^^^
+
+warning: function `foo` is never used
+  --> e_manuallydrop_rough_edge.rs:12:10
+   |
+12 | const fn foo(_var: ConstDropper<Moose>) {}
+   |          ^^^
+
+warning: 3 warnings emitted
+
+### rustc exit status: 0

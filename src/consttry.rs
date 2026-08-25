@@ -5,31 +5,31 @@
 
 //! Const-callable parallels of `core::ops::Try` and `core::ops::FromResidual`.
 //!
-//! `core::ops::Try` is not `pub const trait` as of 2026-05 nightly, so
-//! `?` on `Just<T>`, `Maybe<T>`, `Outcome<T, E>`, and `Bool` cannot be
-//! used in const context. This module ships a parallel surface for that
-//! case: an explicit `match x.branch() { ... }` works in a const fn body.
+//! An explicit `match x.branch() { ... }` on `Just<T>`, `Maybe<T>`,
+//! `Outcome<T, E>` or `Bool` works in a const fn body through these
+//! traits. `?` on those types works too, but that route goes through
+//! `core::ops::Try` rather than through here, and costs more gates: it
+//! needs `try_trait_v2`, which is off by default, plus `const_try` and
+//! `const_try_residual` on top. These traits need only
+//! `const_trait_impl`, and they come with the default feature set.
 //!
-//! `?` syntax itself stays non-const because rustc desugars `?`
-//! directly to `core::ops::Try::branch`. Adopting `ConstTry` does not
-//! change `?`-syntax behaviour. When core eventually lifts `Try` to
-//! `pub const trait Try`, this bridge can be removed and existing
-//! `impl Try` blocks rewritten to `impl const Try` (no consumer-API
-//! migration required since `?` desugaring switches automatically).
+//! Owning the surface is also what keeps the crate independent of how
+//! new a nightly is, and of how the const shape of `Try` upstream
+//! settles. There is a second reason it could not simply be borrowed:
+//! orphan rules forbid implementing `core`'s `Residual` for
+//! `Infallible`, which is why `Just` carries a residual of its own.
 //!
 //! Both traits are gated behind feature `const` (default-on). Without
 //! the feature, the traits exist as regular `pub trait`s; impls drop
 //! the `const` keyword. This lets notko consumers on stable Rust opt
 //! out of the const-trait machinery via `default-features = false`.
 //!
-//! The const-variant impls in `just.rs` / `maybe.rs` / `outcome.rs`
-//! carry an extra `T: Copy` bound (and `E: Copy` for Outcome). The
-//! restriction exists because const fn cannot evaluate destructors
-//! for arbitrary generic `T` under current rustc nightly. If you're
-//! pushing a non-Copy type through `branch` / `from_output`, reach for
-//! the non-const variant via `default-features = false`. In practice
-//! most of what goes through here is `Copy` anyway, so the restriction
-//! rarely shows up at a call site.
+//! The const-variant impls carry a `[const] Destruct` bound, which is
+//! what const evaluation actually asks for: a value it can drop. That
+//! admits every type without a destructor, and for a runtime caller the
+//! bound disappears, so those get every type at all. A type with a real
+//! `Drop` is refused in const context and accepted outside it, which is
+//! the line the language draws rather than one this crate invented.
 //!
 //! # Module layout
 //!
