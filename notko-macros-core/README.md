@@ -65,9 +65,10 @@ your users' crates rather than on yours. Same for the feature the release arm is
 gated on: that `cfg` is read where the attribute expanded, so leaving it at the
 default means anyone who flips it flips yours too.
 
-Both are read by the hot strategy and by nothing else, so on a cold or warm tier
-they sit there unused and the day the strategy changes is the day they start
-mattering.
+`krate` is read whichever strategy you pick, since every one of them names a
+crate for the type it writes. `gate_feature` is the hot strategy's alone: on a
+cold or warm tier it sits there unused, and the day the strategy changes is the
+day it starts mattering.
 
 Do note the parse is matched, not unwrapped. In a proc-macro an `unwrap` gives whoever used your
 attribute a panic with no span on it, where `to_compile_error` points at their own code.
