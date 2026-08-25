@@ -142,7 +142,7 @@ through its own `internal` feature, it emits `Just<T>` with `Err` lowered to a p
 `Outcome`. `Warm` rewrites to `Maybe<T>` in every build, dropping the error, which is what choosing
 that tier decides.
 
-Third-party strategies live in a crate-local `notko-optimizers/<Name>.rs` with a
+Third-party strategies live in a crate-local `notko-optimisers/<Name>.rs` with a
 `based_on = "Hot" | "Warm" | "Cold"` header. The `based_on` value is case-sensitive, so lowercase doesn't
 match and fails the build. A sibling proc-macro crate reusing `notko-macros-core` is the other route. See
 [`notko-macros`](https://crates.io/crates/notko-macros).

@@ -88,10 +88,10 @@ pub fn init(cfg: &Config) -> Result<State, SetupErr> { /* ... */ }
 
 ## Custom tiers (crate-local)
 
-Drop a file at `$CRATE_ROOT/notko-optimizers/<Name>.rs` with this shape:
+Drop a file at `$CRATE_ROOT/notko-optimisers/<Name>.rs` with this shape:
 
 ```rust
-//! @notko-optimizer
+//! @notko-optimiser
 //! based_on = "Cold"
 //! inline = false
 //! panic_fmt = "trace invariant violated: {err:?}"
@@ -104,7 +104,7 @@ tier-specific parameters. The filename carries the tier's own casing, so
 alongside built-ins with no additional imports:
 
 ```rust
-#[profile(Trace)]  // resolves via notko-optimizers/Trace.rs
+#[profile(Trace)]  // resolves via notko-optimisers/Trace.rs
 pub fn some_work() -> Result<(), Err> { /* ... */ }
 ```
 

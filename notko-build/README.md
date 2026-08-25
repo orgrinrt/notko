@@ -12,7 +12,7 @@
 
 </div>
 
-Custom tiers are ordinary files a crate keeps in its own `notko-optimizers/` directory, and by default
+Custom tiers are ordinary files a crate keeps in its own `notko-optimisers/` directory, and by default
 the [`notko-macros`](https://crates.io/crates/notko-macros) proc-macro only sees the ones belonging to
 the crate it's expanding into. That's fine until you want a tier defined once and used everywhere, and
 cargo gives a proc-macro no way to reach a file in a dependency.
@@ -23,7 +23,7 @@ its dependencies', into `$OUT_DIR/notko-optimisers/`, and points the proc-macro 
 
 ## The two spellings
 
-Source files live in `notko-optimizers/`, with a z. The env var, the `links`
+Source files live in `notko-optimisers/`, with a z. The env var, the `links`
 key and the `$OUT_DIR` subdirectory are `notko-optimisers/`, with an s. Both
 spellings turn up below and neither is a typo, so it's worth having the pair in
 mind: a directory named with the wrong one is simply not found, and nothing
@@ -75,11 +75,11 @@ links = "notko-optimisers-my-provider"  # unique; required for cargo metadata pr
 notko-build = "0.0.1"
 ```
 
-Drop your optimiser files into `./notko-optimizers/*.rs`. Each must carry
+Drop your optimiser files into `./notko-optimisers/*.rs`. Each must carry
 the canonical header:
 
 ```rust
-//! @notko-optimizer
+//! @notko-optimiser
 //! based_on = "Cold"
 //! inline = false
 //! panic_fmt = "trace invariant violated: {err:?}"
@@ -92,7 +92,7 @@ and usable by `#[profile(Name)]`.
 
 ## How it works
 
-1. Scans `$CARGO_MANIFEST_DIR/notko-optimizers/*.rs` (crate-local).
+1. Scans `$CARGO_MANIFEST_DIR/notko-optimisers/*.rs` (crate-local).
 2. Collects paths from `DEP_*_NOTKO_OPTIMISER_PATH`
    environment variables. Cargo sets these on build scripts of crates
    that depend on an optimiser provider.
@@ -104,26 +104,26 @@ and usable by `#[profile(Name)]`.
      propagates this crate's accumulated optimisers to downstream
      dependents (only takes effect if the crate declares
      `links = "notko-optimisers-..."`).
-   - `cargo:rerun-if-changed=` for the local `notko-optimizers` directory
+   - `cargo:rerun-if-changed=` for the local `notko-optimisers` directory
      and again for each file in it, which invalidates the build when an
      optimiser is edited, added or removed.
 
 Two dependencies providing the same tier name is a build error, since nothing ranks one dependency
 above another. The error names both source paths. Resolve it by renaming, or by putting a file of that
-name in your own `notko-optimizers/`, which wins over every dependency's.
+name in your own `notko-optimisers/`, which wins over every dependency's.
 
 ## Discovery precedence
 
 The notko-macros proc-macro consults sources in this order:
 
 1. Built-in ZST markers (`Hot`, `Warm`, `Cold`).
-2. `$CARGO_MANIFEST_DIR/notko-optimizers/<Name>.rs` (crate-local;
+2. `$CARGO_MANIFEST_DIR/notko-optimisers/<Name>.rs` (crate-local;
    doesn't require notko-build).
 3. `$NOTKO_OPTIMISERS_PATH/<Name>.rs` (accumulated; requires notko-build
    in the consumer's build.rs).
 
 Which is what makes the shadowing above work: a file of the same name in your own
-`notko-optimizers/` is found before anything a dependency contributed.
+`notko-optimisers/` is found before anything a dependency contributed.
 
 ## Support
 

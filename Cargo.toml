@@ -105,6 +105,14 @@ name = "try_smoke"
 path = "tests/try_smoke.rs"
 required-features = ["try_trait_v2"]
 
+[dev-dependencies]
+# The one dependency here, and it is a dev one, so nothing a consumer installs
+# grows by it. It exists because several of this crate's guarantees are
+# refusals, and a refusal nothing pins can be deleted by accident: a bound
+# loosened later restores the illegal state and every remaining test passes,
+# because none of them names it.
+trybuild = "1"
+
 [features]
 default = ["const"]
 # Impl `core::ops::Try` for Just/Maybe/Outcome. Requires nightly.

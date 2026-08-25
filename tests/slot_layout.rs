@@ -81,9 +81,15 @@ fn slot_as_maybe_borrow_projects() {
 /// exactly the thing that changes without anybody rereading the paragraph
 /// beside it.
 ///
-/// So it is asserted here rather than believed. Each line fails to compile the
-/// day a non-`Copy` type joins the family, which is the day the paragraph
-/// stops being true.
+/// So the family is walked here rather than believed, and each line fails to
+/// compile the day one of those twelve loses `Copy`.
+///
+/// What it does not cover is a member nobody added a line for, and there is
+/// one: `NicheFilled` also admits `&mut T`, `NonZeroable` is open, and a crate
+/// may implement it for a reference to a type of its own.
+/// `slot_admits_more_than_the_nonzero_family.rs` builds that payload, which is
+/// not `Copy`, so `into_maybe` is genuinely refused somewhere and this list is
+/// a spot check of the twelve rather than a law over the set.
 #[test]
 fn every_payload_a_slot_can_carry_satisfies_the_into_maybe_bound() {
     const fn takes_a_copy_payload<T: notko::NonZeroable + notko::NicheFilled + Copy>() {}

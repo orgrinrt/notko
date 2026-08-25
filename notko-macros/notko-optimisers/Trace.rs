@@ -1,4 +1,4 @@
-//! @notko-optimizer
+//! @notko-optimiser
 //! based_on = "Cold"
 //! inline = false
 //!

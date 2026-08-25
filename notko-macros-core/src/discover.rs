@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
 //--------------------------------------------------------------------------------------------------
 
-//! Discovery of custom tier definitions from `notko-optimizers/<Name>.rs`.
+//! Discovery of custom tier definitions from `notko-optimisers/<Name>.rs`.
 //!
 //! The optimiser file's module-level doc-comment carries metadata in a
 //! `key = value` key/value format. Recognised keys:
@@ -14,13 +14,13 @@
 //! | `inline` | `bool` | built-in default | Emit `#[inline]` on the rewritten function. |
 //! | `panic_fmt` | string | `"hot path invariant violated: {err:?}"` | Format for the Err to panic rewrite (hot-strategy only). |
 //!
-//! The `@notko-optimizer` marker on the first line of the doc comment is
+//! The `@notko-optimiser` marker on the first line of the doc comment is
 //! required to guard against accidental parsing of unrelated .rs files.
 //!
 //! Example:
 //!
 //! ```text
-//! //! @notko-optimizer
+//! //! @notko-optimiser
 //! //! based_on = "Cold"
 //! //! inline = false
 //! //! panic_fmt = "trace: {err:?}"
@@ -41,7 +41,7 @@ use crate::tiers::{CustomTier, Strategy};
 ///
 /// Order:
 /// 1. Built-in `Hot | Warm | Cold` ZST markers (see [`crate::tiers`]).
-/// 2. `$CARGO_MANIFEST_DIR/notko-optimizers/<Name>.rs` parses metadata.
+/// 2. `$CARGO_MANIFEST_DIR/notko-optimisers/<Name>.rs` parses metadata.
 /// 3. `$NOTKO_OPTIMISERS_PATH/<Name>.rs` (set by `notko-build`).
 /// 4. Error with a diagnostic pointing at where the file should live.
 pub fn resolve_tier(name: &str, span: Span) -> Result<CustomTier> {
@@ -58,7 +58,7 @@ pub fn resolve_tier(name: &str, span: Span) -> Result<CustomTier> {
     }
 
     let crate_local = crate_local_optimiser_path(name)
-        .unwrap_or_else(|| PathBuf::from(format!("notko-optimizers/{name}.rs")));
+        .unwrap_or_else(|| PathBuf::from(format!("notko-optimisers/{name}.rs")));
     Err(Error::new(
         span,
         format!(
@@ -97,7 +97,7 @@ fn crate_local_optimiser_path(name: &str) -> Option<PathBuf> {
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").ok()?;
     Some(
         Path::new(&manifest_dir)
-            .join("notko-optimizers")
+            .join("notko-optimisers")
             .join(format!("{name}.rs")),
     )
 }
@@ -111,12 +111,12 @@ fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
     })?;
 
     let meta = extract_module_doc(&source);
-    if !meta.lines().any(|l| l.trim() == "@notko-optimizer") {
+    if !meta.lines().any(|l| l.trim() == "@notko-optimiser") {
         return Err(Error::new(
             span,
             format!(
-                "optimiser file `{}` lacks the `@notko-optimizer` marker in its \
-                 module doc comment. add `//! @notko-optimizer` on the first \
+                "optimiser file `{}` lacks the `@notko-optimiser` marker in its \
+                 module doc comment. add `//! @notko-optimiser` on the first \
                  doc line.",
                 path.display()
             ),
@@ -129,7 +129,7 @@ fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
 
     for line in meta.lines() {
         let line = line.trim();
-        if line.is_empty() || line == "@notko-optimizer" {
+        if line.is_empty() || line == "@notko-optimiser" {
             continue;
         }
         let Some((key, value)) = line.split_once('=') else {

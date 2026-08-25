@@ -422,6 +422,13 @@ fn reaches_for_the_repository(body: &str, stripped: &[String]) -> Vec<String> {
         why.push("reads a fixture tree, which a package does not carry".into());
     }
 
+    // A compile-fail harness is the same thing under another name: a directory
+    // of sources plus the diagnostics they must produce, none of which is a
+    // file `include` could sensibly name one at a time.
+    if body.contains("compile_fail(") {
+        why.push("drives a compile-fail tree, which a package does not carry".into());
+    }
+
     // Spawning the toolchain against the tree is a check about the tree.
     if body.contains("env!(\"CARGO\")") {
         why.push("builds something with cargo, which needs the repository".into());
