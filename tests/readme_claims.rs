@@ -254,9 +254,17 @@ fn a_shipped_test_does_not_reach_for_the_repository() {
     let mut checked_any_file = false;
 
     for dir in &crates {
-        let label = dir.file_name().unwrap().to_string_lossy().to_string();
+        let where_it_is = dir.file_name().unwrap().to_string_lossy().to_string();
         let toml = fs::read_to_string(dir.join("Cargo.toml"))
-            .unwrap_or_else(|e| panic!("{label} has no readable manifest: {e}"));
+            .unwrap_or_else(|e| panic!("{where_it_is} has no readable manifest: {e}"));
+        // The package name, not the directory. A clone can sit anywhere and
+        // under any name, and a message naming the directory sends the reader
+        // to a crate that is not what it is called.
+        let label = toml
+            .split_once("\nname = \"")
+            .and_then(|(_, rest)| rest.split_once('"'))
+            .map(|(n, _)| n.to_string())
+            .unwrap_or(where_it_is);
 
         let Some(include) = toml
             .split_once("include = [")
@@ -298,29 +306,31 @@ fn a_shipped_test_does_not_reach_for_the_repository() {
             });
             checked_any_file = true;
 
-            for needle in ABSENT {
-                assert!(
-                    !body.contains(needle),
-                    "{label}/{file} is published and reaches for `{needle}`, which \
-                     an unpacked tarball does not have. Either drop it from \
-                     `include` because it is a check about this repository, or \
-                     stop it depending on the repository because it is a check \
-                     about the crate."
-                );
-            }
+            let why = reaches_for_the_repository(&body, &stripped);
+            assert!(
+                why.is_empty(),
+                "{label}/{file} is published and {}. An unpacked tarball has \
+                 none of that. Either drop it from `include` because it is a \
+                 check about this repository, or stop it depending on the \
+                 repository because it is a check about the crate.",
+                why.join(", and ")
+            );
+        }
 
-        // And the other direction, which the check above cannot see. A test
-        // that belongs in the package and is simply not named ships nothing,
+        // And the other direction, which the loop above cannot see. A test that
+        // belongs in the package and is simply not named ships nothing,
         // silently: `cargo package` does not miss it, `cargo test` in a
         // checkout runs it, and the only observable difference is in a tarball
         // nobody unpacks until a consumer does.
         //
-        // The classifier is the same pair of rules the loop below applies,
-        // read the other way round. A file reaching for the repository or for
-        // a stripped dependency is a check about this repository and belongs
-        // out of `include`. Anything else is a check about the crate and
-        // belongs in it.
-        for entry in fs::read_dir(dir.join("tests")).into_iter().flatten().flatten() {
+        // This runs per crate rather than per shipped file, because a crate
+        // naming no test at all is exactly where an unnamed one hides, and
+        // nesting it under the shipped files would skip those crates entirely.
+        for entry in fs::read_dir(dir.join("tests"))
+            .into_iter()
+            .flatten()
+            .flatten()
+        {
             let path = entry.path();
             if path.extension().is_none_or(|e| e != "rs") {
                 continue;
@@ -332,32 +342,12 @@ fn a_shipped_test_does_not_reach_for_the_repository() {
             let Ok(body) = fs::read_to_string(&path) else {
                 continue;
             };
-            let about_the_repository = ABSENT.iter().any(|n| body.contains(n))
-                || stripped.iter().any(|dep| {
-                    let u = dep.replace('-', "_");
-                    body.contains(&format!("use {u}::")) || body.contains(&format!("{u}::"))
-                });
             assert!(
-                about_the_repository,
+                !reaches_for_the_repository(&body, &stripped).is_empty(),
                 "{label}/{name} is a test about the crate and is not named in \
                  `include`, so it does not ship. Either name it, or make it \
                  plainly a check about this repository."
             );
-        }
-
-            for dep in &stripped {
-                let underscored = dep.replace('-', "_");
-                let imports = body.contains(&format!("use {underscored}::"))
-                    || body.contains(&format!("{underscored}::"));
-                assert!(
-                    !imports,
-                    "{label}/{file} is published and imports `{dep}`, which \
-                     reaches it only through a dev-dependency carrying a path \
-                     and no version. Cargo strips those on publish, so this \
-                     test cannot compile from the tarball. Either drop it from \
-                     `include`, or give the dependency a registry version."
-                );
-            }
         }
     }
 
@@ -383,6 +373,131 @@ fn a_shipped_test_does_not_reach_for_the_repository() {
 /// What a tarball does not have: the workspace manifest, and the repository git
 /// would answer questions about.
 const ABSENT: [&str; 2] = ["workspace manifest", "members = ["];
+
+/// Why a test body could not run from an unpacked package, if it could not.
+///
+/// One classifier, read in both directions, and the two directions do not
+/// tolerate the same gaps. Forward, over a file that ships, a missing rule is
+/// a false negative: the check merely fails to catch something. Reverse, over
+/// a file that does not ship, the same missing rule is a false positive, and
+/// it fails the build over a file that is correctly left out.
+///
+/// So a rule here is positive evidence that the file reaches outside the
+/// package, never the absence of evidence that it does not. Every one of them
+/// names something a tarball demonstrably has no answer for.
+fn reaches_for_the_repository(body: &str, stripped: &[String]) -> Vec<String> {
+    let mut why = Vec::new();
+
+    for needle in ABSENT {
+        if body.contains(needle) {
+            why.push(format!("reaches for `{needle}`"));
+        }
+    }
+
+    for dep in stripped {
+        let underscored = dep.replace('-', "_");
+        if body.contains(&format!("use {underscored}::"))
+            || body.contains(&format!("{underscored}::"))
+        {
+            why.push(format!("names `{dep}`, which cargo strips on publish"));
+        }
+    }
+
+    // `CARGO_MANIFEST_DIR` is the package root in a tarball, so anything above
+    // it is the repository and is not there.
+    if body.contains("CARGO_MANIFEST_DIR") && body.contains(".parent()") {
+        why.push(
+            "walks above `CARGO_MANIFEST_DIR`, which in a package has nothing above it".into(),
+        );
+    }
+
+    // A fixture tree is a repository artifact. `include` names files, so a
+    // directory of fixtures beside a test does not travel with it.
+    if body.contains("tests/fixtures") {
+        why.push("reads a fixture tree, which a package does not carry".into());
+    }
+
+    // Spawning the toolchain against the tree is a check about the tree.
+    if body.contains("env!(\"CARGO\")") {
+        why.push("builds something with cargo, which needs the repository".into());
+    }
+
+    // One `../` climbs from `tests/` to the package root and is fine. A second
+    // leaves the package.
+    for macro_name in ["include_str!", "include_bytes!", "include!"] {
+        let mut rest = body;
+        while let Some(at) = rest.find(macro_name) {
+            let after = &rest[at + macro_name.len()..];
+            let Some(open) = after.find('"') else { break };
+            let tail = &after[open + 1..];
+            let Some(close) = tail.find('"') else { break };
+            let path = &tail[..close];
+            if path.matches("../").count() > 1 {
+                why.push(format!(
+                    "includes `{path}`, which climbs out of the package"
+                ));
+            }
+            rest = &tail[close..];
+        }
+    }
+
+    why
+}
+
+/// Each rule fires on the shape it names, and none of them fires on a test
+/// that genuinely belongs in the package.
+///
+/// The reverse direction is what makes this necessary. It asserts that a file
+/// left out of `include` reaches outside the package, so a rule that is merely
+/// missing turns a correctly-excluded file into a red suite. Every positive
+/// here is a real file in this repository reduced to the line that placed it.
+#[test]
+fn the_classifier_fires_on_each_shape_and_on_nothing_else() {
+    let stripped = vec!["notko-macros".to_string()];
+    let fires = |body: &str| !reaches_for_the_repository(body, &stripped).is_empty();
+
+    assert!(
+        fires("let m = \"the workspace manifest\";"),
+        "ABSENT needle"
+    );
+    assert!(
+        fires("assert!(toml.contains(\"members = [\"));"),
+        "ABSENT needle"
+    );
+    assert!(fires("use notko_macros::profile;"), "stripped dependency");
+    assert!(
+        fires("let root = Path::new(env!(\"CARGO_MANIFEST_DIR\")).parent().unwrap();"),
+        "walking above the package root"
+    );
+    assert!(
+        fires("Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(\"tests/fixtures/consumer\")"),
+        "a fixture tree"
+    );
+    assert!(fires("Command::new(env!(\"CARGO\"))"), "spawning cargo");
+    assert!(
+        fires("const R: &str = include_str!(\"../../README.md\");"),
+        "climbing out of the package"
+    );
+
+    // And the shapes that belong in a package, so this is not simply always
+    // positive. Each is a line a real shipped test here contains.
+    assert!(!fires("use notko::{Just, Maybe, Outcome};"));
+    assert!(!fires("const R: &str = include_str!(\"../README.md\");"));
+    assert!(!fires(
+        "let d = PathBuf::from(env!(\"CARGO_MANIFEST_DIR\"));"
+    ));
+    assert!(!fires(
+        "assert_eq!(Maybe::Is(1).cmp(&Maybe::Isnt), Ordering::Greater);"
+    ));
+
+    // The reason list is the message, so it has to say something.
+    let why = reaches_for_the_repository("use notko_macros::profile;", &stripped);
+    assert_eq!(why.len(), 1);
+    assert!(
+        why[0].contains("notko-macros"),
+        "the reason names nothing: {why:?}"
+    );
+}
 
 /// Dependency names under `[dev-dependencies]` that carry a path and no
 /// version, which is exactly the set cargo drops when it publishes.
@@ -432,3 +547,80 @@ fn a_path_only_dev_dependency_is_recognised_as_stripped() {
     );
 }
 
+/// The doc-include gate names every feature the readme's own examples need.
+///
+/// The readme is compiled as a doctest through a `#[cfg(doctest, ...)]` item in
+/// the crate root. That gate has to name every feature the blocks reach for, or
+/// the configuration where one is missing compiles a block against a feature it
+/// does not have and fails on the absence rather than on anything being wrong.
+///
+/// It went wrong exactly that way: the gate named `macros`, for the block using
+/// `#[profile]`, and a later block started using `?` on `Outcome`, which needs
+/// `try_trait_v2`. Under `--features macros` alone the readme then did not
+/// build, and the default run and the all-features run were both green, so
+/// nothing anybody normally runs said so.
+#[test]
+fn the_doc_include_gate_names_every_feature_the_readme_reaches_for() {
+    let lib = fs::read_to_string(root().join("src/lib.rs")).expect("no crate root");
+    let readme = fs::read_to_string(root().join("README.md")).expect("no readme");
+
+    let gate = lib
+        .lines()
+        .find(|l| l.contains("#[cfg(") && l.contains("doctest"))
+        .expect("the readme is not included as a doctest at all, which is the whole check");
+
+    // What each construct in a runnable block needs, and why. Only `rust`
+    // fences count: a shell block is prose as far as the doctest is concerned.
+    let needs: [(&str, &str); 2] = [
+        // `?` on these types goes through `Try`, which is the unstable impl.
+        ("?;", "try_trait_v2"),
+        // the attribute macro itself
+        ("#[profile", "macros"),
+    ];
+
+    // `Some(true)` inside a block rustdoc compiles, `Some(false)` inside one it
+    // does not, `None` between them. Two states are not enough: a closing fence
+    // carries no language either, so reading it as an opening one puts the prose
+    // after a shell block into the collected text and leaves the rust blocks out.
+    let mut runnable = String::new();
+    let mut inside: Option<bool> = None;
+    for line in readme.lines() {
+        if let Some(rest) = line.trim().strip_prefix("```") {
+            inside = match inside {
+                // a fence with no language, or one naming rust, is compiled
+                None => Some(rest.is_empty() || rest.starts_with("rust")),
+                Some(_) => None,
+            };
+            continue;
+        }
+        if inside == Some(true) {
+            runnable.push_str(line);
+            runnable.push('\n');
+        }
+    }
+    assert!(
+        !runnable.is_empty(),
+        "no runnable block was found in the readme, so this check has nothing to read"
+    );
+
+    for (construct, feature) in needs {
+        if !runnable.contains(construct) {
+            continue;
+        }
+        assert!(
+            gate.contains(&format!("feature = \"{feature}\"")),
+            "a readme example uses `{construct}`, which `{feature}` provides, and the \
+             doc-include gate does not name it:\n  {}\n\
+             Under a configuration with the other features and not this one, the \
+             readme is compiled and cannot build.",
+            gate.trim()
+        );
+    }
+
+    // The control. Without it the loop above holds vacuously the moment the
+    // needles stop matching, which is exactly how the defect got in.
+    assert!(
+        runnable.contains("?;") || runnable.contains("#[profile"),
+        "neither needle appears in any runnable block, so nothing was checked"
+    );
+}
