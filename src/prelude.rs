@@ -5,7 +5,7 @@
 
 //! Re-exports of the foundational vocabulary.
 //!
-//! ```ignore
+//! ```
 //! use notko::prelude::*;
 //!
 //! fn lookup(k: u32) -> Maybe<u32> { Maybe::Isnt }

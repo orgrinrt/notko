@@ -565,7 +565,7 @@ pub use niche::NicheFilled;
 /// Use at FFI boundaries where the pointer-sized-or-integer-sized
 /// nullable representation IS the point:
 ///
-/// ```ignore
+/// ```
 /// use notko::MaybeNull;
 ///
 /// #[repr(C)]

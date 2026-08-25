@@ -97,6 +97,24 @@
 //! Option<Ordering>`, `fn fmt() -> fmt::Result`). Those are the places
 //! `Option` is unavoidable, so that's where it stays.
 
+// The README's `rust` blocks are compiled as doctests. Only those: the shell
+// blocks are prose as far as this is concerned, and changing a fence would drop
+// the check with nothing saying so.
+//
+// Without this the examples are the one part of the documentation nothing
+// verifies, which is the part a reader is most likely to copy. Adding it found
+// two that did not build: one calling functions it never defined, and one
+// importing `profile` without the feature that provides it.
+//
+// Gated on `macros` for the same reason `try_smoke` carries
+// `required-features`: one block shows `#[profile]`, which does not exist
+// without it, so under default features this would fail on a feature's absence
+// rather than on anything being wrong. `cargo test --all-features` is the run
+// that exercises the examples.
+#[cfg(all(doctest, feature = "macros"))]
+#[doc = include_str!("../README.md")]
+struct Readme;
+
 pub mod bounded;
 pub mod cmp;
 pub mod consttry;

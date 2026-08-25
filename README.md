@@ -78,6 +78,8 @@ With the `try_trait_v2` feature, `?` works on all three. It needs a nightly comp
 ```rust
 use notko::{Maybe, Outcome};
 
+# fn parse(_: &[u8]) -> Outcome<u32, &'static str> { Outcome::Ok(1) }
+# fn lookup(_: u32) -> Maybe<u32> { Maybe::Is(2) }
 fn compose() -> Outcome<u32, &'static str> {
     let a = parse(b"foo")?;
     let b = lookup(a).ok_or("missing")?;
@@ -112,7 +114,8 @@ make up an error value that never happens.
 you're picking the type at every call site yourself, which gets old. With it you write one ordinary
 `Result` surface and the macro rewrites it for you.
 
-The authoring form is plain `Result` with `Ok` and `Err`. The macro rewrites the signature and the body:
+The authoring form is plain `Result` with `Ok` and `Err`. The macro rewrites the signature and the body.
+This one needs `features = ["macros"]`, which is off by default:
 
 ```rust
 use notko::profile;
