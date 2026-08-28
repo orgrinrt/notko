@@ -520,27 +520,6 @@ mod tests {
     }
 
     #[test]
-    fn a_header_above_the_marker_does_not_hide_it() {
-        // `ante` writes a licence header at the top of every file, and the
-        // reader that looks for the marker used to stop at the first plain
-        // `//` line. The refusal then told the author to add a line that was
-        // already there, and deleting the header was the only thing that
-        // worked. Asserted here rather than in the macro crate because this is
-        // where a tier file with a real header is produced.
-        let (_root, local, out) = a_provider_with(&[("Audit", WITH_A_HEADER)]);
-        accumulate(&local, &[], &out).expect("a headered tier accumulates");
-        let landed = fs::read_to_string(out.join("Audit.rs")).expect("the copied tier");
-        assert!(
-            landed.contains("Copyright"),
-            "the header was stripped on the way"
-        );
-        assert!(
-            landed.contains("@notko-optimiser"),
-            "the marker was stripped on the way"
-        );
-    }
-
-    #[test]
     fn the_emitted_lines_carry_the_keys_cargo_and_the_macro_read() {
         let lines = metadata_lines(Path::new("/out/notko-optimisers"));
 

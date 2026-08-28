@@ -42,13 +42,25 @@ fn the_pinned_channel() -> String {
         .expect("the pin names a channel")
 }
 
-/// The compiler actually running, as `rustc -V` reports it.
-fn the_running_compiler() -> String {
-    let out = std::process::Command::new(std::env::var("RUSTC").unwrap_or("rustc".into()))
-        .arg("-V")
+/// The toolchain rustup has actually selected, as it names it.
+///
+/// The toolchain name rather than `rustc -V`, because the version string
+/// carries the commit date and the toolchain carries the release date, and
+/// they differ by a day. Comparing the pin against the wrong one never matches.
+///
+/// It comes back with the host triple appended, so callers compare with
+/// `starts_with` rather than for equality.
+fn the_running_toolchain() -> String {
+    let out = std::process::Command::new("rustup")
+        .args(["show", "active-toolchain"])
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
         .output()
-        .expect("rustc could not be run");
-    String::from_utf8_lossy(&out.stdout).trim().to_owned()
+        .expect("rustup could not be run");
+    String::from_utf8_lossy(&out.stdout)
+        .split_whitespace()
+        .next()
+        .unwrap_or_default()
+        .to_owned()
 }
 
 #[test]
@@ -64,16 +76,25 @@ fn every_refusal_still_refuses() {
     // So the assertion is skipped off the pin and says so. What is not skipped
     // is `the_refusals_are_pinned_to_a_toolchain_that_is_named`, which holds
     // everywhere.
+    // The date in a nightly's name is the day it was cut and `rustc -V` prints
+    // the day its commit landed, which is the day before. So a first attempt at
+    // this matched the pin's date against the version string, never matched,
+    // and fell through to "am I on any nightly at all", which ran the
+    // assertion on every nightly including ones the files were not blessed on.
+    //
+    // The toolchain file is what selects the compiler, so asking rustup which
+    // toolchain is in force is the question with an answer.
     let pinned = the_pinned_channel();
-    let running = the_running_compiler();
-    let on_the_pin = running.contains(pinned.trim_start_matches("nightly-"))
-        || (pinned.starts_with("nightly") && running.contains("nightly"));
-    if !on_the_pin {
-        eprintln!(
-            "skipped: these diagnostics are blessed on {pinned} and this is {running}. \
-             the refusals are unaffected; run on the pin to check their wording."
+    let running = the_running_toolchain();
+    if !running.starts_with(&pinned) {
+        // Loud, because a skip that reports `ok` is a suite claiming to have
+        // checked something it did not look at.
+        panic!(
+            "these diagnostics are blessed on {pinned} and this is {running}.\n\
+             the refusals are unaffected by the wording, so this is the harness \
+             refusing to report a pass it did not earn.\n\
+             run on the pin, or pass --skip every_refusal_still_refuses."
         );
-        return;
     }
     trybuild::TestCases::new().compile_fail("tests/compile_fail/*.rs");
 }
@@ -84,9 +105,19 @@ fn the_refusals_are_pinned_to_a_toolchain_that_is_named() {
     // has to be readable, or the skip becomes unconditional and silent.
     let pinned = the_pinned_channel();
     assert!(!pinned.is_empty(), "the toolchain pin names no channel");
+    let running = the_running_toolchain();
     assert!(
-        !the_running_compiler().is_empty(),
-        "rustc reported no version, so the skip above cannot decide anything"
+        !running.is_empty(),
+        "rustup named no toolchain, so nothing above can decide"
+    );
+    // Not that we are on the pin: this one holds on every toolchain, and it is
+    // the check above that decides whether the wording may be asserted. What
+    // has to hold here is that both halves of that decision have an answer, or
+    // the comparison is between two empty strings and matches everything.
+    assert!(!running.is_empty(), "rustup named no toolchain");
+    assert!(
+        running.contains('-') || running.starts_with("stable"),
+        "rustup's answer does not look like a toolchain name: {running}"
     );
 }
 

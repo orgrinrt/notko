@@ -236,3 +236,27 @@ fn the_release_arm_warns_about_nothing() {
         "the release arm warns on a body it was written for:\n{stderr}"
     );
 }
+
+#[test]
+fn an_impl_trait_error_builds_in_both_arms_or_neither() {
+    // The guard that makes the arms agree about `Debug` is a closure taking
+    // the error type by name, and `impl Trait` is not allowed in a closure
+    // parameter. So emitting it against one refused the debug arm and left the
+    // release arm building, which is the divergence the guard exists to close,
+    // pointing the other way. It shipped that way for one review round and was
+    // caught by a reviewer rather than by this file, which is why it is here.
+    let (debug, release, why) = both_arms(&fixture_plus(
+        r#"
+#[profile(Hot)]
+pub fn opaque(x: u32) -> Result<u32, impl core::fmt::Debug> {
+    if x == 0 { return Err(Oops); }
+    Ok(x)
+}
+"#,
+    ));
+    assert_eq!(
+        debug, release,
+        "the arms disagree about an `impl Trait` error:\n{why}"
+    );
+    assert!(debug, "an `impl Trait` error builds in neither arm:\n{why}");
+}

@@ -35,7 +35,8 @@ pub fn rewrite(tier: CustomTier, mut func: ItemFn) -> Result<TokenStream> {
     //   a written-out `Err` already does here.
     // - An error type the panic cannot format. Closed by
     //   `arms_agree_on_the_error`, which makes the debug arm demand of it
-    //   exactly what the release arm's panic demands.
+    //   exactly what the release arm's panic demands, for every error type
+    //   except one written `impl Trait`. That exception is named there.
     //
     // All three are pinned by `notko-macros/tests/consumer_cfg.rs`, which
     // builds a real consumer crate in both arms and compares the two.
@@ -64,9 +65,9 @@ fn build_debug(tier: &CustomTier, func: &ItemFn, ok_ty: Type, err_ty: Type) -> T
         krate: tier.krate.clone(),
     };
     rewriter.visit_block_mut(&mut out.block);
-    out.block
-        .stmts
-        .insert(0, arms_agree_on_the_error(tier, &err_ty));
+    if let Some(guard) = arms_agree_on_the_error(tier, &err_ty) {
+        out.block.stmts.insert(0, guard);
+    }
 
     let inline = inline_attr(tier);
     let attrs = &out.attrs;
@@ -115,17 +116,31 @@ fn build_release(tier: &CustomTier, func: &mut ItemFn, ok_ty: Type) -> TokenStre
 /// the whole reason it is here.
 ///
 /// It sees whatever the format string actually asks for, so a `panic_fmt`
-/// written against `Display`, or one that never mentions the error at all,
-/// demands that instead of `Debug`.
-fn arms_agree_on_the_error(tier: &CustomTier, err_ty: &Type) -> syn::Stmt {
+/// written against `Display` demands that instead of `Debug`. One written
+/// against nothing at all is a build failure in both arms rather than a
+/// weaker demand, since `panic!("no placeholder", err = e)` is `named argument
+/// never used`.
+///
+/// **What it does not cover**, stated rather than left to be discovered: an
+/// error type written `impl Trait`. `impl Trait` is not allowed in a closure
+/// parameter, so emitting this against one is a build failure in the debug arm
+/// and nothing in the release arm, which is the divergence this exists to
+/// close, pointing the other way. It shipped that way for one review round.
+/// Such a type is skipped, and a `-> Result<T, impl Trait>` whose bounds do not
+/// carry what the panic needs still diverges. Closing that means reading the
+/// bounds, which is a different mechanism and is not built.
+fn arms_agree_on_the_error(tier: &CustomTier, err_ty: &Type) -> Option<syn::Stmt> {
+    if matches!(err_ty, Type::ImplTrait(_)) {
+        return None;
+    }
     let fmt = tier
         .panic_fmt
         .clone()
         .unwrap_or_else(|| "hot path invariant violated: {err:?}".to_string());
-    parse_quote! {
+    Some(parse_quote! {
         #[allow(unused, unreachable_code, clippy::diverging_sub_expression)]
         let _arms_agree = |err: #err_ty| ::core::panic!(#fmt, err = err);
-    }
+    })
 }
 
 fn inline_attr(tier: &CustomTier) -> TokenStream {
