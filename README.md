@@ -8,22 +8,23 @@
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/issues)
 ![License](https://img.shields.io/github/license/orgrinrt/notko?color=%23009689)
 
-> Fallibility primitives whose branch cost is chosen at the call site rather than fixed by the type. `no_std`, no alloc, zero deps.
+> Fallibility primitives for `no_std` rust, in three tiers, so what a branch costs is something you pick per call site rather than something the type already decided. Ships `Just`, `Maybe` and `Outcome`, and a `#[profile]` attribute for tagging a whole function at once.
 
 </div>
 
-Three fallibility carriers instead of one, so what a branch costs is decided where the call is written
-rather than by the type. `Just<T>` for the case an invariant has already proved present, `Maybe<T>` for
-ordinary absence, `Outcome<T, E>` for when the error carries something.
+Three carriers instead of the one. `Just<T>` for when an invariant has already proved the value is
+there, `Maybe<T>` for ordinary absence, and `Outcome<T, E>` for when the error carries something with
+it. The idea is that you pick per call site, instead of taking whatever a single type settled on for
+the whole program.
 
-The case for splitting them is narrow and worth stating plainly. `Option<T>` fixes what absence costs at
-a discriminant and a branch, everywhere, and most of the time that's fine and nobody notices. Where the
-value has been proved present already, the check still gets emitted and there's nothing in the type that
-can say otherwise. `Just<T>` is the missing thing there: `#[repr(transparent)]`, and with `try_trait_v2`
-its `?` has no error arm to branch to.
+The case for splitting them is fairly narrow and I'd rather state it plainly than oversell it.
+`Option<T>` fixes what absence costs at a discriminant and a branch, everywhere, and most of the time
+that's completely fine and nobody notices. Where the value has been proved present already the check
+still gets emitted, and there's nothing in the type that can say otherwise. `Just<T>` is what's missing
+there: `#[repr(transparent)]`, and with `try_trait_v2` its `?` has no error arm to branch to.
 
-There's a `#[profile]` attribute further down as well, for tagging a whole function instead of picking a
-type at every site.
+There's also a `#[profile]` attribute further down, if you'd rather tag a function once than pick a
+type at every site inside it.
 
 It's `#![no_std]`, no alloc, no platform deps, and in the default build no dependencies at all. The
 `macros` feature is the one exception, since it pulls the proc-macro crate in and that one uses std and
