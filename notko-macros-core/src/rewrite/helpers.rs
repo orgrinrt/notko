@@ -70,10 +70,33 @@ pub fn names_result_ctor(path: &Path, name: &str) -> bool {
 
 /// `T` and `E` from a return type of `Result<T, E>` or `Outcome<T, E>`.
 ///
+/// # Why `Result` is accepted
+///
+/// Only as the spelling somebody arrives with. Nothing any arm emits is ever a
+/// `Result`: the return type is rewritten to `Outcome<T, E>`, `Maybe<T>` or
+/// `Just<T>` depending on the tier, so the surface a consumer ends up with is
+/// this stack's whichever spelling they started from.
+///
+/// So the attribute is what lifts an ordinary fallible function off core's
+/// carrier, and refusing the input spelling would mean rewriting the signature
+/// by hand before the attribute would look at it. Said here because nothing
+/// else says it and the only way to find out was to try.
+///
 /// `None` for everything else, and everything else genuinely means everything
 /// else: a bare type, a unit return, an alias carrying one argument, a path
 /// this cannot resolve. All of them are shapes with no fallibility to lift, and
 /// the caller's job on `None` is to emit the function untouched.
+///
+/// **Untouched and silent**, which is worth knowing before it happens to you.
+/// A `#[profile]` on one of these is not an error and produces no diagnostic;
+/// the function comes back exactly as written. The case that catches people is
+/// the ordinary crate-local alias, `type Result<T> = core::result::Result<T,
+/// Error>`, which reaches here as a `Result` path carrying one argument and is
+/// declined like any other shape this cannot read.
+///
+/// Silence is deliberate rather than an oversight: emitting untouched is the
+/// safe fallback, and a refusal would break whatever already leans on it. The
+/// documentation carries the cost instead.
 ///
 /// The alias case is the one worth naming, because it is ordinary rather than
 /// exotic. A crate writing `type Result<T> = core::result::Result<T, Error>`
