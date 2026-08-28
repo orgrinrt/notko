@@ -13,24 +13,23 @@
 </div>
 
 Core's carriers differ by what they hold, `Option<T>` for absence and `Result<T, E>` for an error with
-a payload, and `notko`'s three differ by what a branch costs instead. `Just<T>` is for a value already
-proved present, `Maybe<T>` handles ordinary absence, and `Outcome<T, E>` takes an error carrying data
-along with it. All three keep matching apis on purpose (same `?`, same combinators, largely identical
-method names), so moving a function across is usually a type change with the body left alone, although
-the guarantees are not equal and your compiler will start refusing what it used to accept.
+a payload, and `notko`'s three differ by what a branch costs instead. `Just<T>` has no error case at
+all and is `#[repr(transparent)]` over the value, so with `try_trait_v2` on there is nothing for `?` to
+branch to. `Maybe<T>` handles ordinary absence, and `Outcome<T, E>` takes an error carrying data. All
+three keep matching apis on purpose (same `?`, same combinators, largely identical method names), so
+moving a function across is usually a type change with the body left alone, although the guarantees
+are not equal and your compiler will start refusing what it used to accept.
 
 Do note that `Result<T, Infallible>` already gets you a good part of the way to `Just<T>`, since the
 uninhabited error niches away and the branch is dead by construction. What you don't get from it is one
 api across all three tiers, or the `#[profile]` attribute picking a tier per function, and those are
 what this is actually for.
 
-`Option<T>` is fine for most code, and the discriminant and the branch coming with it are rarely worth
-thinking about, but nothing in it can say a value is known to be there, so the check gets emitted
-regardless and the optimiser only sometimes manages to remove it again (in an inner loop, sometimes is
-not often enough). `Just<T>` is for exactly this case, being `#[repr(transparent)]` over the payload and
-carrying no discriminant at all, and with `try_trait_v2` enabled its `?` has no error arm to reach.
-Whether any of it shows up in your own measurements is a separate question, and depends much on what
-the surrounding code looks like.
+`Option<T>` is fine for most code and the discriminant it carries is rarely worth thinking about, but a
+function handing one back says the value might be missing whether or not the caller already knew
+better, so the check gets emitted and the optimiser only sometimes manages to remove it again (in an
+inner loop, sometimes is not often enough). Whether any of it shows up in your own measurements is a
+separate question, and depends much on what the surrounding code looks like.
 
 The `#[profile]` attribute takes an ordinary `Result` function and rewrites the signature and the body
 into one of the three, so the choice sits in one place per function and the types inside follow from
@@ -93,7 +92,7 @@ fn parse(bytes: &[u8]) -> Outcome<u32, &'static str> {
     if bytes.is_empty() { Outcome::Err("empty") } else { Outcome::Ok(42) }
 }
 
-// post-validation: an invariant already proved the value present
+// post-validation, so the error case cannot arise here
 fn post_validated(value: u32) -> Just<u32> {
     Just::new(value)
 }
@@ -119,10 +118,9 @@ each of them gets tedious.
 
 ## Cost per call site
 
-`Just<T>` is the proven-present case, and being `#[repr(transparent)]` it is the layout of the `T` and
-nothing more, with a `?` on it having no error arm to branch to once `try_trait_v2` is on. Reach for it
-where an invariant proves the error variant unreachable, so post-validation paths, codegen-reduced hot
-loops, and wrappers that make a guarantee concrete.
+`Just<T>` carries no error variant, so it is the layout of the `T` and nothing more, and a `?` on it has
+no arm to take once `try_trait_v2` is on. Reach for it where the error case cannot arise, so
+post-validation paths, codegen-reduced hot loops, and wrappers making a guarantee concrete.
 
 `Maybe<T>` is the ordinary-absence case, and for pointer-shaped `T` (`&T`, `&mut T`, `NonNull<T>`, every
 `NonZero*`, function pointers) rustc niche-fills the enum so the whole thing is the size of `T`, meaning
