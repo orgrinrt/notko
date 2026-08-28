@@ -115,13 +115,6 @@ name = "try_smoke"
 path = "tests/try_smoke.rs"
 required-features = ["try_trait_v2"]
 
-# Same reason, and the cases in it are builds that must fail rather than tests
-# that must pass.
-[[test]]
-name = "the_ladder_composes_under_question_mark"
-path = "tests/the_ladder_composes_under_question_mark.rs"
-required-features = ["try_trait_v2"]
-
 [dev-dependencies]
 # The one dependency here, and it is a dev one, so nothing a consumer installs
 # grows by it. It exists because several of this crate's guarantees are

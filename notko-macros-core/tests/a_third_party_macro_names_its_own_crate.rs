@@ -23,12 +23,12 @@ use syn::{ItemFn, parse_quote, parse2};
 /// What somebody else's macro would set up.
 fn theirs() -> Discovery {
     Discovery {
-        krate: parse_quote!(::widget),
+        krate:        parse_quote!(::widget),
         gate_feature: "widget-release".to_string(),
-        dir: "widget-tiers".to_string(),
-        env_var: "WIDGET_TIERS_PATH".to_string(),
-        marker: "@widget-tier".to_string(),
-        docs: "the widget book".to_string(),
+        dir:          "widget-tiers".to_string(),
+        env_var:      "WIDGET_TIERS_PATH".to_string(),
+        marker:       "@widget-tier".to_string(),
+        docs:         "the widget book".to_string(),
     }
 }
 

@@ -326,6 +326,44 @@ mod try_impl {
     impl<T> Residual<T> for JustResidual {
         type TryType = Just<T>;
     }
+
+    /// `?` on a fallible value, inside a function that has been narrowed to
+    /// [`Just`].
+    ///
+    /// This is what `#[profile(Hot)]` needs to hold its own claim. The
+    /// attribute emits the function twice, once returning [`Outcome`] and once
+    /// returning `Just`, and the whole point of the pair is that the two arms
+    /// mean the same program. Without this impl they do not: `let v = f()?;`
+    /// compiles in the arm that is tested and does not compile in the arm that
+    /// ships, so the divergence surfaces on the consumer's release build and
+    /// nowhere earlier.
+    ///
+    /// The semantics are the ones the rest of the release arm already has.
+    /// `Err(e)` written out is rewritten to a panic there, so a `?` that would
+    /// have propagated an error panics too. What it does not do is print the
+    /// error: a bound on `E` here would make `?` usable only with errors that
+    /// carry one, and the attribute's own panic already reports the error at
+    /// every site where the author wrote the failure down.
+    ///
+    /// [`Outcome`]: crate::Outcome
+    impl<T, E> FromResidual<crate::Outcome<core::convert::Infallible, E>> for Just<T> {
+        #[inline]
+        #[track_caller]
+        fn from_residual(_: crate::Outcome<core::convert::Infallible, E>) -> Self {
+            panic!("hot path invariant violated: `?` propagated an error")
+        }
+    }
+
+    /// The same, for a [`Maybe`] short-circuiting inside a narrowed function.
+    ///
+    /// [`Maybe`]: crate::Maybe
+    impl<T> FromResidual<crate::Maybe<core::convert::Infallible>> for Just<T> {
+        #[inline]
+        #[track_caller]
+        fn from_residual(_: crate::Maybe<core::convert::Infallible>) -> Self {
+            panic!("hot path invariant violated: `?` found nothing")
+        }
+    }
 }
 
 #[cfg(feature = "const")]
