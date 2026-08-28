@@ -12,20 +12,20 @@
 
 </div>
 
-Three carriers for fallibility instead of the one, so that the branch a call site emits is something
-decided at that call site: `Just<T>` where the value is known to be there already, `Maybe<T>` for
-ordinary absence, and `Outcome<T, E>` where the error carries something along with it. The three carry
-matching apis on purpose (same `?`, same combinators, mostly the same method names), so moving a
-function between them is mostly a type change and the body stays as it is, though the guarantees differ,
-so the compiler will start refusing things it used to accept.
+Rust gives you one carrier for fallibility and `notko` gives you three, so a call site decides for
+itself what branch it wants to emit. `Just<T>` is for a value already proved present, `Maybe<T>` handles
+ordinary absence, and `Outcome<T, E>` takes an error carrying data along with it. All three keep
+matching apis on purpose (same `?`, same combinators, largely identical method names), so moving a
+function across is usually a type change with the body left alone, although the guarantees are not
+equal and your compiler will start refusing what it used to accept.
 
-`Option<T>` is fine for most code, and the discriminant and the branch that come with it are rarely
-worth thinking about, but there is no way to tell it that a value has been proved present already, so
-the check gets emitted regardless and the optimiser only sometimes manages to remove it again (in an
-inner loop, sometimes is not often enough). `Just<T>` is for that case, being `#[repr(transparent)]`
-over the value with no discriminant at all, and with `try_trait_v2` enabled its `?` has no error arm it
-could branch to. Whether any of that shows up in your own measurements is a separate question, and
-depends much on what the surrounding code looks like.
+`Option<T>` is fine for most code, and the discriminant and the branch coming with it are rarely worth
+thinking about, but nothing in it can say a value is known to be there, so the check gets emitted
+regardless and the optimiser only sometimes manages to remove it again (in an inner loop, sometimes is
+not often enough). `Just<T>` is for exactly this case, being `#[repr(transparent)]` over the payload and
+carrying no discriminant at all, and with `try_trait_v2` enabled its `?` has no error arm to reach.
+Whether any of it shows up in your own measurements is a separate question, and depends much on what
+the surrounding code looks like.
 
 The `#[profile]` attribute takes an ordinary `Result` function and rewrites the signature and the body
 into one of the three, so the choice sits in one place per function and the types inside follow from
