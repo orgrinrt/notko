@@ -160,11 +160,12 @@ fn every_version_a_readme_names_is_the_one_the_workspace_ships() {
             let Some(found) = right.split('"').next() else {
                 continue;
             };
-            // `=0.0.1` is the same number wearing an exact-pin requirement, and
-            // a readme telling a reader to pin has to be able to show them how.
-            // The pin is the reader's business; whether the number is current
-            // is this test's.
-            let found = found.strip_prefix('=').unwrap_or(found);
+            // `=0.0.1`, `^0.0.1` and `~0.0.1` are the same number wearing a
+            // requirement, and a readme telling a reader to pin has to be able
+            // to show them how. The operator is the reader's business; whether
+            // the number is current is this test's. Stripping only `=` used to
+            // fail a caret or a tilde as though the version were wrong.
+            let found = found.trim_start_matches(['=', '^', '~', '>', '<']).trim();
             if found != version {
                 wrong.push(format!(
                     "{}:{}: {named} at {found:?}, and the workspace ships {version:?}",
@@ -190,14 +191,39 @@ fn every_crate_a_readme_tells_you_to_add_is_one_that_exists() {
             let Some(rest) = line.trim().strip_prefix("cargo add ") else {
                 continue;
             };
-            // The first thing that is not a flag. `cargo add --build notko-build`
-            // is how a build dependency is added, and reading the first word
-            // flat would test the string `--build` against the member list and
-            // report the crate missing.
-            let named = rest
-                .split_whitespace()
-                .find(|word| !word.starts_with('-'))
-                .unwrap_or("");
+            // The first thing that is not a flag, and not the value of one.
+            // `cargo add --build notko-build` is how a build dependency is
+            // added, so reading the first word flat would test `--build` against
+            // the member list and report the crate missing. `--features foo`
+            // needs the second half of that: skipping only words beginning with
+            // a dash would take `foo` as the crate name.
+            const TAKES_A_VALUE: &[&str] = &[
+                "--features",
+                "-F",
+                "--rename",
+                "--path",
+                "--git",
+                "--branch",
+                "--tag",
+                "--rev",
+                "--registry",
+                "--package",
+                "-p",
+                "--manifest-path",
+            ];
+            let mut words = rest.split_whitespace();
+            let mut named = "";
+            while let Some(word) = words.next() {
+                if TAKES_A_VALUE.contains(&word) {
+                    words.next();
+                    continue;
+                }
+                if word.starts_with('-') {
+                    continue;
+                }
+                named = word;
+                break;
+            }
             if !names.iter().any(|name| name == named) {
                 wrong.push(format!(
                     "{}:{}: `cargo add {named}`, and this workspace has {names:?}",

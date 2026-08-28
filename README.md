@@ -286,11 +286,11 @@ checked like on any other slice.
 | `macros` | off | Re-exports `#[profile]` from `notko-macros` at the crate root. |
 | `all` | off | All three at once. |
 
-Without `try_trait_v2` the types all still work, you just don't get `?`. And on stable,
-`default-features = false` gets you everything except the const paths, which then exist in plain
+Without `try_trait_v2` the types still work and `?` is what goes missing, and on stable,
+`default-features = false` leaves everything except the const paths, which then exist in plain
 non-const form.
 
-`all` is worth turning on somewhere that actually compiles, a consumer or a CI check, because gated code
+`all` is worth turning on somewhere that compiles it, a consumer or a CI check, because gated code
 nobody builds is how an upstream change breaks you without anyone noticing until much later.
 
 ## Support

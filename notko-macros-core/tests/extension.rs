@@ -55,8 +55,10 @@ fn builtin_lookup_ignores_unknown_names() {
 /// wrapper stays prose.
 ///
 /// What keeps the two in step is the test below it, which reads the readme and
-/// asserts the four lines building the tier appear there verbatim. Editing
-/// either one alone turns that one red.
+/// asserts every line of the block above appears somewhere in it. The check runs
+/// one way and by substring, so a line dropped from the readme is caught and a
+/// stale line left in it is not, and nothing constrains their order or whether
+/// they sit together.
 #[test]
 fn the_readme_authoring_example_still_builds() {
     let input: syn::ItemFn = syn::parse_quote! {
