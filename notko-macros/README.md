@@ -12,23 +12,22 @@
 
 </div>
 
-You write an ordinary `Result` function and tag it with a tier. The macro rewrites the signature and the
-body to that tier, so one source shape covers what would otherwise be three, and the choice sits in the
-attribute rather than in every type you wrote out by hand.
+The attribute takes an ordinary `Result` function and rewrites both its signature and its body into the
+tier named on the tag, so the choice then sits in one place instead of in every type spelled out inside
+the function.
 
-The tiers themselves come from [`notko`](https://crates.io/crates/notko), which is the crate that defines
-them and the one the rewritten body names, so you'll want that as a dependency too.
+The tiers themselves live in [`notko`](https://crates.io/crates/notko), which defines them and is what
+the rewritten body names, so that one belongs in the dependencies as well.
 
 ## What gets rewritten, and what doesn't
 
 The rewrite fires on a return type spelled `Result<T, E>` or `Outcome<T, E>`, with both arguments written
-out at that signature. Anything else is emitted exactly as you wrote it, with no error and no warning: a
+out at that signature. Anything else is emitted exactly as written, with no error and no warning: a
 unit return, a bare type, and in particular the `type Result<T> = core::result::Result<T, MyError>` alias
 that most crates of any size end up with.
 
 That last one is worth knowing before you spend an afternoon on it. A tag that appears to have done
-nothing has usually done nothing, and writing the two arguments out at that one signature is the whole
-fix.
+nothing has usually done nothing, and writing the two arguments out at that one signature is the fix.
 
 ## Built-in tiers
 
@@ -62,7 +61,7 @@ internal = []
 
 Without that line the code still compiles and still behaves correctly, on the `Outcome<T, E>` arm, but
 every hot-strategy `#[profile]` in the crate warns that `internal` is not a value `feature` can take.
-Declaring it makes the warning go away, and gets you the switch. `Cold` and `Warm` emit no `cfg` at all,
+Declaring it silences the warning and turns the switch on. `Cold` and `Warm` emit no `cfg` at all,
 so they neither warn nor switch.
 
 Leave it off and `Hot` stays `Outcome<T, E>`, which is the arm a published api wants: `Result`-family
@@ -78,8 +77,8 @@ that's what keeps two frameworks in one dependency graph from sharing a switch n
 off separately.
 
 Do note this crate declares an `internal` feature too, and it is not that switch. It's there for this
-crate's own tests, `src/` never reads it, so `cargo add notko-macros --features internal` does nothing
-for you.
+crate's own tests and `src/` never reads it, so `cargo add notko-macros --features internal` does
+nothing at all.
 
 ## Installation
 

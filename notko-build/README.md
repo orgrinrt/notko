@@ -8,7 +8,7 @@
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/issues)
 ![License](https://img.shields.io/github/license/orgrinrt/notko?color=%23009689)
 
-> The build-script half of `#[profile]`'s custom tiers. One directory, gathered from a crate and the direct dependencies that opted in, for the proc-macro to read.
+> The build-script half of `#[profile]`'s custom tiers. Gathers one directory for the proc-macro to read, from a crate and whichever of its direct dependencies opted in.
 
 </div>
 
@@ -19,7 +19,8 @@ cargo gives a proc-macro no way to reach a file in a dependency.
 
 So this runs in a build script instead. It copies the crate's own optimiser files and the ones its
 dependencies handed over into `$OUT_DIR/notko-optimisers/`, and points the proc-macro at the result
-through `NOTKO_OPTIMISERS_PATH`. You only need it if you're sharing tiers across crates.
+through `NOTKO_OPTIMISERS_PATH`, which is only worth doing when tiers are shared between crates in
+the first place.
 
 ## Installation
 
@@ -71,7 +72,7 @@ reads `CARGO_MANIFEST_DIR` and `OUT_DIR` and neither is there.
 That's it, with one limit worth knowing before you count on it. `DEP_*` reaches your *direct*
 dependencies only, and only the ones that declare `links` and run `collect_and_distribute` themselves. A
 tier two hops away arrives if the crate in between forwards it, and does not if that crate does nothing.
-So the reach is whatever the chain actually cooperates on, not the whole graph.
+So the reach is whatever the chain cooperates on, which is usually less than the whole graph.
 
 ### Provider crate (publishes optimisers to downstream dependents)
 
