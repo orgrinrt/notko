@@ -8,23 +8,28 @@
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/issues)
 ![License](https://img.shields.io/github/license/orgrinrt/notko?color=%23009689)
 
-> Fallibility primitives for `no_std` rust, in three tiers, so what a branch costs is something you pick per call site rather than something the type already decided. Ships `Just`, `Maybe` and `Outcome`, and a `#[profile]` attribute for tagging a whole function at once.
+> Fallibility primitives for `no_std` rust. Ships `Just`, `Maybe` and `Outcome`, and a `#[profile]` attribute for tagging whole functions.
 
 </div>
 
-Three carriers instead of the one. `Just<T>` for when an invariant has already proved the value is
-there, `Maybe<T>` for ordinary absence, and `Outcome<T, E>` for when the error carries something with
-it. The idea is that you pick per call site, instead of taking whatever a single type settled on for
-the whole program.
+Three carriers for fallibility instead of the one, so that what a branch costs is something decided at
+the call site: `Just<T>` where the value is known to be there already, `Maybe<T>` for ordinary absence,
+and `Outcome<T, E>` where the error carries something along with it. They carry matching apis on
+purpose, so moving a function from one to another is mostly just a type change and the body stays as it
+is, though the guarantees do differ and that difference is the whole reason to move it in the first
+place.
 
-The case for splitting them is fairly narrow and I'd rather state it plainly than oversell it.
-`Option<T>` fixes what absence costs at a discriminant and a branch, everywhere, and most of the time
-that's completely fine and nobody notices. Where the value has been proved present already the check
-still gets emitted, and there's nothing in the type that can say otherwise. `Just<T>` is what's missing
-there: `#[repr(transparent)]`, and with `try_trait_v2` its `?` has no error arm to branch to.
+`Option<T>` is fine for most code, and the discriminant and the branch it costs are rarely worth
+thinking about, but there is no way to tell it that a value has been proved present already, so the
+check gets emitted regardless and the optimiser only sometimes manages to remove it again. `Just<T>` is
+for that case, `#[repr(transparent)]` over the value with no discriminant at all, and with
+`try_trait_v2` enabled its `?` has no error arm it could branch to. Whether any of it shows up in your
+own numbers is another thing entirely, and depends much on what the surrounding code looks like.
 
-There's also a `#[profile]` attribute further down, if you'd rather tag a function once than pick a
-type at every site inside it.
+The `#[profile]` attribute takes an ordinary `Result` function and rewrites the signature and the body
+into one of the three, so the choice sits in one place per function and the types inside come from the
+tier. Custom tiers are ordinary files a crate keeps in its own directory, which `notko-build` gathers
+and the macro then reads.
 
 It's `#![no_std]`, no alloc, no platform deps, and in the default build no dependencies at all. The
 `macros` feature is the one exception, since it pulls the proc-macro crate in and that one uses std and
