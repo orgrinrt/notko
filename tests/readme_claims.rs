@@ -806,3 +806,46 @@ fn the_msrv_says_which_build_it_is_the_msrv_of() {
         "the readme does not say how to reach the build {version} applies to"
     );
 }
+
+/// The readme tells the reader that `Result<T, Infallible>` already gets them a
+/// good part of the way to `Just<T>`, because the uninhabited error niches away.
+///
+/// That was checked by hand while the sentence was written, against a scratch
+/// crate that printed the two sizes, and this is that check kept. A readme
+/// making a layout claim about somebody else's type is exactly the claim that
+/// goes stale without anybody noticing, since nothing else in this repository
+/// would ever compile the type at all.
+#[test]
+fn the_infallible_result_the_readme_names_really_does_niche_away() {
+    use core::convert::Infallible;
+    use core::mem::size_of;
+
+    assert_eq!(
+        size_of::<Result<u32, Infallible>>(),
+        size_of::<u32>(),
+        "the readme says the uninhabited error niches away, and here it did not"
+    );
+    assert_eq!(
+        size_of::<Result<&u8, Infallible>>(),
+        size_of::<&u8>(),
+        "nor for a pointer-shaped payload"
+    );
+
+    // The control, and the reason the two above are not tautologies: a carrier
+    // whose second parameter is inhabited does grow, so the assertions are
+    // measuring the niche rather than measuring `size_of` agreeing with itself.
+    assert!(
+        size_of::<Result<u32, u32>>() > size_of::<u32>(),
+        "an inhabited error has to cost something, or this test proves nothing"
+    );
+    assert!(
+        size_of::<Option<u32>>() > size_of::<u32>(),
+        "and Option<u32> has no niche to fill, which is the readme's whole point"
+    );
+
+    let readme = fs::read_to_string(root().join("README.md")).expect("the readme");
+    assert!(
+        readme.contains("Result<T, Infallible>"),
+        "the claim left the readme, so this test is now measuring nothing"
+    );
+}

@@ -12,12 +12,17 @@
 
 </div>
 
-Rust gives you one carrier for fallibility and `notko` gives you three, so a call site decides for
-itself what branch it wants to emit. `Just<T>` is for a value already proved present, `Maybe<T>` handles
-ordinary absence, and `Outcome<T, E>` takes an error carrying data along with it. All three keep
-matching apis on purpose (same `?`, same combinators, largely identical method names), so moving a
-function across is usually a type change with the body left alone, although the guarantees are not
-equal and your compiler will start refusing what it used to accept.
+Core's carriers differ by what they hold, `Option<T>` for absence and `Result<T, E>` for an error with
+a payload, and `notko`'s three differ by what a branch costs instead. `Just<T>` is for a value already
+proved present, `Maybe<T>` handles ordinary absence, and `Outcome<T, E>` takes an error carrying data
+along with it. All three keep matching apis on purpose (same `?`, same combinators, largely identical
+method names), so moving a function across is usually a type change with the body left alone, although
+the guarantees are not equal and your compiler will start refusing what it used to accept.
+
+Do note that `Result<T, Infallible>` already gets you a good part of the way to `Just<T>`, since the
+uninhabited error niches away and the branch is dead by construction. What you don't get from it is one
+api across all three tiers, or the `#[profile]` attribute picking a tier per function, and those are
+what this is actually for.
 
 `Option<T>` is fine for most code, and the discriminant and the branch coming with it are rarely worth
 thinking about, but nothing in it can say a value is known to be there, so the check gets emitted
@@ -120,13 +125,13 @@ where an invariant proves the error variant unreachable, so post-validation path
 loops, and wrappers that make a guarantee concrete.
 
 `Maybe<T>` is the ordinary-absence case, and for pointer-shaped `T` (`&T`, `&mut T`, `NonNull<T>`, every
-`NonZero*`, function pointers) Rust niche-fills the enum so the whole thing is the size of `T`, meaning
+`NonZero*`, function pointers) rustc niche-fills the enum so the whole thing is the size of `T`, meaning
 absence takes no extra storage in those cases, and compile-time size assertions in `maybe.rs` pin that
 layout per supported shape so it cannot quietly regress.
 
-`Outcome<T, E>` is the case where the error path carries data. Its layout is ordinary Rust repr, so if
-you need an exact result layout across an FFI boundary, wrap the payload in your own `#[repr(C)]` struct
-instead of leaning on this one.
+`Outcome<T, E>` is the case where the error path carries data, and its layout is whatever `repr(Rust)`
+decides, so if you want an exact result layout across an FFI boundary, wrap the payload in your own
+`#[repr(C)]` struct instead of leaning on this one.
 
 `Just` and `Maybe` both iterate, through `JustIter` and `MaybeIter`. `Outcome` gets a `Default` of
 `Ok(T::default())`, which is there so a trait can name a default without whoever writes it having to
