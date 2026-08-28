@@ -16,15 +16,15 @@ Three carriers for fallibility instead of the one, so that the branch a call sit
 decided at that call site: `Just<T>` where the value is known to be there already, `Maybe<T>` for
 ordinary absence, and `Outcome<T, E>` where the error carries something along with it. The three carry
 matching apis on purpose (same `?`, same combinators, mostly the same method names), so moving a
-function between them is mostly a type change and the body stays as it is, though the guarantees do
-differ and that difference is the whole reason to move it in the first place.
+function between them is mostly a type change and the body stays as it is, though the guarantees differ,
+so the compiler will start refusing things it used to accept.
 
 `Option<T>` is fine for most code, and the discriminant and the branch that come with it are rarely
 worth thinking about, but there is no way to tell it that a value has been proved present already, so
 the check gets emitted regardless and the optimiser only sometimes manages to remove it again (in an
 inner loop, sometimes is not often enough). `Just<T>` is for that case, being `#[repr(transparent)]`
 over the value with no discriminant at all, and with `try_trait_v2` enabled its `?` has no error arm it
-could branch to. Whether any of that shows up in your own measurements is another thing entirely, and
+could branch to. Whether any of that shows up in your own measurements is a separate question, and
 depends much on what the surrounding code looks like.
 
 The `#[profile]` attribute takes an ordinary `Result` function and rewrites the signature and the body
@@ -135,8 +135,8 @@ make up an error value that never happens.
 ## Strategy-driven rewrite
 
 `#[profile]` tags a function with a strategy and rewrites the body to the matching tier, so the source
-stays one ordinary `Result` surface and the tier decides what it becomes, which saves spelling the same
-carrier out at every site inside a function that only ever uses the one.
+stays one ordinary `Result` surface and the tier decides what it becomes, which gives less control but
+is more ergonomic for the usual cases.
 
 The authoring form is plain `Result` with `Ok` and `Err`, and the macro rewrites both the signature and
 the body from there, so nothing in the source names a carrier at all. It needs `features = ["macros"]`,
