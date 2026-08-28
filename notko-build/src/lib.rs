@@ -15,10 +15,15 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::{env, fs, io};
 
-/// The name cargo will pass to dependents. Crates that wish to propagate
-/// their own optimisers must declare `links = "notko-optimisers-<crate>"`
-/// (the `notko-optimisers-` prefix being the convention this tool
-/// recognises, with a unique per-crate suffix).
+/// The key cargo carries to dependents, which is the half of the variable name
+/// this side owns. A crate that wants to propagate its own optimisers has to
+/// declare a `links` value, because that is what makes cargo forward the key at
+/// all, and cargo requires that value be unique across the graph.
+///
+/// Which value it is does not matter here. `dep_dirs_from` matches on the `DEP_`
+/// prefix and this key's suffix and never looks at the `links` half, so
+/// `notko-optimisers-<crate>` is a habit that avoids collisions rather than
+/// something recognised.
 const META_KEY: &str = "notko-optimiser-path";
 
 /// Env var the notko-macros proc-macro reads at expansion time.
@@ -426,6 +431,48 @@ mod tests {
             .into_iter(),
         );
         assert_eq!(got, vec![PathBuf::from("/a"), PathBuf::from("/b")]);
+    }
+
+    /// The variable cargo actually sets, derived rather than typed out.
+    ///
+    /// The test above feeds the filter strings a person wrote, so it checks the
+    /// filter against that person's idea of the name. Cargo builds the name
+    /// from two things it owns neither of: the provider's `links` value and the
+    /// key emitted here. Deriving it from [`META_KEY`] the way cargo would is
+    /// what makes changing that constant, without changing the filter beside
+    /// it, turn something red.
+    #[test]
+    fn the_variable_cargo_sets_is_the_one_the_filter_accepts() {
+        /// Cargo's transform for both halves of `DEP_<links>_<key>`: uppercase,
+        /// with anything that is not alphanumeric becoming an underscore.
+        fn upper_or_underscore(c: char) -> char {
+            if c.is_ascii_alphanumeric() { c.to_ascii_uppercase() } else { '_' }
+        }
+        fn envify(s: &str) -> String {
+            s.chars().map(upper_or_underscore).collect()
+        }
+
+        // Three spellings, because nothing here reads the `links` half and a
+        // filter that matched one of them by accident should not pass.
+        for links in ["notko-optimisers-my-provider", "whatever", "a.b c"] {
+            let name = format!("DEP_{}_{}", envify(links), envify(META_KEY));
+            let got = dep_dirs_from(v(&[(name.as_str(), "/from-a-dep")]).into_iter());
+            assert_eq!(
+                got,
+                vec![PathBuf::from("/from-a-dep")],
+                "cargo sets {name} for links = {links:?}, and the filter dropped it",
+            );
+        }
+
+        // The control. Same derivation, another crate's key: taking this would
+        // mean the filter matches on the `DEP_` prefix alone, and every one of
+        // the assertions above would pass for that reason instead of the right
+        // one.
+        let other = format!("DEP_{}_{}", envify("openssl"), envify("include"));
+        assert!(
+            dep_dirs_from(v(&[(other.as_str(), "/openssl")]).into_iter()).is_empty(),
+            "{other} is another crate's metadata and was collected as an optimiser path",
+        );
     }
 
     #[test]

@@ -129,9 +129,15 @@ default = ["const"]
 try_trait_v2 = []
 # Re-export `#[profile]` from notko-macros at the crate root.
 macros = ["dep:notko-macros"]
-# Enable const-trait machinery: ConstTry, ConstFromResidual, Slot's
-# const inherent methods. Requires nightly. Default-on; consumers on
-# stable Rust opt out via default-features = false.
+# Enable const-trait machinery: ConstTry, ConstFromResidual and
+# HasTrivialCtor are declared `const trait` rather than plain. Requires
+# nightly. Default-on; consumers on stable Rust opt out via
+# default-features = false.
+#
+# Slot's inherent methods are not on this list. They are `pub const fn` in
+# both configurations, `slot.rs` carries no `cfg` at all, and `into_maybe`
+# takes a `Copy` bound rather than naming `Destruct` for exactly that
+# reason, which it explains where it is declared.
 const = []
 # Kitchen-sink: every notko pathway in one feature. Enable it somewhere
 # that is actually compiled (a consumer, or a CI all-features check) so
