@@ -15,10 +15,11 @@
 Core's carriers differ by what they hold, `Option<T>` for absence and `Result<T, E>` for an error with
 a payload, and `notko`'s three differ by what a branch costs instead. `Just<T>` has no error case at
 all and is `#[repr(transparent)]` over the value, so with `try_trait_v2` on there is nothing for `?` to
-branch to. `Maybe<T>` handles ordinary absence, and `Outcome<T, E>` takes an error carrying data. All
-three keep matching apis on purpose (same `?`, same combinators, largely identical method names), so
-moving a function across is usually a type change with the body left alone, although the guarantees
-are not equal and your compiler will start refusing what it used to accept.
+branch to. `Maybe<T>` handles ordinary absence, and `Outcome<T, E>` takes an error carrying data.
+
+Each keeps a matching api on purpose (same `?`, same combinators, largely identical method names), so
+moving a function across is usually a type change with the body left alone, although the guarantees are
+not equal.
 
 Do note that `Result<T, Infallible>` already gets you a good part of the way to `Just<T>`, since the
 uninhabited error niches away and the branch is dead by construction. What you don't get from it is one
