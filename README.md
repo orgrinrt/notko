@@ -8,19 +8,40 @@
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/issues)
 ![License](https://img.shields.io/github/license/orgrinrt/notko?color=%23009689)
 
-> Fallibility primitives whose branch cost is chosen at the call site rather than fixed by the type. `no_std`, no alloc, zero deps.
+> Fallibility primitives for `no_std` rust. Ships `Just`, `Maybe` and `Outcome`, and a `#[profile]` attribute for tagging whole functions.
 
 </div>
 
-`Option<T>` has already decided for you what absence costs: a discriminant and a branch, everywhere,
-whether or not you need them. Usually that's fine and you'd never notice. But when an invariant has
-already proved the value is there, you're still paying for a check nobody needs, and there's no way to
-say so in the type. So there are three types here rather than one, one for proven-present, one for ordinary absence,
-one that carries an error, and you pick per call site. There's a `#[profile]` attribute further down
-too, for when you'd rather tag a whole function than choose at every site.
+Core's carriers differ by what they hold, `Option<T>` for absence and `Result<T, E>` for an error with
+a payload, and `notko`'s three differ by what a branch costs instead. `Just<T>` has no error case at
+all and is `#[repr(transparent)]` over the value, so with `try_trait_v2` on there is nothing for `?` to
+branch to. `Maybe<T>` handles ordinary absence, and `Outcome<T, E>` takes an error carrying data.
 
-It's `#![no_std]`, no alloc, no platform deps. The proc-macro crate is the exception and does use std,
-but only at compile time, which is the only place a macro ever runs, so none of it reaches your binary.
+Each keeps a matching api on purpose (same `?`, same combinators, largely identical method names), so
+moving a function across is usually a type change with the body left alone, although the guarantees are
+not equal.
+
+Do note that `Result<T, Infallible>` already gets you a good part of the way to `Just<T>`, since the
+uninhabited error niches away and the branch is dead by construction. What you don't get from it is one
+api across all three tiers, or the `#[profile]` attribute picking a tier per function, and those are
+what this is actually for.
+
+`Option<T>` is fine for most code and the discriminant it carries is rarely worth thinking about, but a
+function handing one back says the value might be missing whether or not the caller already knew
+better, so the check gets emitted and the optimiser only sometimes manages to remove it again (in an
+inner loop, sometimes is not often enough). Whether any of it shows up in your own measurements is a
+separate question, and depends much on what the surrounding code looks like.
+
+The `#[profile]` attribute takes an ordinary `Result` function and rewrites the signature and the body
+into one of the three, so the choice sits in one place per function and the types inside follow from
+the tier. Custom tiers are ordinary rust files a crate keeps in its own `notko-optimisers/` directory,
+which `notko-build` gathers (its own, and the ones its direct dependencies opted into sharing) into one
+place the proc-macro can read.
+
+It's `#![no_std]`, no alloc, no platform deps, and in the default build no dependencies at all. The
+`macros` feature is the one exception, since it pulls the proc-macro crate in and that one uses std and
+`syn`. Only at compile time though, which is the only place a macro runs, so none of it lands in your
+binary.
 
 ## Status
 
@@ -72,7 +93,7 @@ fn parse(bytes: &[u8]) -> Outcome<u32, &'static str> {
     if bytes.is_empty() { Outcome::Err("empty") } else { Outcome::Ok(42) }
 }
 
-// post-validation: an invariant already proved the value present
+// post-validation, so the error case cannot arise here
 fn post_validated(value: u32) -> Just<u32> {
     Just::new(value)
 }
@@ -93,22 +114,23 @@ fn compose() -> Outcome<u32, &'static str> {
 }
 ```
 
-There's a `notko::prelude` too, if you'd rather pull the common surface in one import.
+A `notko::prelude` ships as well, carrying the common surface in one import for the cases where naming
+each of them gets tedious.
 
 ## Cost per call site
 
-`Just<T>` is the proven-present case. `#[repr(transparent)]`, so it's the layout of the `T` and nothing
-more, and with `try_trait_v2` a `?` on it has no error arm to branch to. Reach for it where an invariant
-proves the error variant unreachable: post-validation paths, codegen-reduced hot loops, wrappers that
-make a guarantee concrete.
+`Just<T>` carries no error variant, so it is the layout of the `T` and nothing more, and a `?` on it has
+no arm to take once `try_trait_v2` is on. Reach for it where the error case cannot arise, so
+post-validation paths, codegen-reduced hot loops, and wrappers making a guarantee concrete.
 
-`Maybe<T>` is the ordinary-absence case, and for pointer-shaped `T` (`&T`, `NonNull<T>`, every `NonZero*`,
-function pointers) Rust niche-fills the enum so the whole thing is the size of `T`. Absence costs no extra
-storage in those cases. Compile-time size assertions in `maybe.rs` pin the layout per supported shape.
+`Maybe<T>` is the ordinary-absence case, and for pointer-shaped `T` (`&T`, `&mut T`, `NonNull<T>`, every
+`NonZero*`, function pointers) rustc niche-fills the enum so the whole thing is the size of `T`, meaning
+absence takes no extra storage in those cases, and compile-time size assertions in `maybe.rs` pin that
+layout per supported shape so it cannot quietly regress.
 
-`Outcome<T, E>` is the case where the error path carries data. Its layout is ordinary Rust repr, so if
-you need an exact result layout across an FFI boundary, wrap the payload in your own `#[repr(C)]` struct
-instead of leaning on this one.
+`Outcome<T, E>` is the case where the error path carries data, and its layout is whatever `repr(Rust)`
+decides, so if you want an exact result layout across an FFI boundary, wrap the payload in your own
+`#[repr(C)]` struct instead of leaning on this one.
 
 `Just` and `Maybe` both iterate, through `JustIter` and `MaybeIter`. `Outcome` gets a `Default` of
 `Ok(T::default())`, which is there so a trait can name a default without whoever writes it having to
@@ -116,12 +138,13 @@ make up an error value that never happens.
 
 ## Strategy-driven rewrite
 
-`#[profile]` tags a function with a strategy and rewrites the body to the matching tier. Without it
-you're picking the type at every call site yourself, which gets old. With it you write one ordinary
-`Result` surface and the macro rewrites it for you.
+`#[profile]` tags a function with a strategy and rewrites the body to the matching tier, so the source
+stays one ordinary `Result` surface and the tier decides what it becomes, which gives less control but
+is more ergonomic for the usual cases.
 
-The authoring form is plain `Result` with `Ok` and `Err`. The macro rewrites the signature and the body.
-This one needs `features = ["macros"]`, which is off by default:
+The authoring form is plain `Result` with `Ok` and `Err`, and the macro rewrites both the signature and
+the body from there, so nothing in the source names a carrier at all. It needs `features = ["macros"]`,
+which is off by default since it pulls in the proc-macro crate:
 
 ```rust
 use notko::profile;
@@ -139,8 +162,14 @@ fn compute(x: u32) -> Result<u32, Oops> {
 Built-in strategies are `Hot`, `Warm` and `Cold`, passed as idents. `Hot` emits `Outcome<T, E>` in debug
 builds, so the error path stays observable; in release-internal builds, which the consumer opts into
 through its own `internal` feature, it emits `Just<T>` with `Err` lowered to a panic. `Cold` always emits
-`Outcome`. `Warm` rewrites to `Maybe<T>` in every build, dropping the error, which is what choosing
-that tier decides.
+`Outcome`. `Warm` rewrites to `Maybe<T>` in every build and drops the error, which is what choosing that
+tier decides. Do note it drops the whole `Err(..)` expression rather than evaluating it and throwing the
+value away, so anything with a side effect in there goes with it.
+
+The rewrite only fires on a return type spelled `Result<T, E>` or `Outcome<T, E>` with both arguments
+written out. Anything else, a bare type, a unit return, or the very common `type Result<T> =
+core::result::Result<T, MyError>` alias, is emitted untouched and says nothing about it. So a tag that
+appears to do nothing is usually that, and spelling the two arguments out is the fix.
 
 Third-party strategies live in a crate-local `notko-optimisers/<Name>.rs` with a
 `based_on = "Hot" | "Warm" | "Cold"` header. The `based_on` value is case-sensitive, so lowercase doesn't
@@ -148,6 +177,19 @@ match and fails the build. A sibling proc-macro crate reusing `notko-macros-core
 [`notko-macros`](https://crates.io/crates/notko-macros).
 
 Enable the `macros` feature to get `profile` re-exported at `notko`'s root.
+
+## The other three crates
+
+[`notko-macros`](https://crates.io/crates/notko-macros) is where `#[profile]` lives, and the `macros`
+feature above is that same attribute re-exported from here. Depend on it directly if you want the
+attribute and none of the carriers.
+
+[`notko-macros-core`](https://crates.io/crates/notko-macros-core) is the rewrite engine underneath it, as
+an ordinary library. It's there because a proc-macro crate can't export anything but macros, and it's
+public so a third-party attribute can build on it rather than writing the rewrite again.
+
+[`notko-build`](https://crates.io/crates/notko-build) is a build-script helper for the one case where a
+tier is defined in one crate and used in another. Nothing else needs it.
 
 ## Boundary types
 
@@ -231,9 +273,9 @@ buffer, a row of edit distances, an argument vector and a line being typed have 
 that all four want to ask exactly this, and a failure that only says "did not fit" leaves the caller
 guessing at how much bigger to try.
 
-Do note it buys you nothing on bounds checks. A prefix known to be no longer than its capacity says
-nothing about whether some index is inside the part that got filled, so indexing is checked like any
-other slice.
+Do note that it does nothing at all for bounds checks. A prefix known to be no longer than its capacity
+says nothing about whether some index is inside the part that actually got filled, so indexing stays
+checked like on any other slice.
 
 ## Cargo features
 
@@ -244,11 +286,11 @@ other slice.
 | `macros` | off | Re-exports `#[profile]` from `notko-macros` at the crate root. |
 | `all` | off | All three at once. |
 
-Without `try_trait_v2` the types all still work, you just don't get `?`. And on stable,
-`default-features = false` gets you everything except the const paths, which then exist in plain
+Without `try_trait_v2` the types still work and `?` is what goes missing, and on stable,
+`default-features = false` leaves everything except the const paths, which then exist in plain
 non-const form.
 
-`all` is worth turning on somewhere that actually compiles, a consumer or a CI check, because gated code
+`all` is worth turning on somewhere that compiles it, a consumer or a CI check, because gated code
 nobody builds is how an upstream change breaks you without anyone noticing until much later.
 
 ## Support

@@ -54,10 +54,26 @@ main() {
     run "macros, defaults"             cargo test -p notko-macros
     run "macros, internal + release"   cargo test -p notko-macros --features internal --release
 
+    # Neither of these has a feature, so one arm each. They are here because
+    # the matrix is the one command, and a crate absent from it is a crate
+    # whose suite runs when somebody remembers to name it.
+    run "macros-core"                  cargo test -p notko-macros-core
+    run "build"                        cargo test -p notko-build
+
     # The README tells a reader on stable to turn the defaults off. Both halves of
     # that sentence are checked: the crate works without them, and it genuinely
     # cannot be built with them, so the instruction is necessary rather than
     # cautious.
+    #
+    # `every_refusal_still_refuses` is skipped here and only here. It is a
+    # trybuild target, so it asserts the exact text of a compiler diagnostic
+    # against a committed `.stderr`, and that text differs between channels for
+    # reasons that have nothing to do with this crate: run on stable against
+    # snapshots blessed on the pinned nightly, three of five cases report a
+    # wording mismatch while refusing exactly what they are supposed to refuse.
+    # The refusals themselves are checked on every nightly arm above. What is
+    # being checked down here is the README's claim about stable, and a
+    # diagnostic's wording is not that claim.
     if rustup toolchain list 2>/dev/null | grep -q '^stable'; then
         # `--skip` on the one target whose fixtures are blessed against the
         # pinned nightly's diagnostic wording. Stable words three of them
@@ -76,6 +92,28 @@ main() {
         fi
     else
         echo "stable toolchain absent, skipping the two stable arms"
+    fi
+
+    # The README prints a number, 1.85, and the manifest's `rust-version`
+    # repeats it. Neither is checked by any arm above, because `stable` is
+    # whatever the machine happens to have and is always far newer.
+    #
+    # A build rather than a test run, and the difference is the point: the
+    # claim is about a consumer, a consumer gets the library and not the dev
+    # dependencies, and `trybuild` wants 1.88, so `cargo +1.85.0 test` fails on
+    # a dependency no consumer resolves.
+    if rustup toolchain list 2>/dev/null | grep -q '^1\.85\.0'; then
+        printf '%-46s ' "1.85.0, no defaults, builds"
+        if out=$(cargo +1.85.0 build -p notko --no-default-features 2>&1); then
+            printf 'ok\n'
+        else
+            printf 'FAILED (the rust-version in the manifest is wrong)\n'
+            echo "$out" | grep -E '^error' | head -5 | sed 's/^/    /'
+            fail=1
+        fi
+    else
+        echo "1.85.0 toolchain absent, skipping the msrv arm"
+        echo "  rustup toolchain install 1.85.0 --profile minimal"
     fi
 
     return "$fail"

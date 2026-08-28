@@ -160,6 +160,12 @@ fn every_version_a_readme_names_is_the_one_the_workspace_ships() {
             let Some(found) = right.split('"').next() else {
                 continue;
             };
+            // `=0.0.1`, `^0.0.1` and `~0.0.1` are the same number wearing a
+            // requirement, and a readme telling a reader to pin has to be able
+            // to show them how. The operator is the reader's business; whether
+            // the number is current is this test's. Stripping only `=` used to
+            // fail a caret or a tilde as though the version were wrong.
+            let found = found.trim_start_matches(['=', '^', '~', '>', '<']).trim();
             if found != version {
                 wrong.push(format!(
                     "{}:{}: {named} at {found:?}, and the workspace ships {version:?}",
@@ -185,7 +191,39 @@ fn every_crate_a_readme_tells_you_to_add_is_one_that_exists() {
             let Some(rest) = line.trim().strip_prefix("cargo add ") else {
                 continue;
             };
-            let named = rest.split_whitespace().next().unwrap_or("");
+            // The first thing that is not a flag, and not the value of one.
+            // `cargo add --build notko-build` is how a build dependency is
+            // added, so reading the first word flat would test `--build` against
+            // the member list and report the crate missing. `--features foo`
+            // needs the second half of that: skipping only words beginning with
+            // a dash would take `foo` as the crate name.
+            const TAKES_A_VALUE: &[&str] = &[
+                "--features",
+                "-F",
+                "--rename",
+                "--path",
+                "--git",
+                "--branch",
+                "--tag",
+                "--rev",
+                "--registry",
+                "--package",
+                "-p",
+                "--manifest-path",
+            ];
+            let mut words = rest.split_whitespace();
+            let mut named = "";
+            while let Some(word) = words.next() {
+                if TAKES_A_VALUE.contains(&word) {
+                    words.next();
+                    continue;
+                }
+                if word.starts_with('-') {
+                    continue;
+                }
+                named = word;
+                break;
+            }
             if !names.iter().any(|name| name == named) {
                 wrong.push(format!(
                     "{}:{}: `cargo add {named}`, and this workspace has {names:?}",
@@ -195,6 +233,69 @@ fn every_crate_a_readme_tells_you_to_add_is_one_that_exists() {
             }
         }
     }
+
+    assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+}
+
+/// Every registry link naming one of ours names one that exists.
+///
+/// `cargo add` lines are checked above and they are the minority. The badges at
+/// the top of each file point at crates.io and docs.rs by name, and the prose
+/// links the four crates to each other by name, and all of those rot the same
+/// way a stale install line does: silently, on somebody else's screen, months
+/// after the rename that caused it.
+///
+/// Only names beginning `notko` are checked. Everything else is a link to
+/// somebody else's crate, and this repository has no business asserting that
+/// one exists.
+#[test]
+fn every_registry_link_to_one_of_ours_names_a_crate_that_exists() {
+    // The four shapes these files use. Each is a prefix, and the crate name is
+    // whatever follows it up to the first character that cannot be in one.
+    const PREFIXES: [&str; 4] = [
+        "https://crates.io/crates/",
+        "https://docs.rs/",
+        "https://img.shields.io/crates/v/",
+        "https://img.shields.io/docsrs/",
+    ];
+
+    let names: Vec<String> = crates().into_iter().map(|(_, name)| name).collect();
+
+    let mut found = 0usize;
+    let mut wrong = Vec::new();
+    for (path, text) in readmes() {
+        for (at, line) in text.lines().enumerate() {
+            for prefix in PREFIXES {
+                for piece in line.split(prefix).skip(1) {
+                    let named: String = piece
+                        .chars()
+                        .take_while(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+                        .collect();
+                    if !named.starts_with("notko") {
+                        continue;
+                    }
+                    found += 1;
+                    if !names.contains(&named) {
+                        wrong.push(format!(
+                            "{}:{}: {prefix}{named}, and this workspace has {names:?}",
+                            path.display(),
+                            at + 1,
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    // Without this the whole thing passes by finding nothing, which is what it
+    // would do if a prefix above were mistyped or the badge block changed
+    // shape. Four crates carry two registry badges each, so eight is the floor
+    // before a single prose link is counted.
+    assert!(
+        found >= 8,
+        "matched {found} registry links across the readmes, so the prefixes no \
+         longer describe what these files contain",
+    );
 
     assert!(wrong.is_empty(), "{}", wrong.join("\n"));
 }
@@ -729,5 +830,48 @@ fn the_msrv_says_which_build_it_is_the_msrv_of() {
     assert!(
         readme.contains("default-features = false") || readme.contains("turn the defaults off"),
         "the readme does not say how to reach the build {version} applies to"
+    );
+}
+
+/// The readme tells the reader that `Result<T, Infallible>` already gets them a
+/// good part of the way to `Just<T>`, because the uninhabited error niches away.
+///
+/// That was checked by hand while the sentence was written, against a scratch
+/// crate that printed the two sizes, and this is that check kept. A readme
+/// making a layout claim about somebody else's type is exactly the claim that
+/// goes stale without anybody noticing, since nothing else in this repository
+/// would ever compile the type at all.
+#[test]
+fn the_infallible_result_the_readme_names_really_does_niche_away() {
+    use core::convert::Infallible;
+    use core::mem::size_of;
+
+    assert_eq!(
+        size_of::<Result<u32, Infallible>>(),
+        size_of::<u32>(),
+        "the readme says the uninhabited error niches away, and here it did not"
+    );
+    assert_eq!(
+        size_of::<Result<&u8, Infallible>>(),
+        size_of::<&u8>(),
+        "nor for a pointer-shaped payload"
+    );
+
+    // The control, and the reason the two above are not tautologies: a carrier
+    // whose second parameter is inhabited does grow, so the assertions are
+    // measuring the niche rather than measuring `size_of` agreeing with itself.
+    assert!(
+        size_of::<Result<u32, u32>>() > size_of::<u32>(),
+        "an inhabited error has to cost something, or this test proves nothing"
+    );
+    assert!(
+        size_of::<Option<u32>>() > size_of::<u32>(),
+        "and Option<u32> has no niche to fill, which is the readme's whole point"
+    );
+
+    let readme = fs::read_to_string(root().join("README.md")).expect("the readme");
+    assert!(
+        readme.contains("Result<T, Infallible>"),
+        "the claim left the readme, so this test is now measuring nothing"
     );
 }

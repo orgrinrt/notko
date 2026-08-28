@@ -8,14 +8,14 @@
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/issues)
 ![License](https://img.shields.io/github/license/orgrinrt/notko?color=%23009689)
 
-> The AST rewriting behind `#[profile(Tier)]`, as an ordinary library you can build your own attribute macro on.
+> The AST rewriting behind `#[profile(Tier)]`, as an ordinary library. Ships `tiers`, `parse`, `discover` and `rewrite`, which is what a fallibility-tier attribute of your own needs.
 
 </div>
 
 It's here because a proc-macro crate can't export anything that isn't a macro, so there was nowhere
 else to put the rewrite engine that [`notko-macros`](https://crates.io/crates/notko-macros) runs on.
-And once it had to exist separately it may as well be public: if you want to write your own
-fallibility-tier attribute, you can build on this instead of doing the rewrite engine again.
+And once it had to exist separately it may as well be public, so a fallibility-tier attribute of your
+own can build on this instead of doing the rewrite engine over again.
 
 Do note the surface still moves with the rest of the crates, so pin an exact version.
 
@@ -45,20 +45,16 @@ pub fn profile_asserted(_attr: TokenStream, item: TokenStream) -> TokenStream {
         Ok(f) => f,
         Err(e) => return e.to_compile_error().into(),
     };
-    let tier = notko_macros_core::tiers::CustomTier {
-        strategy: notko_macros_core::tiers::Strategy::Hot,
-        inline: true,
-        panic_fmt: Some("asserted invariant violated: {err:?}".into()),
-        source_path: None,
-        krate: syn::parse_quote!(::my_runtime),  // both of these are yours
-        gate_feature: "my_release_arm".to_string(),
-    };
+    // both the crate and the gate feature are yours, not this crate's
+    let mut tier = CustomTier::from_marker::<Hot>()
+        .with_crate(syn::parse_quote!(::my_runtime))
+        .with_gate_feature("my_release_arm");
+    tier.panic_fmt = Some("asserted invariant violated: {err:?}".into());
     notko_macros_core::rewrite::rewrite_fn(tier, input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }
 ```
-
 
 ## Letting a consumer write their own tiers
 
@@ -90,8 +86,7 @@ your macro emits code naming `notko` in consumers that never depended on it. A
 field added here later is a breaking change, which is the honest shape before
 1.0 and beats a silent inheritance of somebody else's answer.
 
-
-The last two fields are the ones worth a second look. A rewrite has to name some
+`krate` and `gate_feature` are the two worth a second look. A rewrite has to name some
 crate for the type it produces, and whatever it names becomes a requirement on
 your users' crates rather than on yours. Same for the feature the release arm is
 gated on: that `cfg` is read where the attribute expanded, so leaving it at the
