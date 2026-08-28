@@ -160,6 +160,11 @@ fn every_version_a_readme_names_is_the_one_the_workspace_ships() {
             let Some(found) = right.split('"').next() else {
                 continue;
             };
+            // `=0.0.1` is the same number wearing an exact-pin requirement, and
+            // a readme telling a reader to pin has to be able to show them how.
+            // The pin is the reader's business; whether the number is current
+            // is this test's.
+            let found = found.strip_prefix('=').unwrap_or(found);
             if found != version {
                 wrong.push(format!(
                     "{}:{}: {named} at {found:?}, and the workspace ships {version:?}",
@@ -185,7 +190,14 @@ fn every_crate_a_readme_tells_you_to_add_is_one_that_exists() {
             let Some(rest) = line.trim().strip_prefix("cargo add ") else {
                 continue;
             };
-            let named = rest.split_whitespace().next().unwrap_or("");
+            // The first thing that is not a flag. `cargo add --build notko-build`
+            // is how a build dependency is added, and reading the first word
+            // flat would test the string `--build` against the member list and
+            // report the crate missing.
+            let named = rest
+                .split_whitespace()
+                .find(|word| !word.starts_with('-'))
+                .unwrap_or("");
             if !names.iter().any(|name| name == named) {
                 wrong.push(format!(
                     "{}:{}: `cargo add {named}`, and this workspace has {names:?}",
@@ -195,6 +207,69 @@ fn every_crate_a_readme_tells_you_to_add_is_one_that_exists() {
             }
         }
     }
+
+    assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+}
+
+/// Every registry link naming one of ours names one that exists.
+///
+/// `cargo add` lines are checked above and they are the minority. The badges at
+/// the top of each file point at crates.io and docs.rs by name, and the prose
+/// links the four crates to each other by name, and all of those rot the same
+/// way a stale install line does: silently, on somebody else's screen, months
+/// after the rename that caused it.
+///
+/// Only names beginning `notko` are checked. Everything else is a link to
+/// somebody else's crate, and this repository has no business asserting that
+/// one exists.
+#[test]
+fn every_registry_link_to_one_of_ours_names_a_crate_that_exists() {
+    // The four shapes these files use. Each is a prefix, and the crate name is
+    // whatever follows it up to the first character that cannot be in one.
+    const PREFIXES: [&str; 4] = [
+        "https://crates.io/crates/",
+        "https://docs.rs/",
+        "https://img.shields.io/crates/v/",
+        "https://img.shields.io/docsrs/",
+    ];
+
+    let names: Vec<String> = crates().into_iter().map(|(_, name)| name).collect();
+
+    let mut found = 0usize;
+    let mut wrong = Vec::new();
+    for (path, text) in readmes() {
+        for (at, line) in text.lines().enumerate() {
+            for prefix in PREFIXES {
+                for piece in line.split(prefix).skip(1) {
+                    let named: String = piece
+                        .chars()
+                        .take_while(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+                        .collect();
+                    if !named.starts_with("notko") {
+                        continue;
+                    }
+                    found += 1;
+                    if !names.contains(&named) {
+                        wrong.push(format!(
+                            "{}:{}: {prefix}{named}, and this workspace has {names:?}",
+                            path.display(),
+                            at + 1,
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    // Without this the whole thing passes by finding nothing, which is what it
+    // would do if a prefix above were mistyped or the badge block changed
+    // shape. Four crates carry two registry badges each, so eight is the floor
+    // before a single prose link is counted.
+    assert!(
+        found >= 8,
+        "matched {found} registry links across the readmes, so the prefixes no \
+         longer describe what these files contain",
+    );
 
     assert!(wrong.is_empty(), "{}", wrong.join("\n"));
 }
