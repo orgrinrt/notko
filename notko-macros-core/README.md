@@ -91,7 +91,7 @@ field added here later is a breaking change, which is the honest shape before
 1.0 and beats a silent inheritance of somebody else's answer.
 
 
-The last two fields are the ones worth a second look. A rewrite has to name some
+`krate` and `gate_feature` are the two worth a second look. A rewrite has to name some
 crate for the type it produces, and whatever it names becomes a requirement on
 your users' crates rather than on yours. Same for the feature the release arm is
 gated on: that `cfg` is read where the attribute expanded, so leaving it at the

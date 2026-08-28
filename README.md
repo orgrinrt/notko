@@ -12,15 +12,23 @@
 
 </div>
 
-`Option<T>` has already decided for you what absence costs: a discriminant and a branch, everywhere,
-whether or not you need them. Usually that's fine and you'd never notice. But when an invariant has
-already proved the value is there, you're still paying for a check nobody needs, and there's no way to
-say so in the type. So there are three types here rather than one, one for proven-present, one for ordinary absence,
-one that carries an error, and you pick per call site. There's a `#[profile]` attribute further down
-too, for when you'd rather tag a whole function than choose at every site.
+Three fallibility carriers instead of one, so what a branch costs is decided where the call is written
+rather than by the type. `Just<T>` for the case an invariant has already proved present, `Maybe<T>` for
+ordinary absence, `Outcome<T, E>` for when the error carries something.
 
-It's `#![no_std]`, no alloc, no platform deps. The proc-macro crate is the exception and does use std,
-but only at compile time, which is the only place a macro ever runs, so none of it reaches your binary.
+The case for splitting them is narrow and worth stating plainly. `Option<T>` fixes what absence costs at
+a discriminant and a branch, everywhere, and most of the time that's fine and nobody notices. Where the
+value has been proved present already, the check still gets emitted and there's nothing in the type that
+can say otherwise. `Just<T>` is the missing thing there: `#[repr(transparent)]`, and with `try_trait_v2`
+its `?` has no error arm to branch to.
+
+There's a `#[profile]` attribute further down as well, for tagging a whole function instead of picking a
+type at every site.
+
+It's `#![no_std]`, no alloc, no platform deps, and in the default build no dependencies at all. The
+`macros` feature is the one exception, since it pulls the proc-macro crate in and that one uses std and
+`syn`. Only at compile time though, which is the only place a macro runs, so none of it lands in your
+binary.
 
 ## Status
 
@@ -102,9 +110,10 @@ more, and with `try_trait_v2` a `?` on it has no error arm to branch to. Reach f
 proves the error variant unreachable: post-validation paths, codegen-reduced hot loops, wrappers that
 make a guarantee concrete.
 
-`Maybe<T>` is the ordinary-absence case, and for pointer-shaped `T` (`&T`, `NonNull<T>`, every `NonZero*`,
-function pointers) Rust niche-fills the enum so the whole thing is the size of `T`. Absence costs no extra
-storage in those cases. Compile-time size assertions in `maybe.rs` pin the layout per supported shape.
+`Maybe<T>` is the ordinary-absence case, and for pointer-shaped `T` (`&T`, `&mut T`, `NonNull<T>`, every
+`NonZero*`, function pointers) Rust niche-fills the enum so the whole thing is the size of `T`. Absence
+costs no extra storage in those cases. Compile-time size assertions in `maybe.rs` pin the layout per
+supported shape.
 
 `Outcome<T, E>` is the case where the error path carries data. Its layout is ordinary Rust repr, so if
 you need an exact result layout across an FFI boundary, wrap the payload in your own `#[repr(C)]` struct
@@ -139,8 +148,14 @@ fn compute(x: u32) -> Result<u32, Oops> {
 Built-in strategies are `Hot`, `Warm` and `Cold`, passed as idents. `Hot` emits `Outcome<T, E>` in debug
 builds, so the error path stays observable; in release-internal builds, which the consumer opts into
 through its own `internal` feature, it emits `Just<T>` with `Err` lowered to a panic. `Cold` always emits
-`Outcome`. `Warm` rewrites to `Maybe<T>` in every build, dropping the error, which is what choosing
-that tier decides.
+`Outcome`. `Warm` rewrites to `Maybe<T>` in every build and drops the error, which is what choosing that
+tier decides. Do note it drops the whole `Err(..)` expression rather than evaluating it and throwing the
+value away, so anything with a side effect in there goes with it.
+
+The rewrite only fires on a return type spelled `Result<T, E>` or `Outcome<T, E>` with both arguments
+written out. Anything else, a bare type, a unit return, or the very common `type Result<T> =
+core::result::Result<T, MyError>` alias, is emitted untouched and says nothing about it. So a tag that
+appears to do nothing is usually that, and spelling the two arguments out is the fix.
 
 Third-party strategies live in a crate-local `notko-optimisers/<Name>.rs` with a
 `based_on = "Hot" | "Warm" | "Cold"` header. The `based_on` value is case-sensitive, so lowercase doesn't
@@ -148,6 +163,19 @@ match and fails the build. A sibling proc-macro crate reusing `notko-macros-core
 [`notko-macros`](https://crates.io/crates/notko-macros).
 
 Enable the `macros` feature to get `profile` re-exported at `notko`'s root.
+
+## The other three crates
+
+[`notko-macros`](https://crates.io/crates/notko-macros) is where `#[profile]` lives, and the `macros`
+feature above is that same attribute re-exported from here. Depend on it directly if you want the
+attribute and none of the carriers.
+
+[`notko-macros-core`](https://crates.io/crates/notko-macros-core) is the rewrite engine underneath it, as
+an ordinary library. It's there because a proc-macro crate can't export anything but macros, and it's
+public so a third-party attribute can build on it rather than writing the rewrite again.
+
+[`notko-build`](https://crates.io/crates/notko-build) is a build-script helper for the one case where a
+tier is defined in one crate and used in another. Nothing else needs it.
 
 ## Boundary types
 

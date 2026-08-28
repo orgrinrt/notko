@@ -54,8 +54,9 @@ fn builtin_lookup_ignores_unknown_names() {
 /// changed type, a strategy that stops existing. So the body lives here and the
 /// wrapper stays prose.
 ///
-/// Nothing enforces the two staying in step. Editing the readme leaves this
-/// green, so it is a note to whoever edits it rather than a property.
+/// What keeps the two in step is the test below it, which reads the readme and
+/// asserts the four lines building the tier appear there verbatim. Editing
+/// either one alone turns that one red.
 #[test]
 fn the_readme_authoring_example_still_builds() {
     let input: syn::ItemFn = syn::parse_quote! {
@@ -63,14 +64,12 @@ fn the_readme_authoring_example_still_builds() {
             Ok(path.len() as u32)
         }
     };
-    let tier = CustomTier {
-        strategy:     Strategy::Hot,
-        inline:       true,
-        panic_fmt:    Some("asserted invariant violated: {err:?}".into()),
-        source_path:  None,
-        krate:        syn::parse_quote!(::my_runtime),
-        gate_feature: "my_release_arm".to_string(),
-    };
+    // readme-example:start
+    let mut tier = CustomTier::from_marker::<Hot>()
+        .with_crate(syn::parse_quote!(::my_runtime))
+        .with_gate_feature("my_release_arm");
+    tier.panic_fmt = Some("asserted invariant violated: {err:?}".into());
+    // readme-example:end
     let out = notko_macros_core::rewrite::rewrite_fn(tier, input)
         .expect("the readme's example rewrites")
         .to_string();
@@ -86,7 +85,62 @@ fn the_readme_authoring_example_still_builds() {
     assert!(!out.contains("\"internal\""), "{out}");
 }
 
-/// The control for the test above.
+/// The readme's example and the compiled one above are the same lines.
+///
+/// The test above compiles a tier construction, and the readme prints one. They
+/// were two copies of the same code with nothing tying them together, so the
+/// readme could name a field that had been renamed and stay green: the note
+/// where this comment is used to say exactly that, and say it to a reader who
+/// had no reason to be reading a test file.
+///
+/// So the lines between the sentinels above are the single source, and this
+/// asserts every one of them appears in the readme. Editing one side alone is
+/// what turns it red, whichever side that is.
+///
+/// Both files ship in the package, so this runs from an unpacked tarball as
+/// well as from a checkout.
+///
+/// What it does not cover: prose. The readme can describe the example wrongly
+/// in the paragraph underneath and this stays green, because the check is over
+/// code and the paragraph is not code.
+#[test]
+fn the_readme_example_is_the_one_compiled_above() {
+    const THIS_FILE: &str = include_str!("extension.rs");
+    const README: &str = include_str!("../README.md");
+
+    let example: Vec<&str> = THIS_FILE
+        .split("// readme-example:start")
+        .nth(1)
+        .and_then(|rest| rest.split("// readme-example:end").next())
+        .expect("the sentinels in the test above")
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect();
+
+    // A sentinel pair that matched an empty region would make every assertion
+    // below vacuous, and vacuous is what this whole test exists to stop being.
+    assert!(
+        example.len() >= 4,
+        "the sentinels caught {} lines, so they have moved or the example shrank",
+        example.len(),
+    );
+
+    let missing: Vec<&str> = example
+        .iter()
+        .copied()
+        .filter(|line| !README.contains(line))
+        .collect();
+
+    assert!(
+        missing.is_empty(),
+        "the readme's authoring example no longer carries these lines from the \
+         test that compiles it:\n{}",
+        missing.join("\n"),
+    );
+}
+
+/// The control for `the_readme_authoring_example_still_builds`.
 ///
 /// Its last two assertions say the defaults are absent, and an emitter that
 /// named neither crate nor feature would satisfy them by writing nothing at
@@ -110,12 +164,16 @@ fn the_defaults_are_what_the_readme_says_they_are() {
 /// Which strategies read which of the two fields the readme singles out.
 ///
 /// The readme says one of them is the hot strategy's alone and the other is
-/// read whatever you pick, and a sweep is the only honest way to say that: two
-/// tests at `Hot` establish nothing about the other three, and a paragraph
-/// asserting all four while the suite covers one is how the wrong claim got
-/// written down in the first place.
+/// read by the three strategies that write a type, and a sweep is the only
+/// honest way to say that: two tests at `Hot` establish nothing about the other
+/// three, and a paragraph asserting all four while the suite covers one is how
+/// the wrong claim got written down in the first place.
+///
+/// The name says three rather than every, because the body asserts `Passthrough`
+/// names nothing and a name claiming every strategy would be the same overreach
+/// one rung up, where nothing checks it.
 #[test]
-fn the_crate_path_is_read_by_every_strategy_and_the_gate_by_hot_alone() {
+fn the_crate_path_is_read_by_three_strategies_and_the_gate_by_hot_alone() {
     fn emitted(strategy: Strategy) -> String {
         let input: syn::ItemFn = syn::parse_quote! {
             fn load(path: &str) -> Result<u32, std::io::Error> {
