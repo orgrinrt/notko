@@ -16,3 +16,8 @@ keywords = ["build-script", "proc-macro", "notko", "fallible"]
 include = ["src/**/*.rs", "README.md", "LICENSE"]
 
 [dependencies]
+
+# Only the tests, which build a real provider tree on disk. The accumulation
+# they check is filesystem work, so a fake would be checking the fake.
+[dev-dependencies]
+tempfile = "3"

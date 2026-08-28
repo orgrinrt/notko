@@ -10,7 +10,7 @@
 //! implement [`Tier`] on their own ZSTs to register additional built-ins
 //! in their own code.
 //!
-//! Following the shared-principles convention:
+//! Two conventions hold across everything here:
 //! - ZST markers for discrimination, not string literals at comparison
 //!   sites.
 //! - `Named::NAME` single source of truth: the [`Tier::NAME`] const is the

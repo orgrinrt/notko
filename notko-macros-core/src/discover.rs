@@ -201,7 +201,14 @@ fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
 }
 
 /// Extract the text of module-level doc comments (`//! ...`) from the top of
-/// a .rs source, stopping at the first non-doc-comment, non-blank line.
+/// a .rs source, stopping at the first line that is neither a comment nor
+/// blank.
+///
+/// Ordinary `//` comments are walked past rather than treated as the end. A
+/// licence header is the shape almost every file in a real tree opens with,
+/// and stopping at one meant the marker on the first doc line below it was
+/// never seen: the refusal then told the author to add a line that was
+/// already there, and deleting the header was the only thing that worked.
 fn extract_module_doc(source: &str) -> String {
     let mut out = String::new();
     for line in source.lines() {
@@ -209,7 +216,7 @@ fn extract_module_doc(source: &str) -> String {
         if let Some(rest) = trimmed.strip_prefix("//!") {
             out.push_str(rest.trim_start());
             out.push('\n');
-        } else if trimmed.is_empty() {
+        } else if trimmed.is_empty() || trimmed.starts_with("//") {
             continue;
         } else {
             break;
@@ -223,4 +230,96 @@ fn trim_quotes(s: &str) -> &str {
     s.strip_prefix('"')
         .and_then(|s| s.strip_suffix('"'))
         .unwrap_or(s)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The header `ante` writes at the top of every file in a tree that keeps
+    /// copyright notices, which is the shape this reader has to walk past.
+    const HEADER: &str = "\
+//----------------------------------------------------------------------
+// Copyright (c) 2026                   somebody              them@example
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0
+//----------------------------------------------------------------------
+";
+
+    const BODY: &str = "\
+//! @notko-optimiser
+//! based_on = \"Cold\"
+//! inline = true
+";
+
+    #[test]
+    fn a_licence_header_does_not_hide_the_marker_below_it() {
+        // The reader used to stop at the first plain `//` line, so every file
+        // written by a tool that adds a header parsed as having no module doc
+        // at all. The refusal then told the author to add a marker line that
+        // was already there, and deleting the header was the only thing that
+        // worked.
+        let doc = extract_module_doc(&format!("{HEADER}\n{BODY}"));
+        assert!(
+            doc.contains("@notko-optimiser"),
+            "the marker was not found: {doc:?}"
+        );
+        assert!(
+            doc.contains("based_on"),
+            "a key below the marker was lost: {doc:?}"
+        );
+    }
+
+    #[test]
+    fn the_header_itself_does_not_become_part_of_the_doc() {
+        // Walking past a comment is not the same as reading it. A header whose
+        // text ended up in the doc would have every key in it read as a
+        // setting, and `Copyright (c) 2026` parses as one under a permissive
+        // enough reader.
+        let doc = extract_module_doc(&format!("{HEADER}\n{BODY}"));
+        assert!(
+            !doc.contains("Copyright"),
+            "the header leaked into the doc: {doc:?}"
+        );
+        assert!(
+            !doc.contains("SPDX"),
+            "the header leaked into the doc: {doc:?}"
+        );
+    }
+
+    #[test]
+    fn a_file_with_no_header_still_reads() {
+        // The control on both above. A reader that skipped everything, or one
+        // that consumed the whole file, would pass one of them and break this.
+        let doc = extract_module_doc(BODY);
+        assert!(
+            doc.contains("@notko-optimiser"),
+            "the plain shape stopped working"
+        );
+        assert_eq!(doc.lines().count(), 3, "the plain shape read {doc:?}");
+    }
+
+    #[test]
+    fn the_first_real_line_of_code_still_ends_it() {
+        // And the reader has not become one that runs to the end of the file.
+        // A doc comment further down belongs to an item, not to the module,
+        // and reading it would make an ordinary source file look like a tier.
+        let src = format!("{BODY}\npub const X: u8 = 1;\n\n//! @notko-optimiser\n");
+        let doc = extract_module_doc(&src);
+        assert_eq!(
+            doc.lines().count(),
+            3,
+            "the reader ran past the first item: {doc:?}"
+        );
+    }
+
+    #[test]
+    fn a_blank_line_between_comments_does_not_end_it() {
+        // The header and the module doc are separated by one, which is the
+        // whole reason this is worth pinning.
+        let doc = extract_module_doc("// a comment\n\n// another\n\n//! @notko-optimiser\n");
+        assert!(
+            doc.contains("@notko-optimiser"),
+            "a blank line ended the read: {doc:?}"
+        );
+    }
 }

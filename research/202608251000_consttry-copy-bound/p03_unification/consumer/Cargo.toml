@@ -1,5 +1,10 @@
 [workspace]
 [package]
+# A probe. It exists to hold one construction still while a panel checked
+# something about it, and it is not this repository's crate however much of it
+# was copied in to get the check to build. Never published, and said here
+# rather than left to a reader to work out from where the file sits.
+publish = false
 name = "consumer"
 version = "0.0.0"
 edition = "2024"

@@ -434,6 +434,19 @@ fn reaches_for_the_repository(body: &str, stripped: &[String]) -> Vec<String> {
         why.push("builds something with cargo, which needs the repository".into());
     }
 
+    // Asking git what is tracked needs a repository, and an unpacked tarball
+    // is a directory. `cargo package` does not carry `.git`, so this is
+    // positive evidence rather than a guess about intent.
+    if body.contains("\"ls-files\"") || body.contains("ls-tree") {
+        why.push("asks git what is tracked, which a package has no answer for".into());
+    }
+
+    // `research/` is the audit trail. `include` names files, so no probe under
+    // it travels with the package.
+    if body.contains("\"research\"") || body.contains("research/") {
+        why.push("reads the research tree, which a package does not carry".into());
+    }
+
     // One `../` climbs from `tests/` to the package root and is fine. A second
     // leaves the package.
     for macro_name in ["include_str!", "include_bytes!", "include!"] {

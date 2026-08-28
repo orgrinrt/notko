@@ -85,9 +85,10 @@ pub struct Exhausted {
 /// that is a different shape and pretending one covers both would make the
 /// common case carry the general case's cost.
 ///
-/// Bare `usize` here and in [`Exhausted`] is the definition-site exception this
-/// crate exists to be. A typed width lives in a crate that depends on this one,
-/// so naming one here would be a cycle.
+/// Bare `usize` here and in [`Exhausted`] is deliberate, and it is the one
+/// place in this crate where it is. A width with a type of its own lives in a
+/// crate that depends on this one, so naming that type here would be a
+/// dependency cycle.
 #[derive(Debug)]
 pub struct Fill<'a, T> {
     slots: &'a mut [T],

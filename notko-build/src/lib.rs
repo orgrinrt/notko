@@ -122,6 +122,19 @@ fn accumulate(
     dep_dirs: &[PathBuf],
     accumulated_dir: &Path,
 ) -> Result<PathBuf, Error> {
+    // Emptied first, not merely created. A tier deleted from its provider, or
+    // renamed, or moved to a different provider, used to keep resolving off
+    // whatever this directory still held from the last run: the build stayed
+    // green on a source file that was no longer anywhere, until somebody ran
+    // `cargo clean`. The clash check below cannot see it either, since `seen`
+    // is rebuilt from what this run copied.
+    //
+    // A missing directory is not an error here; there is nothing to remove.
+    match fs::remove_dir_all(accumulated_dir) {
+        Ok(()) => {},
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {},
+        Err(e) => return Err(e.into()),
+    }
     fs::create_dir_all(accumulated_dir)?;
 
     // Tier name to the source that contributed it, and whether that source was
@@ -421,6 +434,109 @@ mod tests {
         assert!(
             got.is_empty(),
             "picked up {got:?} from an environment with none"
+        );
+    }
+
+    /// A provider tree, its optimiser directory, and a place to accumulate
+    /// into. Returns the three paths `accumulate` takes.
+    fn a_provider_with(tiers: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf, PathBuf) {
+        let root = tempfile::tempdir().expect("a temporary directory");
+        let local = root.path().join("notko-optimisers");
+        let out = root.path().join("out").join("notko-optimisers");
+        fs::create_dir_all(&local).expect("the provider directory");
+        for (name, body) in tiers {
+            fs::write(local.join(format!("{name}.rs")), body).expect("a tier file");
+        }
+        (root, local, out)
+    }
+
+    /// What a tier file looks like when `ante` has written its header first,
+    /// which is every file in a tree that keeps copyright headers.
+    const WITH_A_HEADER: &str = "\
+//------------------------------------------------------------------
+// Copyright (c) 2026
+//------------------------------------------------------------------
+
+//! @notko-optimiser
+//! based_on = \"Cold\"
+";
+
+    #[test]
+    fn a_tier_that_leaves_its_provider_stops_resolving() {
+        // The accumulated directory used to be created and never emptied, so a
+        // tier deleted from its provider kept resolving off the copy left from
+        // the previous run. The build stayed green on a source file that was
+        // no longer anywhere, until somebody ran `cargo clean`, which is the
+        // shape of a defect that only shows up on somebody else's machine.
+        let (_root, local, out) = a_provider_with(&[("Audit", WITH_A_HEADER)]);
+        accumulate(&local, &[], &out).expect("the first run");
+        assert!(
+            out.join("Audit.rs").is_file(),
+            "the first run copied nothing"
+        );
+
+        fs::remove_file(local.join("Audit.rs")).expect("removing the tier from its provider");
+        accumulate(&local, &[], &out).expect("the second run");
+        assert!(
+            !out.join("Audit.rs").exists(),
+            "a tier deleted from its provider still resolves from {}",
+            out.display()
+        );
+    }
+
+    #[test]
+    fn a_renamed_tier_does_not_leave_the_old_name_live() {
+        // The same defect wearing its worst face: both names resolve, so a
+        // consumer still naming the old one builds, and the rename looks done.
+        let (_root, local, out) = a_provider_with(&[("Audit", WITH_A_HEADER)]);
+        accumulate(&local, &[], &out).expect("the first run");
+
+        fs::rename(local.join("Audit.rs"), local.join("Trace.rs")).expect("the rename");
+        accumulate(&local, &[], &out).expect("the second run");
+
+        assert!(
+            out.join("Trace.rs").is_file(),
+            "the new name did not arrive"
+        );
+        assert!(!out.join("Audit.rs").exists(), "the old name is still live");
+    }
+
+    #[test]
+    fn a_second_run_that_changed_nothing_still_has_everything() {
+        // The control on the two above. Emptying the directory and then failing
+        // to refill it would pass both of them and break every build.
+        let (_root, local, out) =
+            a_provider_with(&[("Audit", WITH_A_HEADER), ("Trace", WITH_A_HEADER)]);
+        accumulate(&local, &[], &out).expect("the first run");
+        accumulate(&local, &[], &out).expect("the second run");
+        assert!(
+            out.join("Audit.rs").is_file(),
+            "the second run dropped a tier"
+        );
+        assert!(
+            out.join("Trace.rs").is_file(),
+            "the second run dropped a tier"
+        );
+    }
+
+    #[test]
+    fn a_header_above_the_marker_does_not_hide_it() {
+        // `ante` writes a licence header at the top of every file, and the
+        // reader that looks for the marker used to stop at the first plain
+        // `//` line. The refusal then told the author to add a line that was
+        // already there, and deleting the header was the only thing that
+        // worked. Asserted here rather than in the macro crate because this is
+        // where a tier file with a real header is produced.
+        let (_root, local, out) = a_provider_with(&[("Audit", WITH_A_HEADER)]);
+        accumulate(&local, &[], &out).expect("a headered tier accumulates");
+        let landed = fs::read_to_string(out.join("Audit.rs")).expect("the copied tier");
+        assert!(
+            landed.contains("Copyright"),
+            "the header was stripped on the way"
+        );
+        assert!(
+            landed.contains("@notko-optimiser"),
+            "the marker was stripped on the way"
         );
     }
 
