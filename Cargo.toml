@@ -31,7 +31,9 @@ keywords = ["no_std", "no_alloc", "primitives", "fallible"]
 # this repository: `readme_claims.rs` reads the workspace manifest's member
 # list, which cargo's generated manifest does not have, so in an unpacked
 # tarball it panics rather than testing anything. A glob cannot tell them
-# apart, and the decision is the point.
+# apart, and the decision is the point. `a_probe_crate_says_it_is_a_probe.rs`
+# is the same shape: it reads the probes under `research/`, which no tarball
+# carries.
 include = [
     "src/**/*.rs",
     "tests/bounded.rs",
@@ -111,13 +113,6 @@ required-features = ["const"]
 [[test]]
 name = "try_smoke"
 path = "tests/try_smoke.rs"
-required-features = ["try_trait_v2"]
-
-# Same reason, and the cases in it are builds that must fail rather than tests
-# that must pass.
-[[test]]
-name = "the_ladder_composes_under_question_mark"
-path = "tests/the_ladder_composes_under_question_mark.rs"
 required-features = ["try_trait_v2"]
 
 [dev-dependencies]

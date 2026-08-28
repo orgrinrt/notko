@@ -21,10 +21,25 @@ use crate::tiers::CustomTier;
 pub fn rewrite(tier: CustomTier, mut func: ItemFn) -> Result<TokenStream> {
     // One function emitted twice under opposite `cfg`s, so anything the two
     // arms would not do identically is a program that means one thing when it
-    // is tested and another when it ships. An unrecognised return type is one
-    // of those: the debug arm had nothing to lift it to and left it, and the
-    // release arm wrapped it, so a caller compiled in debug and did not in
-    // release. Emit it once, untouched, and there is nothing to diverge.
+    // is tested and another when it ships.
+    //
+    // Three of those are known and each is closed by something nameable, since
+    // a paragraph claiming they are all closed is worth nothing on its own:
+    //
+    // - An unrecognised return type. The debug arm had nothing to lift it to
+    //   and left it, the release arm wrapped it. Closed below, by emitting the
+    //   function once and untouched.
+    // - `?` in the body. The release arm narrows to `Just<T>`, which had no
+    //   `FromResidual`, so the operator compiled in debug and not in release.
+    //   Closed in `notko::just` by the impls that make it panic, which is what
+    //   a written-out `Err` already does here.
+    // - An error type the panic cannot format. Closed by
+    //   `arms_agree_on_the_error`, which makes the debug arm demand of it
+    //   exactly what the release arm's panic demands, for every error type
+    //   except one written `impl Trait`. That exception is named there.
+    //
+    // All three are pinned by `notko-macros/tests/consumer_cfg.rs`, which
+    // builds a real consumer crate in both arms and compares the two.
     let Some((ok_ty, err_ty)) = result_inner_types(&func.sig.output) else {
         return Ok(quote! { #func });
     };
@@ -50,6 +65,9 @@ fn build_debug(tier: &CustomTier, func: &ItemFn, ok_ty: Type, err_ty: Type) -> T
         krate: tier.krate.clone(),
     };
     rewriter.visit_block_mut(&mut out.block);
+    if let Some(guard) = arms_agree_on_the_error(tier, &err_ty) {
+        out.block.stmts.insert(0, guard);
+    }
 
     let inline = inline_attr(tier);
     let attrs = &out.attrs;
@@ -81,6 +99,48 @@ fn build_release(tier: &CustomTier, func: &mut ItemFn, ok_ty: Type) -> TokenStre
         #(#attrs)*
         #vis #sig #block
     }
+}
+
+/// A statement that makes the debug arm demand of the error type exactly what
+/// the release arm's panic demands of it.
+///
+/// The release arm rewrites `Err(e)` to `panic!(fmt, err = e)`, and the default
+/// format reads the error with `{err:?}`. The debug arm never formats it, so an
+/// error type without `Debug` compiled in the arm that is tested and did not
+/// compile in the arm that ships. That is the divergence the pair exists to
+/// prevent, landing on the consumer at the moment they build for release.
+///
+/// A closure rather than a nested function, because a nested item cannot name
+/// the enclosing function's generic parameters and the error type routinely
+/// does. It is never called, so it costs nothing but the type check, which is
+/// the whole reason it is here.
+///
+/// It sees whatever the format string actually asks for, so a `panic_fmt`
+/// written against `Display` demands that instead of `Debug`. One written
+/// against nothing at all is a build failure in both arms rather than a
+/// weaker demand, since `panic!("no placeholder", err = e)` is `named argument
+/// never used`.
+///
+/// **What it does not cover**, stated rather than left to be discovered: an
+/// error type written `impl Trait`. `impl Trait` is not allowed in a closure
+/// parameter, so emitting this against one is a build failure in the debug arm
+/// and nothing in the release arm, which is the divergence this exists to
+/// close, pointing the other way. It shipped that way for one review round.
+/// Such a type is skipped, and a `-> Result<T, impl Trait>` whose bounds do not
+/// carry what the panic needs still diverges. Closing that means reading the
+/// bounds, which is a different mechanism and is not built.
+fn arms_agree_on_the_error(tier: &CustomTier, err_ty: &Type) -> Option<syn::Stmt> {
+    if matches!(err_ty, Type::ImplTrait(_)) {
+        return None;
+    }
+    let fmt = tier
+        .panic_fmt
+        .clone()
+        .unwrap_or_else(|| "hot path invariant violated: {err:?}".to_string());
+    Some(parse_quote! {
+        #[allow(unused, unreachable_code, clippy::diverging_sub_expression)]
+        let _arms_agree = |err: #err_ty| ::core::panic!(#fmt, err = err);
+    })
 }
 
 fn inline_attr(tier: &CustomTier) -> TokenStream {
@@ -115,6 +175,27 @@ impl VisitMut for HotRewriter {
         if matches!(expr, Expr::Closure(_)) {
             return;
         }
+
+        // `return Err(e)` becomes the panic, rather than a `return` wrapping
+        // one. Checked before descending, because descending rewrites the
+        // inner call first and leaves `return ::core::panic!(..)`, which is an
+        // unreachable expression: the warning then fires on every consumer's
+        // release build, from inside a macro they cannot see into.
+        if let Expr::Return(ret) = expr
+            && let Some(inner) = &mut ret.expr
+            && matches!(inner.as_ref(), Expr::Call(c) if is_err_call(c))
+        {
+            // The payload still gets visited, since it is an ordinary
+            // expression and may hold anything.
+            let Expr::Call(call) = inner.as_mut() else {
+                unreachable!("the pattern above matched a call")
+            };
+            let mut val = call.args.first().unwrap().clone();
+            self.visit_expr_mut(&mut val);
+            *expr = build_panic_expr(&self.panic_fmt, val);
+            return;
+        }
+
         syn::visit_mut::visit_expr_mut(self, expr);
 
         match expr {
@@ -147,10 +228,9 @@ impl VisitMut for HotRewriter {
                     let k = &self.krate;
                     Some(parse_quote! { #k::Just::new(#val) })
                 },
-                Expr::Call(call) if is_err_call(call) => {
-                    let val = call.args.first().unwrap().clone();
-                    Some(build_panic_expr(&self.panic_fmt, val))
-                },
+                // `Err` is not here. `return Err(e)` is replaced whole in
+                // `visit_expr_mut`, before the descent that reaches this,
+                // because a `return` around a diverging expression warns.
                 _ => None,
             };
             if let Some(r) = replacement {

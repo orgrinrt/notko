@@ -59,7 +59,14 @@ main() {
     # cannot be built with them, so the instruction is necessary rather than
     # cautious.
     if rustup toolchain list 2>/dev/null | grep -q '^stable'; then
-        run "stable, no defaults" cargo +stable test -p notko --no-default-features
+        # `--skip` on the one target whose fixtures are blessed against the
+        # pinned nightly's diagnostic wording. Stable words three of them
+        # differently while every refusal still refuses, so running it here
+        # measures the compiler's prose rather than the crate. The target
+        # itself refuses to report a pass off the pin rather than skipping
+        # quietly, which is why this has to say so out loud.
+        run "stable, no defaults" cargo +stable test -p notko --no-default-features \
+            -- --skip every_refusal_still_refuses
         printf '%-46s ' "stable, defaults refused"
         if cargo +stable build -p notko >/dev/null 2>&1; then
             printf 'FAILED (it built, so the README overstates the need)\n'
