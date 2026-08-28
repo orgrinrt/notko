@@ -33,76 +33,154 @@
 use std::path::{Path, PathBuf};
 
 use proc_macro2::Span;
-use syn::{Error, Result};
+use syn::{Error, Path as SynPath, Result};
 
 use crate::tiers::{CustomTier, Strategy};
 
-/// Resolve a tier name to a [`CustomTier`].
+/// Everything about a tier lookup that belongs to the macro doing it rather
+/// than to this crate.
 ///
-/// Order:
-/// 1. Built-in `Hot | Warm | Cold` ZST markers (see [`crate::tiers`]).
-/// 2. `$CARGO_MANIFEST_DIR/notko-optimisers/<Name>.rs` parses metadata.
-/// 3. `$NOTKO_OPTIMISERS_PATH/<Name>.rs` (set by `notko-build`).
-/// 4. Error with a diagnostic pointing at where the file should live.
+/// A third party authoring its own attribute macro on top of this needs five
+/// things to be its own, and every one of them used to be a literal in the
+/// function below: the crate its emitted code names, the cargo feature its
+/// release arm is gated on, the directory a consumer keeps tier files in, the
+/// environment variable its build script sets, and the marker line a tier file
+/// carries. Fixing any of them here means a third party's macro silently
+/// demanding `notko` be in scope in its own users' crates, under exactly that
+/// spelling, with nothing to say so until one of them failed to compile.
+///
+/// [`Discovery::default`] is notko's own, so `resolve_tier` stays what it was.
+#[derive(Debug, Clone)]
+pub struct Discovery {
+    /// The crate path emitted code names, as `::notko` does here.
+    pub krate:        SynPath,
+    /// The cargo feature the release arm is gated on.
+    pub gate_feature: String,
+    /// The directory under a consumer's manifest that holds tier files.
+    pub dir:          String,
+    /// The environment variable a build script sets to the accumulated
+    /// directory.
+    pub env_var:      String,
+    /// The line a tier file's module doc must carry to be one.
+    pub marker:       String,
+    /// Where a reader is sent when a tier file's shape is wrong.
+    pub docs:         String,
+}
+
+impl Default for Discovery {
+    fn default() -> Self {
+        Self {
+            krate:        crate::tiers::default_krate(),
+            gate_feature: crate::tiers::DEFAULT_GATE_FEATURE.to_string(),
+            dir:          "notko-optimisers".to_string(),
+            env_var:      "NOTKO_OPTIMISERS_PATH".to_string(),
+            marker:       "@notko-optimiser".to_string(),
+            docs:         "notko-macros README".to_string(),
+        }
+    }
+}
+
+impl Discovery {
+    /// Resolve a tier name to a [`CustomTier`].
+    ///
+    /// Order:
+    /// 1. Built-in `Hot | Warm | Cold` ZST markers (see [`crate::tiers`]).
+    /// 2. `$CARGO_MANIFEST_DIR/<dir>/<Name>.rs` parses metadata.
+    /// 3. `$<env_var>/<Name>.rs`, set by the build script.
+    /// 4. Error with a diagnostic pointing at where the file should live.
+    ///
+    /// # Errors
+    ///
+    /// When the name is neither a built-in nor a tier file this can find, or
+    /// when a file it finds does not parse as one.
+    pub fn resolve(&self, name: &str, span: Span) -> Result<CustomTier> {
+        if let Some(tier) = CustomTier::builtin(name) {
+            return Ok(self.stamp(tier));
+        }
+
+        if let Some(custom) = self.try_load_crate_local(name, span)? {
+            return Ok(self.stamp(custom));
+        }
+
+        if let Some(custom) = self.try_load_accumulated(name, span)? {
+            return Ok(self.stamp(custom));
+        }
+
+        let crate_local = self
+            .crate_local_optimiser_path(name)
+            .unwrap_or_else(|| PathBuf::from(format!("{}/{name}.rs", self.dir)));
+        Err(Error::new(
+            span,
+            format!(
+                "unknown profile tier `{name}`. \
+                 built-ins: Hot | Warm | Cold. \
+                 custom tier expected at `{}` (crate-local) or \
+                 ${}/{name}.rs (via the build script). \
+                 see {} for the .rs file shape.",
+                crate_local.display(),
+                self.env_var,
+                self.docs
+            ),
+        ))
+    }
+
+    /// Put this lookup's identity on a tier however the tier was found.
+    ///
+    /// Both `CustomTier::builtin` and the file parser hand back a tier
+    /// carrying this crate's own defaults, because neither of them knows whose
+    /// macro asked. Applying it in one place is what makes every route out of
+    /// [`Discovery::resolve`] agree; applying it in three was how the file
+    /// route came to be the only one that did not.
+    fn stamp(&self, tier: CustomTier) -> CustomTier {
+        tier.with_crate(self.krate.clone())
+            .with_gate_feature(self.gate_feature.clone())
+    }
+
+    fn try_load_crate_local(&self, name: &str, span: Span) -> Result<Option<CustomTier>> {
+        let Some(path) = self.crate_local_optimiser_path(name) else {
+            return Ok(None);
+        };
+        if !path.is_file() {
+            return Ok(None);
+        }
+        Some(parse_optimiser_file(&path, span, &self.marker)).transpose()
+    }
+
+    fn try_load_accumulated(&self, name: &str, span: Span) -> Result<Option<CustomTier>> {
+        let Ok(root) = std::env::var(&self.env_var) else {
+            return Ok(None);
+        };
+        let path = Path::new(&root).join(format!("{name}.rs"));
+        if !path.is_file() {
+            return Ok(None);
+        }
+        Some(parse_optimiser_file(&path, span, &self.marker)).transpose()
+    }
+
+    fn crate_local_optimiser_path(&self, name: &str) -> Option<PathBuf> {
+        let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").ok()?;
+        Some(
+            Path::new(&manifest_dir)
+                .join(&self.dir)
+                .join(format!("{name}.rs")),
+        )
+    }
+}
+
+/// Resolve a tier name to a [`CustomTier`], notko's way.
+///
+/// [`Discovery::default`] and nothing else. A macro of your own wants its own
+/// [`Discovery`], or the code it emits will name this crate in a consumer that
+/// never depended on it.
+///
+/// # Errors
+///
+/// As [`Discovery::resolve`].
 pub fn resolve_tier(name: &str, span: Span) -> Result<CustomTier> {
-    if let Some(tier) = CustomTier::builtin(name) {
-        return Ok(tier);
-    }
-
-    if let Some(custom) = try_load_crate_local(name, span)? {
-        return Ok(custom);
-    }
-
-    if let Some(custom) = try_load_accumulated(name, span)? {
-        return Ok(custom);
-    }
-
-    let crate_local = crate_local_optimiser_path(name)
-        .unwrap_or_else(|| PathBuf::from(format!("notko-optimisers/{name}.rs")));
-    Err(Error::new(
-        span,
-        format!(
-            "unknown profile tier `{name}`. \
-             built-ins: Hot | Warm | Cold. \
-             custom tier expected at `{}` (crate-local) or \
-             $NOTKO_OPTIMISERS_PATH/{name}.rs (via notko-build). \
-             see notko-macros README for the .rs file shape.",
-            crate_local.display()
-        ),
-    ))
+    Discovery::default().resolve(name, span)
 }
 
-fn try_load_crate_local(name: &str, span: Span) -> Result<Option<CustomTier>> {
-    let Some(path) = crate_local_optimiser_path(name) else {
-        return Ok(None);
-    };
-    if !path.is_file() {
-        return Ok(None);
-    }
-    Some(parse_optimiser_file(&path, span)).transpose()
-}
-
-fn try_load_accumulated(name: &str, span: Span) -> Result<Option<CustomTier>> {
-    let Ok(root) = std::env::var("NOTKO_OPTIMISERS_PATH") else {
-        return Ok(None);
-    };
-    let path = Path::new(&root).join(format!("{name}.rs"));
-    if !path.is_file() {
-        return Ok(None);
-    }
-    Some(parse_optimiser_file(&path, span)).transpose()
-}
-
-fn crate_local_optimiser_path(name: &str) -> Option<PathBuf> {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").ok()?;
-    Some(
-        Path::new(&manifest_dir)
-            .join("notko-optimisers")
-            .join(format!("{name}.rs")),
-    )
-}
-
-fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
+fn parse_optimiser_file(path: &Path, span: Span, marker: &str) -> Result<CustomTier> {
     let source = std::fs::read_to_string(path).map_err(|e| {
         Error::new(
             span,
@@ -111,13 +189,12 @@ fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
     })?;
 
     let meta = extract_module_doc(&source);
-    if !meta.lines().any(|l| l.trim() == "@notko-optimiser") {
+    if !meta.lines().any(|l| l.trim() == marker) {
         return Err(Error::new(
             span,
             format!(
-                "optimiser file `{}` lacks the `@notko-optimiser` marker in its \
-                 module doc comment. add `//! @notko-optimiser` on the first \
-                 doc line.",
+                "optimiser file `{}` lacks the `{marker}` marker in its module \
+                 doc comment. add `//! {marker}` on a doc line.",
                 path.display()
             ),
         ));
@@ -129,7 +206,7 @@ fn parse_optimiser_file(path: &Path, span: Span) -> Result<CustomTier> {
 
     for line in meta.lines() {
         let line = line.trim();
-        if line.is_empty() || line == "@notko-optimiser" {
+        if line.is_empty() || line == marker {
             continue;
         }
         let Some((key, value)) = line.split_once('=') else {

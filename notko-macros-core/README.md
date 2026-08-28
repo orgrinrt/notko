@@ -40,7 +40,7 @@ use proc_macro::TokenStream;
 
 #[proc_macro_attribute]
 pub fn profile_asserted(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    // build the tier yourself, or load one with discover::resolve_tier
+    // one tier, built by hand
     let input = match syn::parse::<syn::ItemFn>(item) {
         Ok(f) => f,
         Err(e) => return e.to_compile_error().into(),
@@ -58,6 +58,38 @@ pub fn profile_asserted(_attr: TokenStream, item: TokenStream) -> TokenStream {
         .into()
 }
 ```
+
+
+## Letting a consumer write their own tiers
+
+`Discovery` is the same lookup notko's own macro runs, with every name in it
+yours. It reads a tier file out of the directory you name, under the marker you
+name, and stamps the crate and the gate feature onto whatever it finds:
+
+```rust
+use notko_macros_core::discover::Discovery;
+
+fn mine() -> Discovery {
+    Discovery {
+        krate: syn::parse_quote!(::my_runtime),
+        gate_feature: "my_release_arm".to_string(),
+        dir: "my-tiers".to_string(),
+        env_var: "MY_TIERS_PATH".to_string(),
+        marker: "@my-tier".to_string(),
+        docs: "the my-macros readme".to_string(),
+    }
+}
+
+// then, in the attribute:
+let tier = mine().resolve(&name, span)?;
+```
+
+Every field is named rather than spread over a default, and deliberately so:
+`Discovery::default()` is notko's own, all six of them, and reaching for it in
+your macro emits code naming `notko` in consumers that never depended on it. A
+field added here later is a breaking change, which is the honest shape before
+1.0 and beats a silent inheritance of somebody else's answer.
+
 
 The last two fields are the ones worth a second look. A rewrite has to name some
 crate for the type it produces, and whatever it names becomes a requirement on

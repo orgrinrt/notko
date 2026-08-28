@@ -19,6 +19,7 @@ keywords = ["proc-macro", "codegen", "hot-path", "fallible", "attribute"]
 # `extension.rs` reaches for nothing outside the package, so it ships.
 include = [
     "src/**/*.rs",
+    "tests/a_third_party_macro_names_its_own_crate.rs",
     "tests/extension.rs",
     "tests/hot_rewrite_shapes.rs",
     "README.md",
