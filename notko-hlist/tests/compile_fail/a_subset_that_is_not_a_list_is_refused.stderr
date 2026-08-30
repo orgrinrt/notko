@@ -1,0 +1,12 @@
+error[E0277]: `Cons<A, Cons<B, notko_hlist::Empty>>` does not hold every member of `u8`
+  --> tests/compile_fail/a_subset_that_is_not_a_list_is_refused.rs:20:17
+   |
+20 |     holds_all::<Two, u8>();
+   |                 ^^^ the trait `ContainsAll<u8>` is not implemented for `Cons<A, Cons<B, notko_hlist::Empty>>`
+   |
+   = note: Each member of `u8` is checked on its own, so the one that failed is not named here. Bound on `Contains<T>` for the individual type to find out which. Check also that `Cons<A, Cons<B, notko_hlist::Empty>>` is a list and that `u8` is one, since both sides are walked. If the compiler reports `overflow evaluating the requirement` instead, the crate root wants `#![recursion_limit = "1024"]`.
+note: required by a bound in `holds_all`
+  --> tests/compile_fail/a_subset_that_is_not_a_list_is_refused.rs:17:17
+   |
+17 | fn holds_all<L: ContainsAll<M>, M>() {}
+   |                 ^^^^^^^^^^^^^^ required by this bound in `holds_all`

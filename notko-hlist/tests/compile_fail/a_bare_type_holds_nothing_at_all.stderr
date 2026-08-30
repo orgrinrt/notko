@@ -1,0 +1,21 @@
+error[E0277]: `u8` does not hold every member of `notko_hlist::Empty`
+  --> tests/compile_fail/a_bare_type_holds_nothing_at_all.rs:11:17
+   |
+11 |     holds_all::<u8, Empty>();
+   |                 ^^ the trait `List` is not implemented for `u8`
+   |
+   = note: Each member of `notko_hlist::Empty` is checked on its own, so the one that failed is not named here. Bound on `Contains<T>` for the individual type to find out which. Check also that `u8` is a list and that `notko_hlist::Empty` is one, since both sides are walked. If the compiler reports `overflow evaluating the requirement` instead, the crate root wants `#![recursion_limit = "1024"]`.
+help: the following other types implement trait `List`
+  --> src/list.rs
+   |
+   | impl List for Empty {}
+   | ^^^^^^^^^^^^^^^^^^^ `notko_hlist::Empty`
+...
+   | impl<H, T: List> List for Cons<H, T> {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Cons<H, T>`
+   = note: required for `u8` to implement `ContainsAll<notko_hlist::Empty>`
+note: required by a bound in `holds_all`
+  --> tests/compile_fail/a_bare_type_holds_nothing_at_all.rs:8:17
+   |
+ 8 | fn holds_all<L: ContainsAll<M>, M>() {}
+   |                 ^^^^^^^^^^^^^^ required by this bound in `holds_all`

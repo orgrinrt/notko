@@ -1,0 +1,25 @@
+error[E0277]: `Mine` is not a list
+  --> tests/compile_fail/a_membership_witness_cannot_be_forged.rs:15:27
+   |
+15 | impl Contains<Absent> for Mine {}
+   |                           ^^^^ unsatisfied trait bound
+   |
+help: the trait `List` is not implemented for `Mine`
+  --> tests/compile_fail/a_membership_witness_cannot_be_forged.rs:12:1
+   |
+12 | struct Mine;
+   | ^^^^^^^^^^^
+   = note: A list is `Empty`, or `Cons<H, T>` where `T` is itself a list. A head may be anything, a tail may not, so the usual cause is a cell whose tail is a bare type. The trait is sealed, so a type of your own cannot become one.
+help: the following other types implement trait `List`
+  --> src/list.rs
+   |
+   | impl List for Empty {}
+   | ^^^^^^^^^^^^^^^^^^^ `notko_hlist::Empty`
+...
+   | impl<H, T: List> List for Cons<H, T> {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Cons<H, T>`
+note: required by a bound in `Contains`
+  --> src/membership.rs
+   |
+   | pub trait Contains<X>: List {}
+   |                        ^^^^ required by this bound in `Contains`

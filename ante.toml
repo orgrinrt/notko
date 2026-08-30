@@ -26,6 +26,8 @@ maxContributors = 3
 include = [
     "src/**/*.rs",
     "tests/**/*.rs",
+    "notko-hlist/src/**/*.rs",
+    "notko-hlist/tests/**/*.rs",
     "notko-macros/src/**/*.rs",
     "notko-macros/tests/**/*.rs",
     "notko-macros-core/src/**/*.rs",

@@ -1,0 +1,21 @@
+error[E0277]: `notko_hlist::Empty` does not hold `A`
+  --> tests/compile_fail/membership_does_not_descend_into_a_head.rs:17:13
+   |
+17 |     holds::<Nested, A>();
+   |             ^^^^^^ the trait `Contains<A>` is not implemented for `notko_hlist::Empty`
+   |
+   = note: Membership is decided by walking the cells, so `notko_hlist::Empty` has to be a list built from `Empty` and `Cons<H, T>`, and `A` has to be one of its heads. If the compiler reports `overflow evaluating the requirement` instead, the list is deeper than the default recursion limit and the crate root wants `#![recursion_limit = "1024"]`.
+help: `Cons<H, T>` implements trait `Contains<X>`
+  --> src/membership.rs
+   |
+   | impl<H, T: List> Contains<H> for Cons<H, T> {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Contains<H>`
+...
+   | impl<H, T, X> Contains<X> for Cons<H, T> where T: Contains<X> + List {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Contains<X>`
+   = note: required for `Cons<Cons<A, Cons<B, notko_hlist::Empty>>, notko_hlist::Empty>` to implement `Contains<A>`
+note: required by a bound in `holds`
+  --> tests/compile_fail/membership_does_not_descend_into_a_head.rs:14:13
+   |
+14 | fn holds<L: Contains<X>, X>() {}
+   |             ^^^^^^^^^^^ required by this bound in `holds`

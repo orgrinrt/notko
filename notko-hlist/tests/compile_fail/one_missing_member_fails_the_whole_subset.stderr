@@ -1,0 +1,26 @@
+error[E0277]: `notko_hlist::Empty` does not hold `Absent`
+  --> tests/compile_fail/one_missing_member_fails_the_whole_subset.rs:18:17
+   |
+18 |     holds_all::<Three, Wanted>();
+   |                 ^^^^^ the trait `Contains<Absent>` is not implemented for `notko_hlist::Empty`
+   |
+   = note: Membership is decided by walking the cells, so `notko_hlist::Empty` has to be a list built from `Empty` and `Cons<H, T>`, and `Absent` has to be one of its heads. If the compiler reports `overflow evaluating the requirement` instead, the list is deeper than the default recursion limit and the crate root wants `#![recursion_limit = "1024"]`.
+help: `Cons<H, T>` implements trait `Contains<X>`
+  --> src/membership.rs
+   |
+   | impl<H, T: List> Contains<H> for Cons<H, T> {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Contains<H>`
+...
+   | impl<H, T, X> Contains<X> for Cons<H, T> where T: Contains<X> + List {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Contains<X>`
+   = note: required for `Cons<C, notko_hlist::Empty>` to implement `Contains<Absent>`
+   = note: 2 redundant requirements hidden
+   = note: required for `Cons<A, Cons<B, Cons<C, notko_hlist::Empty>>>` to implement `Contains<Absent>`
+   = note: required for `Cons<A, Cons<B, Cons<C, notko_hlist::Empty>>>` to implement `ContainsAll<Cons<Absent, Cons<C, notko_hlist::Empty>>>`
+   = note: 1 redundant requirement hidden
+   = note: required for `Cons<A, Cons<B, Cons<C, notko_hlist::Empty>>>` to implement `ContainsAll<Cons<A, Cons<Absent, Cons<C, notko_hlist::Empty>>>>`
+note: required by a bound in `holds_all`
+  --> tests/compile_fail/one_missing_member_fails_the_whole_subset.rs:15:17
+   |
+15 | fn holds_all<L: ContainsAll<M>, M>() {}
+   |                 ^^^^^^^^^^^^^^ required by this bound in `holds_all`

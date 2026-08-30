@@ -1,0 +1,25 @@
+error[E0277]: `Mine` is not a list
+  --> tests/compile_fail/a_length_cannot_be_claimed_in_a_count_that_is_not_one.rs:15:21
+   |
+15 | impl Length<u8> for Mine {
+   |                     ^^^^ unsatisfied trait bound
+   |
+help: the trait `List` is not implemented for `Mine`
+  --> tests/compile_fail/a_length_cannot_be_claimed_in_a_count_that_is_not_one.rs:13:1
+   |
+13 | struct Mine;
+   | ^^^^^^^^^^^
+   = note: A list is `Empty`, or `Cons<H, T>` where `T` is itself a list. A head may be anything, a tail may not, so the usual cause is a cell whose tail is a bare type. The trait is sealed, so a type of your own cannot become one.
+help: the following other types implement trait `List`
+  --> src/list.rs
+   |
+   | impl List for Empty {}
+   | ^^^^^^^^^^^^^^^^^^^ `notko_hlist::Empty`
+...
+   | impl<H, T: List> List for Cons<H, T> {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Cons<H, T>`
+note: required by a bound in `Length`
+  --> src/length_const_path.rs
+   |
+   | pub trait Length<N>: List {
+   |                      ^^^^ required by this bound in `Length`
