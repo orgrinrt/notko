@@ -1,0 +1,17 @@
+error[E0277]: cannot append `Cons<A, notko_hlist::Empty>` onto `u8`
+  --> tests/compile_fail/appending_onto_a_bare_type_is_refused.rs:12:39
+   |
+12 |     let _: core::marker::PhantomData<<u8 as Concat<One>>::Out> = core::marker::PhantomData;
+   |                                       ^^ the trait `notko_hlist::Concat<Cons<A, notko_hlist::Empty>>` is not implemented for `u8`
+   |
+   = note: Concat walks the left-hand side, so `u8` has to be a list built from `Empty` and `Cons<H, T>`. The right-hand side is not walked and may be anything, which is why the error names the left one.
+help: the following other types implement trait `notko_hlist::Concat<L>`
+  --> src/concat.rs
+   |
+   |   impl<L> Concat<L> for Empty {
+   |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `notko_hlist::Empty`
+...
+   | / impl<H, T, L> Concat<L> for Cons<H, T>
+   | | where
+   | |     T: Concat<L> + List,
+   | |________________________^ `Cons<H, T>`

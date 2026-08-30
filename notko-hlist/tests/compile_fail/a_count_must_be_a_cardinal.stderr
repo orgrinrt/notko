@@ -1,0 +1,12 @@
+error[E0277]: the trait bound `usize: Cardinal` is not satisfied
+  --> tests/compile_fail/a_count_must_be_a_cardinal.rs:12:14
+   |
+12 |     let _ = <One as Length<usize>>::len();
+   |              ^^^ the trait `Cardinal` is not implemented for `usize`
+   |
+help: the trait `Length<N>` is implemented for `Cons<H, T>`
+  --> src/length_const_path.rs
+   |
+   | impl<N: const Cardinal, H, T: Length<N>> Length<N> for Cons<H, T> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: required for `Cons<A, notko_hlist::Empty>` to implement `Length<usize>`
