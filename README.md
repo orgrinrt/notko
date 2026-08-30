@@ -178,7 +178,16 @@ match and fails the build. A sibling proc-macro crate reusing `notko-macros-core
 
 Enable the `macros` feature to get `profile` re-exported at `notko`'s root.
 
-## The other three crates
+## The other four crates
+
+[`notko-hlist`](https://crates.io/crates/notko-hlist) is a heterogeneous type-level list, `Empty` and
+`Cons<H, T>`, with length, membership and append written as traits the compiler resolves rather than as
+anything that runs. Nothing is stored in one and no value of one is ever built, so what you get out of it
+is a bound: `L: Contains<Db>` says the list holds a `Db`, and a function asking for that can't be called
+with a list that doesn't. The list trait is sealed, which matters more than it sounds like it does,
+because the membership ones are `#[marker]` traits where an impl is a single empty line, so without the
+sealing a bound like that would only prove somebody wrote that line. It doesn't come through `notko`, so
+depend on it directly.
 
 [`notko-macros`](https://crates.io/crates/notko-macros) is where `#[profile]` lives, and the `macros`
 feature above is that same attribute re-exported from here. Depend on it directly if you want the
