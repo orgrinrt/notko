@@ -17,7 +17,8 @@ else to put the rewrite engine that [`notko-macros`](https://crates.io/crates/no
 And once it had to exist separately it may as well be public, so a fallibility-tier attribute of your
 own can build on this instead of doing the rewrite engine over again.
 
-Do note the surface still moves with the rest of the crates, so pin an exact version.
+Do note the surface still moves with the rest of the crates, and on a `0.0.x` version cargo resolves to
+that one and nothing else, so what `cargo add` writes is already the pin.
 
 ## Installation
 
@@ -36,6 +37,7 @@ better place for it than a table here that drifts the first time a type moves.
 
 ```rust
 // my-macros/src/lib.rs
+use notko_macros_core::tiers::{CustomTier, Hot};
 use proc_macro::TokenStream;
 
 #[proc_macro_attribute]
