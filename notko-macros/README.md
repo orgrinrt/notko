@@ -154,7 +154,7 @@ thing it finds. Custom tiers appear alongside the built-ins with no additional i
 
 ```rust
 #[profile(Trace)]  // resolves via notko-optimisers/Trace.rs
-pub fn some_work() -> Result<(), Err> { /* ... */ }
+pub fn some_work() -> Result<(), WorkErr> { /* ... */ }
 ```
 
 There's a third source as well, an accumulated directory named by `$NOTKO_OPTIMISERS_PATH`, consulted

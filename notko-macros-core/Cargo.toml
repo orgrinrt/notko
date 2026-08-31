@@ -6,7 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 homepage.workspace = true
 repository.workspace = true
-description = "AST-rewrite primitives and tier-discovery logic for notko-macros; reusable by third-party proc-macro crates that author their own fallibility-tier attribute macros"
+description = "The AST rewriting behind notko-macros' #[profile], as a library an attribute of your own can use."
 readme = "README.md"
 categories = ["development-tools::procedural-macro-helpers"]
 keywords = ["proc-macro", "codegen", "hot-path", "fallible", "attribute"]
@@ -22,6 +22,7 @@ include = [
     "tests/a_third_party_macro_names_its_own_crate.rs",
     "tests/extension.rs",
     "tests/hot_rewrite_shapes.rs",
+    "tests/the_readme_examples_are_the_api.rs",
     "README.md",
     "LICENSE",
 ]

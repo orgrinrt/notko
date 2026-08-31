@@ -20,26 +20,18 @@
 //! everything the crate says about a list it says through traits the compiler
 //! resolves.
 //!
-//! # Contents
+//! [`List`] says that something is one, and it is sealed, so nothing outside
+//! can claim it. Every other trait here takes it as a supertrait, which is
+//! what makes a bound on one of them a fact rather than a claim. The
+//! membership traits are `#[marker]` ones whose impls are a single empty line,
+//! so without the seal a bound would prove only that somebody wrote that line.
 //!
-//! - [`Empty`] and [`Cons<H, T>`]: the leaf and the cell.
-//! - [`List`]: that something is one, sealed so nothing else can be. Every
-//!   other trait here has it as a supertrait, which is what makes a bound on
-//!   one of them a fact rather than a claim.
-//! - [`Cardinal`]: what a count is, as zero and a successor. A consumer
-//!   implements it for its own number type, which is the whole reason the
-//!   count is a parameter here rather than a type this crate picked.
-//! - [`Length<N>`]: the cardinality of a list, in the consumer's count type.
-//! - [`Contains<X>`] and [`ContainsAll<L>`]: membership of one type, and of
-//!   every member of another list.
-//! - [`Concat<L>`]: append, as a type-level function.
-//!
-//! # Why a crate rather than a copy
-//!
-//! Three repositories had independently declared `Empty` and `Cons<H, T>`
-//! byte for byte, then regrown the same operations under different names, so
-//! a list built by one of them could not be handed to another and no error
-//! anywhere said why. What is here is the union of what they had grown.
+//! The structural facts come as [`Length<N>`] for the count, [`Contains<X>`]
+//! and [`ContainsAll<L>`] for membership of one type and of every member of
+//! another list, and [`Concat<L>`] for append as a type-level function. The
+//! count lands in whatever number type the consumer already has, through
+//! [`Cardinal`], which is zero and a successor and nothing else, so this crate
+//! never picks the number type on anybody's behalf.
 //!
 //! # Naming the list in your own vocabulary
 //!
@@ -58,14 +50,14 @@
 //! type Matrix = Axis<Rows, Axis<Cols, Scalar>>;
 //! ```
 //!
-//! A shape with no axes being the leaf is not a pun: it is a scalar.
+//! Do note the leaf lands on a shape with no axes, which is a scalar.
 //!
 //! # What is not here
 //!
-//! **No value-level fold.** Reducing a list with an identity and an
-//! associative combine needs the algebra, and the algebra is numerics
-//! territory rather than this crate's. What is here is the structural folds,
-//! which need none: length, concatenation, membership.
+//! There's no value-level fold, since reducing a list with an identity and an
+//! associative combine needs the algebra, and the algebra sits in numerics
+//! rather than here. The structural folds need none of that, so those are the
+//! ones that ship: length, concatenation and membership.
 //!
 //! # Features
 //!

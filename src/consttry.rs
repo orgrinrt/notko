@@ -15,7 +15,7 @@
 //!
 //! Owning the surface is also what keeps the crate independent of how
 //! new a nightly is, and of how the const shape of `Try` upstream
-//! settles. There is a second reason it could not simply be borrowed:
+//! settles. There is a second reason it could not be borrowed:
 //! orphan rules forbid implementing `core`'s `Residual` for
 //! `Infallible`, which is why `Just` carries a residual of its own.
 //!

@@ -20,38 +20,26 @@
 //!
 //! Finnish *notko*: hollow, trough.
 //!
-//! Zero deps, no std, no alloc. Ships the vocabulary that stands in for
-//! `core::option::Option`, `core::result::Result`, and bare integer
-//! primitives, so one set of words covers presence, fallibility and width.
+//! Core's carriers differ by what they hold, `Option<T>` for absence and
+//! `Result<T, E>` for an error with a payload, and the three here differ by
+//! what a branch costs instead. [`Just<T>`] has no error case at all and is
+//! `#[repr(transparent)]` over the value, so with `try_trait_v2` on there is
+//! nothing for `?` to branch to. [`Maybe<T>`] handles ordinary absence, and
+//! [`Outcome<T, E>`] takes an error carrying data. Each keeps a matching api on
+//! purpose, so moving a function across is usually a type change with the body
+//! left alone, although the guarantees are not equal.
 //!
-//! # Contents
+//! It's `#![no_std]`, no alloc, no platform deps, and in the default build no
+//! dependencies at all. The `macros` feature is the one exception, since it
+//! pulls the proc-macro crate in and that one uses std and `syn`, only at
+//! compile time though, so none of it lands in the binary.
 //!
-//! - [`Just<T>`]: infallible value wrapper with a zero-cost `Try` impl.
-//! - [`Maybe<T>`]: presence (Option replacement). Niche-fills for pointer-shaped `T` so
-//!   `Maybe<unsafe extern "C" fn(...)>`, `Maybe<&T>`, `Maybe<NonNull<T>>`, etc. are one
-//!   pointer wide with `Isnt` as the null bit pattern, matching `Option<T>`'s layout for
-//!   the same shapes. Size parity is const-asserted in `maybe.rs`.
-//! - [`Outcome<T, E>`]: fallible (Result replacement). Layout is tagged-union with
-//!   platform-standard field ordering; no `repr(C)` forcing. For FFI-critical two-variant
-//!   results, wrap the payload in a dedicated `#[repr(C)]` struct.
-//! - [`Slot<T>`]: niche-filled `Maybe<T>` wrapper for `T: NonZeroable + NicheFilled`,
-//!   `#[repr(transparent)]` so layout matches `T`.
-//! - [`Boundable`]: trait for "this type is bounded to `[MIN, MAX]`".
-//!   Companion [`BoundError`] enum names whether a rejected value was
-//!   below `MIN` or above `MAX` and carries the offending value.
-//! - [`sink::Push<T>`] and [`sink::BulkPush<T>`]: receive an item, or a slice of them,
-//!   through an exclusive reference and without failing. What a collector somebody owns
-//!   looks like.
-//! - [`sink::Emit<T>`]: receive an item through a shared reference, fallibly. What an
-//!   installed destination looks like: a log, a port, a file, a channel.
-//! - [`lend::Lend<T>`]: storage a caller hands over to be filled, with
-//!   [`lend::Fill`] carrying back the prefix that was written and
-//!   [`lend::Exhausted`] saying how much was wanted against how much there was.
-//! - [`NonZeroable`]: trait for "this type has a zero sentinel and a
-//!   nonzero guarantee form".
-//! - [`ConstTry`] / [`ConstFromResidual`]: const-callable parallels of
-//!   `core::ops::Try` / `FromResidual`. Gated behind the `const` cargo
-//!   feature (default-on).
+//! Around the three there's a smaller set for the boundaries, where either the
+//! bytes or the value are the contract: [`Slot<T>`] and [`MaybeNull<T>`] for a
+//! layout somebody outside the crate is relying on, [`Boundable`] and
+//! [`NonZeroable`] for an invariant checked once at construction, and
+//! [`sink::Push`], [`sink::Emit`] and [`lend::Lend`] for handing data into
+//! storage that is somebody else's.
 //!
 //! # Cost per call site
 //!
@@ -69,44 +57,43 @@
 //! `notko-macros` crate, re-exported at the root under the `macros`
 //! feature) rewrites a function's return type between builds:
 //! `Outcome<T, E>` in debug and standalone consumers, `Just<T>` in
-//! internal-release builds where invariants are proven by construction.
-//! The primitives are usable without the macro; the macro is an optional
-//! accelerator.
+//! internal-release builds where invariants are proven by construction. The
+//! primitives work on their own, so the macro is optional.
 //!
 //! # ABI stability
 //!
-//! [`Maybe<T>`] participates in Rust's niche-filling optimisation. For payload
-//! types with a niche (function pointers, `&T`, `&mut T`, `NonZero*`,
-//! `NonNull<T>`, and similar), `Maybe<T>` has identical size and alignment
-//! to `T` itself, with [`Maybe::Isnt`] represented by `T`'s invalid bit
-//! pattern (null for pointers, zero for `NonZero*`). This is the same
-//! layout `Option<T>` gets for those shapes; `Maybe<T>` is a drop-in
-//! FFI-compatible replacement whenever the payload is pointer-shaped.
+//! [`Maybe<T>`] takes part in the compiler's niche filling, so where the payload
+//! has an invalid bit pattern of its own (a function pointer, `&T`, `&mut T`, a
+//! `NonZero*`, a `NonNull<T>`, and the rest of that family) it comes out the same
+//! size and alignment as the `T`, with [`Maybe::Isnt`] sitting in that pattern,
+//! null for the pointers and zero for the `NonZero*`. That's the layout
+//! `Option<T>` already gets for the same shapes, which makes `Maybe` a drop-in
+//! across an FFI boundary whenever the payload is shaped like a pointer.
 //!
-//! Size parity is pinned by compile-time `assert!` in `maybe.rs`. If a
-//! future rustc drops niche-filling for user enums while keeping
-//! `Option`-specific guarantees, those assertions fail compilation and
-//! a build catches it immediately.
+//! The size parity is pinned by a `const` assertion per shape in `maybe.rs`, so a
+//! future compiler dropping niche filling for user enums while keeping the
+//! `Option` guarantee breaks the build rather than the ABI.
 //!
-//! For fully general payload types (both variants carry values, as in
-//! `Outcome<T, E>`), there is no single-pointer representation. Code
-//! that needs a specific C ABI result layout should wrap the payload
-//! in a dedicated `#[repr(C)]` struct rather than rely on
-//! `Outcome`'s default Rust-repr tagged-union layout.
+//! Do note there's no such thing where both variants carry a value, as in
+//! [`Outcome<T, E>`], since nothing can be folded into anything. If you want an
+//! exact result layout across the boundary, wrap the payload in your own
+//! `#[repr(C)]` struct instead of leaning on `repr(Rust)`'s tagged union.
 //!
 //! `Maybe` sits in a public API position for vocabulary reasons rather than
 //! layout ones. `Option<&T>`, `Option<NonNull<T>>`, `Option<NonZero*>` and
 //! `Option<fn>` all carry documented layout guarantees of their own, and
-//! `Maybe` carries the same niche-filled layout for the same shapes. What it
-//! buys is one word for presence everywhere, not a representation `core`
-//! could not have given.
+//! `Maybe` carries the same niche-filled layout for the same shapes. What you
+//! get out of it is one word for presence across the whole surface, rather
+//! than a representation `core` could not have given.
 //!
 //! # Where `Option` stays
 //!
-//! The std types still exist and are still what std trait method signatures
-//! require (`fn next() -> Option<Self::Item>`, `fn partial_cmp() ->
-//! Option<Ordering>`, `fn fmt() -> fmt::Result`). Those are the places
-//! `Option` is unavoidable, so that's where it stays.
+//! The core types are still there and still what the core traits ask for in their
+//! own signatures, `fn next() -> Option<Self::Item>`, `fn partial_cmp() ->
+//! Option<Ordering>`, `fn fmt() -> fmt::Result`, and nothing here changes that.
+//! Those are the places `Option` cannot be avoided, so that's where it stays, and
+//! [`iter::IteratorExt`] and [`cmp::PartialOrdExt`] are the bridge at the call
+//! site rather than an attempt to move the boundary.
 
 // The README's `rust` blocks are compiled as doctests. Only those: the shell
 // blocks are prose as far as this is concerned, and changing a fence would drop

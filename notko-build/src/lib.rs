@@ -3,11 +3,23 @@
 // SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
 //--------------------------------------------------------------------------------------------------
 
-//! Build-script helper for [notko-macros].
+//! Build-script helper for [notko-macros], for the one case where a fallibility
+//! tier is defined in one crate and used in another.
 //!
-//! See the crate README for the full usage / mechanics / precedence story.
-//! One entry point: [`collect_and_distribute`]. Call it from a consumer
-//! crate's `build.rs`.
+//! A tier is an ordinary file a crate keeps in its own `notko-optimisers/`
+//! directory, and by default the proc-macro sees only the ones belonging to the
+//! crate it is expanding into, since cargo gives a proc-macro no way to reach a
+//! file inside a dependency. So this runs in a build script instead, copying the
+//! crate's own tier files and the ones its dependencies handed over into
+//! `$OUT_DIR/notko-optimisers/` and pointing the proc-macro at the result. There
+//! is one entry point, [`collect_and_distribute`], called from a consumer's
+//! `build.rs`, and it is idempotent, so calling it every build is the intended
+//! shape rather than something to guard.
+//!
+//! Do note the reach is the direct dependencies that declare `links` and run
+//! this themselves, which is usually less than the whole graph. The crate README
+//! carries that and the precedence between the three places a tier can come
+//! from.
 //!
 //! [notko-macros]: https://crates.io/crates/notko-macros
 
@@ -198,7 +210,7 @@ fn dep_dirs_from(vars: impl Iterator<Item = (String, String)>) -> Vec<PathBuf> {
 ///
 /// Built rather than printed, so what goes to stdout can be asserted on. A
 /// wrong key here is silent: cargo ignores an instruction it does not
-/// recognise, and the consumer's proc-macro simply finds nothing.
+/// recognise, and the consumer's proc-macro then finds nothing.
 fn metadata_lines(accumulated_dir: &Path) -> [String; 2] {
     [
         // The proc-macro reads this during expansion of this crate's own rlib.
@@ -584,7 +596,7 @@ mod tests {
     fn the_directory_a_crate_ships_its_own_files_in_is_the_documented_one() {
         // The fourth name, and the one the emitted lines above cannot reach:
         // it names a directory in the consumer's source tree rather than
-        // anything this writes out. Wrong, and the scan simply finds nothing
+        // anything this writes out. Wrong, and the scan then finds nothing
         // and says nothing, which is the same silence as the other three.
         assert_eq!(LOCAL_DIR, "notko-optimisers");
         assert_eq!(

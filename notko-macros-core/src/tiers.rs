@@ -10,11 +10,10 @@
 //! implement [`Tier`] on their own ZSTs to register additional built-ins
 //! in their own code.
 //!
-//! Two conventions hold across everything here:
-//! - ZST markers for discrimination, not string literals at comparison
-//!   sites.
-//! - `Named::NAME` single source of truth: the [`Tier::NAME`] const is the
-//!   only place a tier's string identity lives.
+//! Two conventions hold across everything here. Discrimination goes through the
+//! marker types rather than through string literals at the comparison sites, and
+//! a tier's string identity lives in its [`Tier::NAME`] const and nowhere else,
+//! so the two cannot come apart.
 //!
 //! # Extension in downstream crates
 //!
