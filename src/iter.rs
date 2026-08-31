@@ -1,11 +1,14 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! [`IteratorExt`]: adapter from `core::iter::Iterator::next` to [`Maybe`].
 //!
-//! Bridges the std `Iterator::next() -> Option<Item>` boundary to the
-//! stack's [`Maybe`] vocabulary. Every consumer that ships a custom
-//! `Iterator` impl reaches for `lint:allow(no-bare-option)` because the
-//! trait method signature names `Option`. The adapter lets call sites
-//! use `Maybe` without paying that cost; the std signature stays where
-//! it must (the `Iterator` impl body itself).
+//! Bridges `Iterator::next() -> Option<Item>` over to [`Maybe`]. The trait
+//! signature names `Option` and there's nothing to be done about that, so
+//! the `Option` stays inside the `Iterator` impl where it has to be, and
+//! this lets the call site go back to `Maybe`.
 
 use crate::Maybe;
 
@@ -13,10 +16,11 @@ use crate::Maybe;
 /// a [`Maybe`] instead of an [`Option`].
 ///
 /// Use at call sites that consume an iterator and want to stay in the
-/// substrate's vocabulary:
+/// vocabulary of this crate:
 ///
 /// ```
-/// use notko::{Maybe, iter::IteratorExt};
+/// use notko::Maybe;
+/// use notko::iter::IteratorExt;
 ///
 /// let mut it = [1, 2, 3].into_iter();
 /// match it.next_maybe() {

@@ -1,12 +1,19 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! Const-variant ConstTry / ConstFromResidual impls on `Outcome<T, E>`.
 //! Loaded only when feature `const` is enabled.
 
-use super::Outcome;
-use crate::{ConstFromResidual, ConstTry};
 use core::convert::Infallible;
+use core::marker::Destruct;
 use core::ops::ControlFlow;
 
-impl<T: Copy, E: Copy> const ConstTry for Outcome<T, E> {
+use super::Outcome;
+use crate::{ConstFromResidual, ConstTry};
+
+const impl<T: [const] Destruct, E: [const] Destruct> ConstTry for Outcome<T, E> {
     type Output = T;
     type Residual = Outcome<Infallible, E>;
 
@@ -24,16 +31,15 @@ impl<T: Copy, E: Copy> const ConstTry for Outcome<T, E> {
     }
 }
 
-// `From` in const trait bounds is not yet stable; ConstFromResidual on Outcome
-// omits the `F: From<E>` conversion variant in the const path. Consumers
-// needing `E -> F` conversion through ConstFromResidual reach for the
-// non-const path via `default-features = false`. See the `# Divergence`
-// section on `ConstFromResidual`'s declaration in `consttry_const_path.rs`.
-impl<T: Copy, E: Copy> const ConstFromResidual<Outcome<Infallible, E>> for Outcome<T, E> {
+const impl<T, E, F: [const] From<E> + [const] Destruct> ConstFromResidual<Outcome<Infallible, E>>
+    for Outcome<T, F>
+where
+    E: [const] Destruct,
+{
     #[inline]
     fn from_residual(residual: Outcome<Infallible, E>) -> Self {
         match residual {
-            Outcome::Err(err) => Outcome::Err(err),
+            Outcome::Err(err) => Outcome::Err(F::from(err)),
             Outcome::Ok(never) => match never {},
         }
     }

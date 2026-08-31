@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! Smoke tests for the `IteratorExt::next_maybe` adapter.
 
 use notko::Maybe;
@@ -22,10 +27,17 @@ fn works_with_custom_iterator() {
     struct Two(i32, i32, u8);
     impl Iterator for Two {
         type Item = i32;
+
         fn next(&mut self) -> Option<i32> {
             match self.2 {
-                0 => { self.2 = 1; Some(self.0) },
-                1 => { self.2 = 2; Some(self.1) },
+                0 => {
+                    self.2 = 1;
+                    Some(self.0)
+                },
+                1 => {
+                    self.2 = 2;
+                    Some(self.1)
+                },
                 _ => None,
             }
         }
@@ -41,7 +53,7 @@ fn works_with_custom_iterator() {
 fn equivalent_to_next_into() {
     let mut a = [1, 2, 3].into_iter();
     let mut b = [1, 2, 3].into_iter();
-    for _ in 0..4 {
+    for _ in 0 .. 4 {
         let from_ext = a.next_maybe();
         let from_into: Maybe<i32> = b.next().into();
         match (from_ext, from_into) {

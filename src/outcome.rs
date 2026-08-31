@@ -1,16 +1,21 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! [`Outcome<T, E>`]: fallibility (replaces `Result<T, E>`).
 
 use core::fmt;
 
 /// Fallible computation outcome.
 ///
-/// Replaces `core::result::Result<T, E>` in the hilavitkutin stack's
-/// public APIs. Layout is platform-standard Rust repr; no `repr(C)`
+/// Stands in for `core::result::Result<T, E>` in a public API, so one
+/// vocabulary covers the three tiers. Layout is platform-standard Rust repr; no `repr(C)`
 /// forcing. Two-payload `repr(C)` enums have implementation-defined
 /// edge cases at the C ABI boundary, and the documented guidance
 /// for FFI-critical result layouts is to wrap the payload in a
 /// dedicated `#[repr(C)]` struct rather than rely on Outcome's
-/// default. See `lib.rs` module-level doc.
+/// default. See [crate] for the layout notes.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 #[must_use = "Outcome<T, E> may carry an error; ignoring it discards the failure path"]
 pub enum Outcome<T, E> {
@@ -282,6 +287,23 @@ impl<T, E> From<Outcome<T, E>> for Result<T, E> {
     }
 }
 
+/// Default `Outcome` is `Ok(T::default())`: the success path with no override.
+///
+/// Deliberately not following `Result`, which has no `Default` impl at all. The
+/// reason `core` declines is that neither variant is obviously the default, and
+/// the reason this one picks `Ok` anyway is the requirement below.
+///
+/// Required when a downstream contract needs a constructible `Outcome` without
+/// the contract owner choosing an error value, which is the case for an
+/// associated type whose default the contract declares rather than the consumer.
+/// `Err` would need an `E: Default`, and an error conjured from nothing is worse
+/// than a success carrying `T`'s own default.
+impl<T: Default, E> Default for Outcome<T, E> {
+    fn default() -> Self {
+        Outcome::Ok(T::default())
+    }
+}
+
 impl<T, E: fmt::Debug> fmt::Debug for Outcome<T, E>
 where
     T: fmt::Debug,
@@ -296,9 +318,10 @@ where
 
 #[cfg(feature = "try_trait_v2")]
 mod try_impl {
-    use super::Outcome;
     use core::convert::Infallible;
-    use core::ops::{ControlFlow, FromResidual, Try};
+    use core::ops::{ControlFlow, FromResidual, Residual, Try};
+
+    use super::Outcome;
 
     impl<T, E> Try for Outcome<T, E> {
         type Output = T;
@@ -327,6 +350,10 @@ mod try_impl {
             }
         }
     }
+
+    impl<T, E> Residual<T> for Outcome<Infallible, E> {
+        type TryType = Outcome<T, E>;
+    }
 }
 
 #[cfg(feature = "const")]
@@ -336,3 +363,20 @@ mod consttry_const_impl;
 #[cfg(not(feature = "const"))]
 #[path = "outcome_consttry_plain.rs"]
 mod consttry_plain_impl;
+
+#[cfg(test)]
+mod default_tests {
+    use super::Outcome;
+
+    #[test]
+    fn default_outcome_is_ok_default() {
+        let result: Outcome<u32, ()> = Default::default();
+        assert!(matches!(result, Outcome::Ok(0)));
+    }
+
+    #[test]
+    fn default_unit_outcome_is_ok_unit() {
+        let result: Outcome<(), ()> = Default::default();
+        assert!(matches!(result, Outcome::Ok(())));
+    }
+}

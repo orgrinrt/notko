@@ -1,28 +1,48 @@
-//! Build-script helper for [notko-macros].
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
+//! Build-script helper for [notko-macros], for the one case where a fallibility
+//! tier is defined in one crate and used in another.
 //!
-//! See the crate README for the full usage / mechanics / precedence story.
-//! One entry point: [`collect_and_distribute`]. Call it from a consumer
-//! crate's `build.rs`.
+//! A tier is an ordinary file a crate keeps in its own `notko-optimisers/`
+//! directory, and by default the proc-macro sees only the ones belonging to the
+//! crate it is expanding into, since cargo gives a proc-macro no way to reach a
+//! file inside a dependency. So this runs in a build script instead, copying the
+//! crate's own tier files and the ones its dependencies handed over into
+//! `$OUT_DIR/notko-optimisers/` and pointing the proc-macro at the result. There
+//! is one entry point, [`collect_and_distribute`], called from a consumer's
+//! `build.rs`, and it is idempotent, so calling it every build is the intended
+//! shape rather than something to guard.
 //!
-//! [notko-macros]: https://github.com/orgrinrt/notko/tree/dev/notko-macros
+//! Do note the reach is the direct dependencies that declare `links` and run
+//! this themselves, which is usually less than the whole graph. The crate README
+//! carries that and the precedence between the three places a tier can come
+//! from.
+//!
+//! [notko-macros]: https://crates.io/crates/notko-macros
 
 use std::collections::BTreeMap;
-use std::env;
-use std::fs;
-use std::io;
 use std::path::{Path, PathBuf};
+use std::{env, fs, io};
 
-/// The name cargo will pass to dependents. Crates that wish to propagate
-/// their own optimisers must declare `links = "notko-optimisers-<crate>"`
-/// (the `notko-optimisers-` prefix being the convention this tool
-/// recognises, with a unique per-crate suffix).
+/// The key cargo carries to dependents, which is the half of the variable name
+/// this side owns. A crate that wants to propagate its own optimisers has to
+/// declare a `links` value, because that is what makes cargo forward the key at
+/// all, and cargo requires that value be unique across the graph.
+///
+/// Which value it is does not matter here. `dep_dirs_from` matches on the `DEP_`
+/// prefix and this key's suffix and never looks at the `links` half, so
+/// `notko-optimisers-<crate>` is a habit that avoids collisions rather than
+/// something recognised.
 const META_KEY: &str = "notko-optimiser-path";
 
 /// Env var the notko-macros proc-macro reads at expansion time.
 const EXPANSION_ENV_VAR: &str = "NOTKO_OPTIMISERS_PATH";
 
 /// Local-relative dir each crate uses to ship its own optimiser .rs files.
-const LOCAL_DIR: &str = "notko-optimizers";
+const LOCAL_DIR: &str = "notko-optimisers";
 
 /// Sub-dir inside `$OUT_DIR` where accumulated optimiser files are written.
 const OUT_SUBDIR: &str = "notko-optimisers";
@@ -37,8 +57,8 @@ pub enum Error {
     Io(io::Error),
     /// Two sources provided the same tier name. Paths to both are included.
     Collision {
-        name: String,
-        first: PathBuf,
+        name:   String,
+        first:  PathBuf,
         second: PathBuf,
     },
 }
@@ -46,19 +66,24 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::MissingEnv(var) => write!(
-                f,
-                "notko-build: required cargo env var `{var}` was not set"
-            ),
+            Error::MissingEnv(var) => {
+                write!(f, "notko-build: required cargo env var `{var}` was not set")
+            },
             Error::Io(e) => write!(f, "notko-build: io error: {e}"),
-            Error::Collision { name, first, second } => write!(
-                f,
-                "notko-build: tier `{name}` provided by two sources: \
+            Error::Collision {
+                name,
+                first,
+                second,
+            } => {
+                write!(
+                    f,
+                    "notko-build: tier `{name}` provided by two sources: \
                  `{}` and `{}`. resolve by renaming one or dropping a \
-                 local override in your crate's notko-optimizers/ dir.",
-                first.display(),
-                second.display()
-            ),
+                 local override in your crate's notko-optimisers/ dir.",
+                    first.display(),
+                    second.display()
+                )
+            },
         }
     }
 }
@@ -79,7 +104,7 @@ impl From<io::Error> for Error {
 }
 
 /// Call from a consumer crate's `build.rs`. Scans crate-local
-/// `notko-optimizers/` and dependency-propagated paths, accumulates them
+/// `notko-optimisers/` and dependency-propagated paths, accumulates them
 /// into `$OUT_DIR/notko-optimisers/`, and emits cargo instructions to
 /// expose the accumulated dir to the notko-macros proc-macro and to
 /// downstream dependents.
@@ -90,60 +115,136 @@ pub fn collect_and_distribute() -> Result<(), Error> {
         env::var("CARGO_MANIFEST_DIR").map_err(|_| Error::MissingEnv("CARGO_MANIFEST_DIR"))?;
     let out_dir = env::var("OUT_DIR").map_err(|_| Error::MissingEnv("OUT_DIR"))?;
 
-    let local_dir = Path::new(&manifest_dir).join(LOCAL_DIR);
-    let accumulated_dir = Path::new(&out_dir).join(OUT_SUBDIR);
+    let dep_dirs = dep_dirs_from(env::vars());
 
-    fs::create_dir_all(&accumulated_dir)?;
+    let accumulated_dir = accumulate(
+        &Path::new(&manifest_dir).join(LOCAL_DIR),
+        &dep_dirs,
+        &Path::new(&out_dir).join(OUT_SUBDIR),
+    )?;
 
-    // name -> path of the source that contributed this tier. Used for
-    // collision detection.
-    let mut seen: BTreeMap<String, PathBuf> = BTreeMap::new();
-
-    // Copy crate-local optimisers first. Local takes precedence over
-    // DEP_*-propagated paths (the consumer's own files shadow deps).
-    if local_dir.is_dir() {
-        emit_rerun(&local_dir);
-        copy_tree(&local_dir, &accumulated_dir, &mut seen, /* allow_shadow = */ true)?;
-    }
-
-    // Collect DEP_*_NOTKO_OPTIMISER_PATH env vars set by cargo from deps
-    // that emitted the `notko-optimiser-path` meta key.
-    for (key, value) in env::vars() {
-        if let Some(rest) = key.strip_prefix("DEP_") {
-            if rest.ends_with("_NOTKO_OPTIMISER_PATH") {
-                let dep_dir = PathBuf::from(value);
-                if dep_dir.is_dir() {
-                    copy_tree(
-                        &dep_dir,
-                        &accumulated_dir,
-                        &mut seen,
-                        /* allow_shadow = */ false,
-                    )?;
-                }
-            }
-        }
-    }
-
-    // Expose the accumulated dir to the proc-macro via an env var set for
-    // the build of THIS crate's rlib.
-    println!(
-        "cargo:rustc-env={}={}",
-        EXPANSION_ENV_VAR,
-        accumulated_dir.display()
-    );
-    // Propagate to downstream dependents via build-script metadata. Only
-    // takes effect if the consumer's Cargo.toml declares a `links = ...`
-    // value, otherwise cargo silently drops it.
-    println!("cargo:{}={}", META_KEY, accumulated_dir.display());
-
+    emit_metadata(&accumulated_dir);
     Ok(())
 }
 
+/// Copy every optimiser this crate can see into `accumulated_dir` and return
+/// it, with the crate's own files winning any name a dependency also claims.
+///
+/// Split out from [`collect_and_distribute`] because that one reads the
+/// environment cargo hands a build script, and the environment is process-wide
+/// while tests are not. This takes its three inputs as paths, so a test can
+/// build a real tree and assert on what actually lands.
+fn accumulate(
+    local_dir: &Path,
+    dep_dirs: &[PathBuf],
+    accumulated_dir: &Path,
+) -> Result<PathBuf, Error> {
+    // Emptied first, not merely created. A tier deleted from its provider, or
+    // renamed, or moved to a different provider, used to keep resolving off
+    // whatever this directory still held from the last run: the build stayed
+    // green on a source file that was no longer anywhere, until somebody ran
+    // `cargo clean`. The clash check below cannot see it either, since `seen`
+    // is rebuilt from what this run copied.
+    //
+    // A missing directory is not an error here; there is nothing to remove.
+    match fs::remove_dir_all(accumulated_dir) {
+        Ok(()) => {},
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {},
+        Err(e) => return Err(e.into()),
+    }
+    fs::create_dir_all(accumulated_dir)?;
+
+    // Tier name to the source that contributed it, and whether that source was
+    // this crate's own directory. Both halves are needed: the name to detect a
+    // clash at all, and the origin to decide whether the clash is an error.
+    let mut seen: BTreeMap<String, Origin> = BTreeMap::new();
+
+    // This crate's own files first, so a name it claims is already registered
+    // as local by the time any dependency is read.
+    if local_dir.is_dir() {
+        emit_rerun(local_dir);
+        copy_tree(local_dir, accumulated_dir, &mut seen, Source::Local)?;
+    }
+
+    for dep_dir in dep_dirs {
+        if dep_dir.is_dir() {
+            copy_tree(dep_dir, accumulated_dir, &mut seen, Source::Dep)?;
+        }
+    }
+
+    Ok(accumulated_dir.to_path_buf())
+}
+
+/// Where a tier came from, which is what decides whether a repeated name is a
+/// shadow or a clash.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Source {
+    /// The consuming crate's own `notko-optimisers/` directory.
+    Local,
+    /// A directory a dependency propagated through build-script metadata.
+    Dep,
+}
+
+/// The source that contributed a tier, kept so a later clash can be judged.
+#[derive(Debug, Clone)]
+struct Origin {
+    path:   PathBuf,
+    source: Source,
+}
+
+/// The dependency-contributed directories in a build script's environment.
+///
+/// Takes the variables rather than reading them, for the reason [`accumulate`]
+/// is split out: the process environment is shared and tests are not, so a
+/// filter that reads it directly can only be checked by hand.
+fn dep_dirs_from(vars: impl Iterator<Item = (String, String)>) -> Vec<PathBuf> {
+    vars.filter_map(|(key, value)| {
+        let rest = key.strip_prefix("DEP_")?;
+        rest.ends_with("_NOTKO_OPTIMISER_PATH")
+            .then(|| PathBuf::from(value))
+    })
+    .collect()
+}
+
+/// The `cargo:` lines a build script emits for an accumulated directory.
+///
+/// Built rather than printed, so what goes to stdout can be asserted on. A
+/// wrong key here is silent: cargo ignores an instruction it does not
+/// recognise, and the consumer's proc-macro then finds nothing.
+fn metadata_lines(accumulated_dir: &Path) -> [String; 2] {
+    [
+        // The proc-macro reads this during expansion of this crate's own rlib.
+        format!(
+            "cargo:rustc-env={}={}",
+            EXPANSION_ENV_VAR,
+            accumulated_dir.display()
+        ),
+        // Propagate to downstream dependents via build-script metadata. Only
+        // takes effect if the consumer's Cargo.toml declares a `links = ...`
+        // value, otherwise cargo silently drops it.
+        format!("cargo:{}={}", META_KEY, accumulated_dir.display()),
+    ]
+}
+
+fn emit_metadata(accumulated_dir: &Path) {
+    for line in metadata_lines(accumulated_dir) {
+        println!("{line}");
+    }
+}
+
+/// Copy every `.rs` file directly under `src` into `dst`, registering each
+/// tier name in `seen`.
+///
+/// A name already registered by [`Source::Local`] is skipped outright, file
+/// and all, because the local file is the one that wins and copying over it
+/// would silently undo that. A name registered by one dependency and claimed
+/// by another is [`Error::Collision`]: nothing ranks two dependencies against
+/// each other, so picking either would be arbitrary.
 fn copy_tree(
     src: &Path,
     dst: &Path,
-    seen: &mut BTreeMap<String, PathBuf>,
-    allow_shadow: bool,
+    seen: &mut BTreeMap<String, Origin>,
+    source: Source,
 ) -> Result<(), Error> {
     for entry in fs::read_dir(src)? {
         let entry = entry?;
@@ -159,25 +260,24 @@ fn copy_tree(
         }
         let tier_name = name.trim_end_matches(".rs").to_string();
 
-        if let Some(existing) = seen.get(&tier_name) {
-            if allow_shadow {
-                // Local path takes precedence; overwrite the registration.
-                // (Should not happen in normal flow because local is
-                // processed first, but keep the semantics explicit.)
-                seen.insert(tier_name.clone(), path.clone());
-            } else {
+        match seen.get(&tier_name) {
+            Some(existing) if existing.source == Source::Local => continue,
+            Some(existing) => {
                 return Err(Error::Collision {
-                    name: tier_name,
-                    first: existing.clone(),
+                    name:   tier_name,
+                    first:  existing.path.clone(),
                     second: path,
                 });
-            }
-        } else {
-            seen.insert(tier_name.clone(), path.clone());
+            },
+            None => {
+                seen.insert(tier_name.clone(), Origin {
+                    path: path.clone(),
+                    source,
+                });
+            },
         }
 
-        let dst_path = dst.join(name);
-        fs::copy(&path, &dst_path)?;
+        fs::copy(&path, dst.join(name))?;
     }
     Ok(())
 }
@@ -210,62 +310,299 @@ mod tests {
         fs::write(path, contents).unwrap();
     }
 
+    fn read(path: &Path) -> String {
+        fs::read_to_string(path).unwrap()
+    }
+
     #[test]
-    fn copy_tree_collects_rs_files() {
+    fn copy_tree_collects_rs_files_and_ignores_the_rest() {
         let src = tmp_dir("copy-src");
         let dst = tmp_dir("copy-dst");
-        write(&src.join("trace.rs"), "//! @notko-optimizer\n");
-        write(&src.join("audit.rs"), "//! @notko-optimizer\n");
-        // A non-.rs file that should be ignored:
+        write(&src.join("trace.rs"), "//! @notko-optimiser\n");
+        write(&src.join("audit.rs"), "//! @notko-optimiser\n");
         write(&src.join("README.md"), "ignore me");
+        fs::create_dir_all(src.join("nested.rs")).unwrap();
 
         let mut seen = BTreeMap::new();
-        copy_tree(&src, &dst, &mut seen, false).unwrap();
+        copy_tree(&src, &dst, &mut seen, Source::Dep).unwrap();
 
         assert!(dst.join("trace.rs").is_file());
         assert!(dst.join("audit.rs").is_file());
         assert!(!dst.join("README.md").exists());
+        // A directory whose name ends in `.rs` is not a file and is skipped.
+        assert!(!dst.join("nested.rs").exists());
         assert_eq!(seen.len(), 2);
     }
 
     #[test]
-    fn copy_tree_reports_collision_across_dep_sources() {
-        let src_a = tmp_dir("coll-a");
-        let src_b = tmp_dir("coll-b");
-        let dst = tmp_dir("coll-dst");
-        write(&src_a.join("trace.rs"), "//! @notko-optimizer\n// from a\n");
-        write(&src_b.join("trace.rs"), "//! @notko-optimizer\n// from b\n");
+    fn two_dependencies_claiming_one_tier_is_a_collision() {
+        let dep_a = tmp_dir("coll-a");
+        let dep_b = tmp_dir("coll-b");
+        let local = tmp_dir("coll-local");
+        let out = tmp_dir("coll-out");
+        write(&dep_a.join("trace.rs"), "// from a\n");
+        write(&dep_b.join("trace.rs"), "// from b\n");
 
-        let mut seen = BTreeMap::new();
-        copy_tree(&src_a, &dst, &mut seen, false).unwrap();
-
-        let err = copy_tree(&src_b, &dst, &mut seen, false).unwrap_err();
+        let err = accumulate(&local, &[dep_a.clone(), dep_b.clone()], &out).unwrap_err();
         match err {
-            Error::Collision { name, first, second } => {
+            Error::Collision {
+                name,
+                first,
+                second,
+            } => {
                 assert_eq!(name, "trace");
-                assert_eq!(first.file_name().and_then(|s| s.to_str()), Some("trace.rs"));
-                assert_eq!(second.file_name().and_then(|s| s.to_str()), Some("trace.rs"));
+                assert_eq!(first, dep_a.join("trace.rs"));
+                assert_eq!(second, dep_b.join("trace.rs"));
             },
             other => panic!("expected Collision, got {other:?}"),
         }
     }
 
     #[test]
-    fn copy_tree_allows_local_to_shadow_existing() {
+    fn a_local_tier_shadows_a_dependencys_rather_than_colliding_with_it() {
         let local = tmp_dir("shadow-local");
-        let dst = tmp_dir("shadow-dst");
-        write(&local.join("trace.rs"), "//! @notko-optimizer\n// local wins\n");
+        let dep = tmp_dir("shadow-dep");
+        let out = tmp_dir("shadow-out");
+        write(&local.join("trace.rs"), "// local wins\n");
+        write(&dep.join("trace.rs"), "// dep loses\n");
+        write(&dep.join("audit.rs"), "// dep only\n");
 
-        let mut seen = BTreeMap::new();
-        // Pretend a dep already registered it.
-        seen.insert("trace".to_string(), PathBuf::from("/fake/dep/trace.rs"));
+        let dir = accumulate(&local, &[dep], &out).unwrap();
 
-        copy_tree(&local, &dst, &mut seen, true).unwrap();
+        // The readme promises the local file wins. That is two claims: the
+        // build does not fail, and the bytes that land are the local ones.
+        assert_eq!(read(&dir.join("trace.rs")), "// local wins\n");
+        // A tier only the dependency has still arrives.
+        assert_eq!(read(&dir.join("audit.rs")), "// dep only\n");
+    }
 
-        assert!(dst.join("trace.rs").is_file());
+    #[test]
+    fn shadowing_holds_whichever_order_the_dependencies_arrive_in() {
+        // Cargo hands `DEP_*` vars over in whatever order it likes, so the
+        // local file has to win against a dependency read first and against
+        // one read last.
+        for extra_first in [true, false] {
+            let local = tmp_dir("order-local");
+            let dep_a = tmp_dir("order-a");
+            let dep_b = tmp_dir("order-b");
+            let out = tmp_dir("order-out");
+            write(&local.join("trace.rs"), "// local wins\n");
+            write(&dep_a.join("trace.rs"), "// a loses\n");
+            write(&dep_b.join("audit.rs"), "// b only\n");
+
+            let deps = if extra_first { vec![dep_b, dep_a] } else { vec![dep_a, dep_b] };
+            let dir = accumulate(&local, &deps, &out).unwrap();
+
+            assert_eq!(read(&dir.join("trace.rs")), "// local wins\n");
+            assert_eq!(read(&dir.join("audit.rs")), "// b only\n");
+        }
+    }
+
+    #[test]
+    fn a_crate_with_no_local_directory_still_accumulates_its_dependencies() {
+        let local = tmp_dir("absent-local").join("does-not-exist");
+        let dep = tmp_dir("absent-dep");
+        let out = tmp_dir("absent-out");
+        write(&dep.join("trace.rs"), "// dep\n");
+
+        let dir = accumulate(&local, &[dep], &out).unwrap();
+        assert_eq!(read(&dir.join("trace.rs")), "// dep\n");
+    }
+
+    #[test]
+    fn a_dependency_path_that_does_not_exist_is_skipped_rather_than_fatal() {
+        let local = tmp_dir("gone-local");
+        let out = tmp_dir("gone-out");
+        write(&local.join("trace.rs"), "// local\n");
+
+        let dir = accumulate(&local, &[PathBuf::from("/nonexistent/notko")], &out).unwrap();
+        assert_eq!(read(&dir.join("trace.rs")), "// local\n");
+    }
+
+    fn v(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
+        pairs
+            .iter()
+            .map(|(k, x)| (k.to_string(), x.to_string()))
+            .collect()
+    }
+
+    #[test]
+    fn only_the_dep_vars_naming_an_optimiser_path_are_collected() {
+        let got = dep_dirs_from(
+            v(&[
+                ("DEP_NOTKO_OPTIMISERS_FOO_NOTKO_OPTIMISER_PATH", "/a"),
+                ("DEP_NOTKO_OPTIMISERS_BAR_NOTKO_OPTIMISER_PATH", "/b"),
+                // Right prefix, wrong suffix: another crate's `links` metadata.
+                ("DEP_OPENSSL_INCLUDE", "/openssl"),
+                // Right suffix, no prefix: not something cargo set for a dep.
+                ("MY_NOTKO_OPTIMISER_PATH", "/mine"),
+                // Neither.
+                ("PATH", "/usr/bin"),
+                ("OUT_DIR", "/out"),
+            ])
+            .into_iter(),
+        );
+        assert_eq!(got, vec![PathBuf::from("/a"), PathBuf::from("/b")]);
+    }
+
+    /// The variable cargo actually sets, derived rather than typed out.
+    ///
+    /// The test above feeds the filter strings a person wrote, so it checks the
+    /// filter against that person's idea of the name. Cargo builds the name
+    /// from two things it owns neither of: the provider's `links` value and the
+    /// key emitted here. Deriving it from [`META_KEY`] the way cargo would is
+    /// what makes changing that constant, without changing the filter beside
+    /// it, turn something red.
+    #[test]
+    fn the_variable_cargo_sets_is_the_one_the_filter_accepts() {
+        /// Cargo's transform for both halves of `DEP_<links>_<key>`: uppercase,
+        /// with anything that is not alphanumeric becoming an underscore.
+        fn upper_or_underscore(c: char) -> char {
+            if c.is_ascii_alphanumeric() { c.to_ascii_uppercase() } else { '_' }
+        }
+        fn envify(s: &str) -> String {
+            s.chars().map(upper_or_underscore).collect()
+        }
+
+        // Three spellings, because nothing here reads the `links` half and a
+        // filter that matched one of them by accident should not pass.
+        for links in ["notko-optimisers-my-provider", "whatever", "a.b c"] {
+            let name = format!("DEP_{}_{}", envify(links), envify(META_KEY));
+            let got = dep_dirs_from(v(&[(name.as_str(), "/from-a-dep")]).into_iter());
+            assert_eq!(
+                got,
+                vec![PathBuf::from("/from-a-dep")],
+                "cargo sets {name} for links = {links:?}, and the filter dropped it",
+            );
+        }
+
+        // The control. Same derivation, another crate's key: taking this would
+        // mean the filter matches on the `DEP_` prefix alone, and every one of
+        // the assertions above would pass for that reason instead of the right
+        // one.
+        let other = format!("DEP_{}_{}", envify("openssl"), envify("include"));
+        assert!(
+            dep_dirs_from(v(&[(other.as_str(), "/openssl")]).into_iter()).is_empty(),
+            "{other} is another crate's metadata and was collected as an optimiser path",
+        );
+    }
+
+    #[test]
+    fn an_environment_with_no_dependency_paths_yields_none() {
+        let got = dep_dirs_from(v(&[("PATH", "/usr/bin"), ("OUT_DIR", "/out")]).into_iter());
+        assert!(
+            got.is_empty(),
+            "picked up {got:?} from an environment with none"
+        );
+    }
+
+    /// A provider tree, its optimiser directory, and a place to accumulate
+    /// into. Returns the three paths `accumulate` takes.
+    fn a_provider_with(tiers: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf, PathBuf) {
+        let root = tempfile::tempdir().expect("a temporary directory");
+        let local = root.path().join("notko-optimisers");
+        let out = root.path().join("out").join("notko-optimisers");
+        fs::create_dir_all(&local).expect("the provider directory");
+        for (name, body) in tiers {
+            fs::write(local.join(format!("{name}.rs")), body).expect("a tier file");
+        }
+        (root, local, out)
+    }
+
+    /// What a tier file looks like when `ante` has written its header first,
+    /// which is every file in a tree that keeps copyright headers.
+    const WITH_A_HEADER: &str = "\
+//------------------------------------------------------------------
+// Copyright (c) 2026
+//------------------------------------------------------------------
+
+//! @notko-optimiser
+//! based_on = \"Cold\"
+";
+
+    #[test]
+    fn a_tier_that_leaves_its_provider_stops_resolving() {
+        // The accumulated directory used to be created and never emptied, so a
+        // tier deleted from its provider kept resolving off the copy left from
+        // the previous run. The build stayed green on a source file that was
+        // no longer anywhere, until somebody ran `cargo clean`, which is the
+        // shape of a defect that only shows up on somebody else's machine.
+        let (_root, local, out) = a_provider_with(&[("Audit", WITH_A_HEADER)]);
+        accumulate(&local, &[], &out).expect("the first run");
+        assert!(
+            out.join("Audit.rs").is_file(),
+            "the first run copied nothing"
+        );
+
+        fs::remove_file(local.join("Audit.rs")).expect("removing the tier from its provider");
+        accumulate(&local, &[], &out).expect("the second run");
+        assert!(
+            !out.join("Audit.rs").exists(),
+            "a tier deleted from its provider still resolves from {}",
+            out.display()
+        );
+    }
+
+    #[test]
+    fn a_renamed_tier_does_not_leave_the_old_name_live() {
+        // The same defect wearing its worst face: both names resolve, so a
+        // consumer still naming the old one builds, and the rename looks done.
+        let (_root, local, out) = a_provider_with(&[("Audit", WITH_A_HEADER)]);
+        accumulate(&local, &[], &out).expect("the first run");
+
+        fs::rename(local.join("Audit.rs"), local.join("Trace.rs")).expect("the rename");
+        accumulate(&local, &[], &out).expect("the second run");
+
+        assert!(
+            out.join("Trace.rs").is_file(),
+            "the new name did not arrive"
+        );
+        assert!(!out.join("Audit.rs").exists(), "the old name is still live");
+    }
+
+    #[test]
+    fn a_second_run_that_changed_nothing_still_has_everything() {
+        // The control on the two above. Emptying the directory and then failing
+        // to refill it would pass both of them and break every build.
+        let (_root, local, out) =
+            a_provider_with(&[("Audit", WITH_A_HEADER), ("Trace", WITH_A_HEADER)]);
+        accumulate(&local, &[], &out).expect("the first run");
+        accumulate(&local, &[], &out).expect("the second run");
+        assert!(
+            out.join("Audit.rs").is_file(),
+            "the second run dropped a tier"
+        );
+        assert!(
+            out.join("Trace.rs").is_file(),
+            "the second run dropped a tier"
+        );
+    }
+
+    #[test]
+    fn the_emitted_lines_carry_the_keys_cargo_and_the_macro_read() {
+        let lines = metadata_lines(Path::new("/out/notko-optimisers"));
+
+        // The exact spellings, because both are silent when wrong: cargo
+        // ignores an instruction it does not recognise, and the proc-macro
+        // reads an environment variable by name and finds nothing.
         assert_eq!(
-            seen.get("trace").and_then(|p| p.file_name()).and_then(|s| s.to_str()),
-            Some("trace.rs")
+            lines[0],
+            "cargo:rustc-env=NOTKO_OPTIMISERS_PATH=/out/notko-optimisers"
+        );
+        assert_eq!(lines[1], "cargo:notko-optimiser-path=/out/notko-optimisers");
+    }
+
+    #[test]
+    fn the_directory_a_crate_ships_its_own_files_in_is_the_documented_one() {
+        // The fourth name, and the one the emitted lines above cannot reach:
+        // it names a directory in the consumer's source tree rather than
+        // anything this writes out. Wrong, and the scan then finds nothing
+        // and says nothing, which is the same silence as the other three.
+        assert_eq!(LOCAL_DIR, "notko-optimisers");
+        assert_eq!(
+            LOCAL_DIR, OUT_SUBDIR,
+            "the directory a crate ships and the one this accumulates into are \
+             documented as the same name; a reader who learns one has learned both"
         );
     }
 }

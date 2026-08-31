@@ -4,10 +4,20 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+homepage.workspace = true
 repository.workspace = true
-description = "build-dep helper for notko-macros: scans crate-local notko-optimizers/ and accumulates optimiser files from dependencies into $OUT_DIR for proc-macro discovery"
+description = "The build-script half of notko-macros' custom tiers, gathering one directory for the macro to read."
 readme = "README.md"
 categories = ["development-tools::build-utils"]
-keywords = ["build-script", "proc-macro", "notko", "hilavitkutin"]
+keywords = ["build-script", "proc-macro", "notko", "fallible"]
+
+# Named rather than excluded, so a file added later has to be asked for
+# rather than shipping by accident.
+include = ["src/**/*.rs", "README.md", "LICENSE"]
 
 [dependencies]
+
+# Only the tests, which build a real provider tree on disk. The accumulation
+# they check is filesystem work, so a fake would be checking the fake.
+[dev-dependencies]
+tempfile = "3"

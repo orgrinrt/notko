@@ -4,11 +4,28 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+homepage.workspace = true
 repository.workspace = true
-description = "AST-rewrite primitives and tier-discovery logic for notko-macros; reusable by third-party proc-macro crates that author their own fallibility-tier attribute macros"
+description = "The AST rewriting behind notko-macros' #[profile], as a library an attribute of your own can use."
 readme = "README.md"
 categories = ["development-tools::procedural-macro-helpers"]
-keywords = ["no_std", "no_alloc", "proc-macro", "hot-path", "hilavitkutin"]
+keywords = ["proc-macro", "codegen", "hot-path", "fallible", "attribute"]
+
+# Named rather than excluded, so a file added later has to be asked for
+# rather than shipping by accident.
+# Named one at a time rather than globbed. A glob cannot tell a test about the
+# crate from a test about this repository, so it ships both, and the second kind
+# fails on a consumer's first `cargo test` rather than at any gate here.
+# `extension.rs` reaches for nothing outside the package, so it ships.
+include = [
+    "src/**/*.rs",
+    "tests/a_third_party_macro_names_its_own_crate.rs",
+    "tests/extension.rs",
+    "tests/hot_rewrite_shapes.rs",
+    "tests/the_readme_examples_are_the_api.rs",
+    "README.md",
+    "LICENSE",
+]
 
 [dependencies]
 syn = { version = "2", features = ["full", "parsing", "visit-mut", "extra-traits"] }

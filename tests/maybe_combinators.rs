@@ -1,7 +1,11 @@
-//! Smoke tests for the Maybe combinator surface (round-353).
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
 
-use notko::Maybe;
-use notko::Outcome;
+//! Smoke tests for the Maybe combinator surface.
+
+use notko::{Maybe, Outcome};
 
 use crate::heapless_min::CollectToSmallVec;
 
@@ -60,8 +64,14 @@ fn or_combinator() {
 
 #[test]
 fn or_else() {
-    assert!(matches!(Maybe::Is(1).or_else(|| Maybe::Is(2)), Maybe::Is(1)));
-    assert!(matches!(Maybe::<i32>::Isnt.or_else(|| Maybe::Is(2)), Maybe::Is(2)));
+    assert!(matches!(
+        Maybe::Is(1).or_else(|| Maybe::Is(2)),
+        Maybe::Is(1)
+    ));
+    assert!(matches!(
+        Maybe::<i32>::Isnt.or_else(|| Maybe::Is(2)),
+        Maybe::Is(2)
+    ));
 }
 
 #[test]
@@ -81,8 +91,14 @@ fn xor_combinator() {
 
 #[test]
 fn zip() {
-    assert!(matches!(Maybe::Is(1).zip(Maybe::Is("two")), Maybe::Is((1, "two"))));
-    assert!(matches!(Maybe::<i32>::Isnt.zip(Maybe::Is("two")), Maybe::Isnt));
+    assert!(matches!(
+        Maybe::Is(1).zip(Maybe::Is("two")),
+        Maybe::Is((1, "two"))
+    ));
+    assert!(matches!(
+        Maybe::<i32>::Isnt.zip(Maybe::Is("two")),
+        Maybe::Isnt
+    ));
     assert!(matches!(Maybe::Is(1).zip(Maybe::<&str>::Isnt), Maybe::Isnt));
 }
 
@@ -193,7 +209,7 @@ fn as_mut() {
 mod heapless_min {
     pub struct SmallVec<A> {
         pub values: A,
-        len: usize,
+        len:        usize,
     }
 
     pub trait CollectToSmallVec: Iterator + Sized {
@@ -201,7 +217,10 @@ mod heapless_min {
         where
             Self::Item: Copy + Default,
         {
-            let mut out = SmallVec { values: [Default::default(); 2], len: 0 };
+            let mut out = SmallVec {
+                values: [Default::default(); 2],
+                len:    0,
+            };
             for x in self {
                 if out.len < 2 {
                     out.values[out.len] = x;
@@ -219,4 +238,19 @@ mod heapless_min {
             self.len
         }
     }
+}
+
+#[test]
+fn inspect_runs_on_is_and_not_on_isnt() {
+    let mut seen = 0_i32;
+    let passed = Maybe::Is(7_i32).inspect(|v| seen = *v);
+    assert_eq!(seen, 7);
+    assert_eq!(passed, Maybe::Is(7));
+
+    // The half that makes this a test: the closure must not run on the
+    // absent arm, and the value must survive either way.
+    let mut ran = false;
+    let passed = Maybe::<i32>::Isnt.inspect(|_| ran = true);
+    assert!(!ran);
+    assert_eq!(passed, Maybe::Isnt);
 }

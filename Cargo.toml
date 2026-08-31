@@ -1,12 +1,17 @@
 [workspace]
-members = [".", "notko-macros", "notko-macros-core", "notko-build"]
+members = [".", "notko-hlist", "notko-macros", "notko-macros-core", "notko-build"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.0.1"
 edition = "2024"
+# The floor for the build with the default features off, which is the one that
+# works on stable at all: the default set turns on const-trait machinery that
+# only nightly has. Checked against 1.85.0 itself with `--no-default-features`,
+# rather than inferred from what the code looks like it needs.
 rust-version = "1.85"
 license = "MPL-2.0"
+homepage = "https://github.com/orgrinrt/notko"
 repository = "https://github.com/orgrinrt/notko"
 
 [package]
@@ -15,27 +20,138 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+homepage.workspace = true
 repository.workspace = true
-description = "foundation primitives for the hilavitkutin stack: Just, Maybe, Outcome, Boundable, NonZeroable"
+description = "Fallibility primitives whose branch cost is picked at the call site. no_std, no alloc, zero deps."
 readme = "README.md"
 categories = ["no-std", "rust-patterns"]
-keywords = ["no_std", "no_alloc", "primitives", "hilavitkutin"]
+keywords = ["no_std", "no_alloc", "primitives", "fallible"]
+# Tests are named one at a time, because the two kinds here want opposite
+# answers. Most of them check the crate and belong in the package. One checks
+# this repository: `readme_claims.rs` reads the workspace manifest's member
+# list, which cargo's generated manifest does not have, so in an unpacked
+# tarball it panics rather than testing anything. A glob cannot tell them
+# apart, and the decision is the point. `a_probe_crate_says_it_is_a_probe.rs`
+# is the same shape: it reads the probes under `research/`, which no tarball
+# carries.
+include = [
+    "src/**/*.rs",
+    "tests/bounded.rs",
+    "tests/cmp_ext.rs",
+    "tests/const_error_conversion.rs",
+    "tests/consttry_notcopy.rs",
+    "tests/consttry_parity.rs",
+    "tests/consttry_smoke.rs",
+    "tests/ctor_const_path.rs",
+    "tests/ctor_plain_path.rs",
+    "tests/iter_ext.rs",
+    "tests/just_combinators.rs",
+    "tests/maybe_combinators.rs",
+    "tests/maybe_null_prints_and_defaults_as_itself.rs",
+    "tests/nonzero.rs",
+    "tests/ordering_parity.rs",
+    "tests/outcome_combinators.rs",
+    "tests/slot_admits_more_than_the_nonzero_family.rs",
+    "tests/slot_prints_in_its_own_vocabulary.rs",
+    "tests/slot_layout.rs",
+    "tests/try_smoke.rs",
+    "README.md",
+    "LICENSE",
+]
 
 [lib]
 name = "notko"
 path = "src/lib.rs"
 
+# `HasTrivialCtor` has a const and a non-const path, so it needs one test target
+# per path. Declared rather than auto-discovered, because auto-discovery compiles
+# every `tests/*.rs` unconditionally: the const variant then reached its
+# `impl const` body in a configuration where the trait is not a const trait, and
+# `cargo test --no-default-features` failed to build. `required-features` is the
+# mechanism that actually skips a target, where a `#[cfg]` inside it cannot.
+[[test]]
+name = "ctor_const_path"
+path = "tests/ctor_const_path.rs"
+required-features = ["const"]
+
+# No `required-features`. Runtime construction is valid whether or not the trait
+# is a const trait, so this target compiles in both configurations, and it is the
+# only ctor coverage that exists under `--no-default-features`.
+[[test]]
+name = "ctor_plain_path"
+path = "tests/ctor_plain_path.rs"
+
+# Ungated on purpose, and that is the whole assertion. Both configurations
+# must accept the same types, so a bound one path carries and the other does
+# not makes this fail to build in exactly one of them, and that build failure
+# is what the target is for.
+[[test]]
+name = "consttry_parity"
+path = "tests/consttry_parity.rs"
+
+# The const proofs, which cannot be configuration-neutral: run against the
+# plain path they fail with `cannot call non-const method in constants`,
+# because the plain path genuinely is not const-callable. Const-callability is
+# what the feature legitimately switches; which types it reaches is what it
+# must not, and that half is the target above.
+# The body is already behind a `#[cfg]`, which is not enough: auto-discovery
+# compiles the target, and a crate-level `#![cfg_attr(..., feature(...))]` in a
+# configuration where the gate is off leaves the `impl const` inside it
+# unbuildable. `required-features` skips the target instead.
+[[test]]
+name = "const_error_conversion"
+path = "tests/const_error_conversion.rs"
+required-features = ["const"]
+
+[[test]]
+name = "consttry_notcopy"
+path = "tests/consttry_notcopy.rs"
+required-features = ["const"]
+
+# `?` only exists with `try_trait_v2`, so the target is skipped rather than
+# compiled to an empty binary that reports zero tests and looks like a pass.
+[[test]]
+name = "try_smoke"
+path = "tests/try_smoke.rs"
+required-features = ["try_trait_v2"]
+
+[dev-dependencies]
+# The one dependency here, and it is a dev one, so nothing a consumer installs
+# grows by it. It exists because several of this crate's guarantees are
+# refusals, and a refusal nothing pins can be deleted by accident: a bound
+# loosened later restores the illegal state and every remaining test passes,
+# because none of them names it.
+trybuild = "1"
+
 [features]
 default = ["const"]
 # Impl `core::ops::Try` for Just/Maybe/Outcome. Requires nightly.
 try_trait_v2 = []
-# Re-export `#[optimize_for]` from notko-macros at the crate root.
+# Re-export `#[profile]` from notko-macros at the crate root.
 macros = ["dep:notko-macros"]
-# Enable const-trait machinery: ConstTry, ConstFromResidual, Slot's
-# const inherent methods. Requires nightly. Default-on for the
-# clause-dev workspace stack; consumers on stable Rust opt out via
+# Enable const-trait machinery: ConstTry, ConstFromResidual and
+# HasTrivialCtor are declared `const trait` rather than plain. Requires
+# nightly. Default-on; consumers on stable Rust opt out via
 # default-features = false.
+#
+# Slot's inherent methods are not on this list. They are `pub const fn` in
+# both configurations, `slot.rs` carries no `cfg` at all, and `into_maybe`
+# takes a `Copy` bound rather than naming `Destruct` for exactly that
+# reason, which it explains where it is declared.
 const = []
+# Kitchen-sink: every notko pathway in one feature. Enable it somewhere
+# that is actually compiled (a consumer, or a CI all-features check) so
+# the feature-gated impls (the `try_trait_v2` Try/Residual impls in
+# particular) are exercised rather than lying dormant. Dormant gated code
+# is how a core API change can break a consumer unnoticed.
+all = ["const", "macros", "try_trait_v2"]
 
 [dependencies]
-notko-macros = { path = "notko-macros", version = "0.1.0", optional = true }
+notko-macros = { path = "notko-macros", version = "0.0.1", optional = true }
+
+# docs.rs builds default features only, and half of what is worth reading here
+# sits behind `try_trait_v2` and `macros`. Without this the page documents a
+# crate smaller than the one that ships.
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

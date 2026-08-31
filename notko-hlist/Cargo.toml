@@ -1,0 +1,118 @@
+[package]
+name = "notko-hlist"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "A heterogeneous type-level list, with length, membership and append as traits. no_std, zero deps."
+readme = "README.md"
+categories = ["no-std", "rust-patterns"]
+keywords = ["no_std", "no_alloc", "hlist", "type-level", "notko"]
+
+# Named rather than excluded, so a file added later has to be asked for
+# rather than shipping by accident. Five of the six test targets check the
+# crate, so those ship; `the_refusals_hold` reads a fixture tree and the
+# toolchain pin, neither of which a package carries.
+#
+# It stays declared anyway, because a declared target is what makes it run at
+# all here, and it is the only thing pinning the compile-fail cases. The cost
+# is one `cargo package` warning saying it is ignored as not included, which is
+# the truth rather than a defect.
+include = [
+    "src/**/*.rs",
+    "tests/lists/mod.rs",
+    "tests/a_count_counts.rs",
+    "tests/a_count_counts_without_const.rs",
+    "tests/both_paths_take_the_same_bounds.rs",
+    "tests/append_is_append.rs",
+    "tests/the_list_holds_what_it_holds.rs",
+    "README.md",
+    "LICENSE",
+]
+
+[lib]
+name = "notko_hlist"
+path = "src/lib.rs"
+
+# Targets are declared rather than auto-discovered, because auto-discovery
+# compiles every `tests/*.rs` unconditionally and one of these must not be
+# compiled without its feature. `required-features` is the mechanism that
+# actually skips a target, where a `#[cfg]` inside it cannot: a crate-level
+# `#![cfg_attr(..., feature(...))]` in a configuration where the gate is off
+# leaves the body unbuildable.
+
+# The const path. `const impl` is gated at parse time, so a `#[cfg]` around it
+# does not save an ungated target: the span is recorded before cfg-stripping
+# runs and the gate error is emitted whatever the cfg said.
+[[test]]
+name = "a_count_counts"
+path = "tests/a_count_counts.rs"
+required-features = ["const"]
+
+# The plain path, counting the same lists off the same shared module. Excluded
+# from the other configuration by a crate-level `cfg` inside the file, because
+# `required-features` can require a feature and there is no spelling for
+# requiring its absence. Nothing in it uses gated syntax, so unlike the target
+# above a cfg is enough.
+[[test]]
+name = "a_count_counts_without_const"
+path = "tests/a_count_counts_without_const.rs"
+
+# Ungated, and that is the assertion: the bounds a consumer writes are the same
+# in both configurations, so a divergence is this target failing to build in
+# exactly one of them.
+[[test]]
+name = "both_paths_take_the_same_bounds"
+path = "tests/both_paths_take_the_same_bounds.rs"
+
+# `Concat` needs neither feature, so it is checked in both configurations.
+[[test]]
+name = "append_is_append"
+path = "tests/append_is_append.rs"
+
+# Every bound in it names `Contains` or `ContainsAll`, which do not exist
+# without the feature.
+[[test]]
+name = "the_list_holds_what_it_holds"
+path = "tests/the_list_holds_what_it_holds.rs"
+required-features = ["membership"]
+
+# The fixtures are blessed against the default configuration, so off it they
+# fail for the wrong reason and every blessed diagnostic mismatches.
+[[test]]
+name = "the_refusals_hold"
+path = "tests/the_refusals_hold.rs"
+required-features = ["const", "membership"]
+
+[dev-dependencies]
+# Every refusal here is a build failure, and a refusal nothing pins can be
+# deleted by accident: loosen a bound later and every remaining test still
+# passes, because none of them names the illegal state.
+trybuild = "1"
+
+[features]
+default = ["const", "membership"]
+# `Cardinal` is declared `const trait` and `Length` gains `LEN`, a compile-time
+# constant rather than a call. Requires nightly (`const_trait_impl`).
+# Default-on; consumers on stable Rust opt out via `default-features = false`
+# and keep `Length::len`.
+const = []
+# `Contains` and `ContainsAll`. Requires nightly (`marker_trait_attr`), because
+# the head match and the recursive tail match overlap by construction and
+# coherence has to be told the overlap is intended. Without it there is no
+# membership at all: the selector-with-an-index shape that works on stable is a
+# different surface, not this one with a weaker guarantee.
+membership = []
+# Kitchen-sink: every pathway in one feature, for a consumer or an all-features
+# check that wants the gated impls exercised rather than left dormant.
+all = ["const", "membership"]
+
+[dependencies]
+
+# docs.rs builds default features only, which here is everything. Stated anyway,
+# so a feature added later behind a non-default gate is still documented.
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

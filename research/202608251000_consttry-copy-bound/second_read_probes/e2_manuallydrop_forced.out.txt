@@ -1,0 +1,7 @@
+### e2_manuallydrop_forced.rs
+### rustc 1.98.0-nightly (57d06900f 2026-05-27)
+### expected: pass
+
+
+
+### rustc exit status: 0

@@ -8,50 +8,218 @@
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/issues)
 ![License](https://img.shields.io/github/license/orgrinrt/notko?color=%23009689)
 
-> Pick branch cost per call site or per strategy tag. `no_std`, no alloc, repr-transparent FFI, zero deps.
+> Fallibility primitives for `no_std` rust. Ships `Just`, `Maybe` and `Outcome`, and a `#[profile]` attribute for tagging whole functions.
 
 </div>
 
-`notko` puts the cost of an absent value at the call site rather than baking it into the type, like `Option<T>` does; a `#[profile]` attribute is the function-scoped form that rewrites the body to match the strategy tag.
+Core's carriers differ by what they hold, `Option<T>` for absence and `Result<T, E>` for an error with
+a payload, and `notko`'s three differ by what a branch costs instead. `Just<T>` has no error case at
+all and is `#[repr(transparent)]` over the value, so with `try_trait_v2` on there is nothing for `?` to
+branch to. `Maybe<T>` handles ordinary absence, and `Outcome<T, E>` takes an error carrying data.
 
-Three tiers: `Just<T>` for proven-present (zero discriminant, repr-transparent, `?` compiles to nothing), `Maybe<T>` for ordinary absence (matches `Option<T>`'s niche-fill for pointer-shaped payloads, uses one word for presence), `Outcome<T, E>` for the full case where the error path carries data. `MaybeNull<T: NicheFilled>` carries them across FFI; the trait admits only types with a null bit pattern. `notko` is `#![no_std]`, no alloc, no platform deps; the optional proc-macro crate uses std at compile time only.
+Each keeps a matching api on purpose (same `?`, same combinators, largely identical method names), so
+moving a function across is usually a type change with the body left alone, although the guarantees are
+not equal.
 
-## Cost per call site
+Do note that `Result<T, Infallible>` already gets you a good part of the way to `Just<T>`, since the
+uninhabited error niches away and the branch is dead by construction. What you don't get from it is one
+api across all three tiers, or the `#[profile]` attribute picking a tier per function, and those are
+what this is actually for.
 
-`Just<T>` is the proven-present case. `#[repr(transparent)]`, no discriminant, no branch. With the `try_trait_v2` feature, `?` on a `Just` compiles to literally nothing. Use it where an invariant proves the error variant unreachable: post-validation paths, codegen-reduced hot loops, wrappers that reify a guarantee.
+`Option<T>` is fine for most code and the discriminant it carries is rarely worth thinking about, but a
+function handing one back says the value might be missing whether or not the caller already knew
+better, so the check gets emitted and the optimiser only sometimes manages to remove it again (in an
+inner loop, sometimes is not often enough). Whether any of it shows up in your own measurements is a
+separate question, and depends much on what the surrounding code looks like.
 
-`Maybe<T>` is the ordinary-absence case. One bit on the absent side; for pointer-shaped `T` (`&T`, `NonNull<T>`, every `NonZero*`, function pointers) Rust niche-fills the enum so the size matches `T`. Compile-time size assertions in `maybe.rs` pin the layout per supported shape.
+The `#[profile]` attribute takes an ordinary `Result` function and rewrites the signature and the body
+into one of the three, so the choice sits in one place per function and the types inside follow from
+the tier. Custom tiers are ordinary rust files a crate keeps in its own `notko-optimisers/` directory,
+which `notko-build` gathers (its own, and the ones its direct dependencies opted into sharing) into one
+place the proc-macro can read.
 
-`Outcome<T, E>` is the case where the error path carries data. Layout is platform-standard Rust repr; FFI-critical result layouts wrap in a dedicated `#[repr(C)]` struct, not the default.
+It's `#![no_std]`, no alloc, no platform deps, and in the default build no dependencies at all. The
+`macros` feature is the one exception, since it pulls the proc-macro crate in and that one uses std and
+`syn`. Only at compile time though, which is the only place a macro runs, so none of it lands in your
+binary.
 
-## Strategy-driven rewrite
+## Status
 
-The `#[profile]` attribute lets you tag a function with a strategy and have the macro rewrite the body to the matching tier. Without it, you pick the type at every call site; with it, you write one consistent surface (`Maybe<T>` or `Outcome<T, E>`) and the strategy lowers it.
+Early days, so the api hasn't settled and the next release can move things out from under whatever you
+wrote against this one. Every release is tagged and the log between two tags is what actually moved, and
+we'll try to keep the migration notes worth reading. I'd caution against putting this anywhere serious
+just yet.
+
+The default feature set needs a nightly compiler, because the const-trait machinery it turns on isn't
+stable yet. On stable, turn the defaults off and the crate builds and works from 1.85
+onwards, with the const paths absent. That's what the `rust-version` in the manifest is about, so don't
+read it as the floor for the default set, which has no floor on stable at all. Probably the main thing
+to know before you add it.
+
+It sits on five unstable features, across the two optional sets. `try_trait_v2` and
+`try_trait_v2_residual` carry the `?` operator for the three carriers; `const_trait_impl`,
+`const_destruct` and `const_convert` carry the const paths, and the middle one is what lets a value be
+dropped in a const context, which is why the const carriers can take ownership at all. All five are
+still moving upstream. We've stayed off the ones with known soundness holes rather than working around
+them, so the surface here is a bit smaller than what nightly would let us do. Might grow later, might
+not.
+
+## Installation
+
+```bash
+cargo add notko
+```
+
+On stable Rust, and anywhere the const paths aren't wanted:
+
+```bash
+cargo add notko --no-default-features
+```
+
+`cargo add` writes `notko = "0.0.1"`, and on a `0.0.x` version that already means that one and nothing
+else, so what it wrote is the pin. Getting the next one is you changing the number yourself, and reading
+the log between the two tags before you do.
+
+## Usage
 
 ```rust
-use notko::{profile, Outcome};
+use notko::{Just, Maybe, Outcome};
 
-#[profile(Hot)]
-fn compute(x: u32) -> Outcome<u32, Oops> {
-    // Author writes plain Outcome / Ok / Err / ?. The macro rewrites
-    // the body to match the chosen tier at expansion time.
-    Outcome::Ok(x + 1)
+fn lookup(key: u32) -> Maybe<u32> {
+    if key == 0 { Maybe::Isnt } else { Maybe::Is(key * 2) }
+}
+
+fn parse(bytes: &[u8]) -> Outcome<u32, &'static str> {
+    if bytes.is_empty() { Outcome::Err("empty") } else { Outcome::Ok(42) }
+}
+
+// post-validation, so the error case cannot arise here
+fn post_validated(value: u32) -> Just<u32> {
+    Just::new(value)
 }
 ```
 
-Built-in strategies are `Hot`, `Warm`, `Cold` (ZST markers passed as idents). Debug builds get `Outcome<T, E>` regardless of tier so the error path stays observable; release-internal builds (the consumer opts in via its own `internal` feature) get `Just<T>` on `Hot` with `Err` lowered to `panic!`. `Warm` is passthrough. `Cold` always emits `Outcome`.
+With the `try_trait_v2` feature, `?` works on all three. It needs a nightly compiler, since that is what
+`notko` itself compiles under, but your own crate needs no feature gate of its own:
 
-Third-party strategies live in a crate-local `notko-optimizers/<name>.rs` file with a `based_on = "hot" | "warm" | "cold"` header, or as a sibling proc-macro crate reusing `notko-macros-core`. See [`notko-macros`](https://github.com/orgrinrt/notko/tree/dev/notko-macros).
+```rust
+use notko::{Maybe, Outcome};
 
-Enable the `macros` feature on `notko` to get `profile` re-exported at the crate root.
+# fn parse(_: &[u8]) -> Outcome<u32, &'static str> { Outcome::Ok(1) }
+# fn lookup(_: u32) -> Maybe<u32> { Maybe::Is(2) }
+fn compose() -> Outcome<u32, &'static str> {
+    let a = parse(b"foo")?;
+    let b = lookup(a).ok_or("missing")?;
+    Outcome::Ok(a + b)
+}
+```
+
+A `notko::prelude` ships as well, carrying the common surface in one import for the cases where naming
+each of them gets tedious.
+
+## Cost per call site
+
+`Just<T>` carries no error variant, so it is the layout of the `T` and nothing more, and a `?` on it has
+no arm to take once `try_trait_v2` is on. Reach for it where the error case cannot arise, so
+post-validation paths, codegen-reduced hot loops, and wrappers making a guarantee concrete.
+
+`Maybe<T>` is the ordinary-absence case, and for pointer-shaped `T` (`&T`, `&mut T`, `NonNull<T>`, every
+`NonZero*`, function pointers) rustc niche-fills the enum so the whole thing is the size of `T`, meaning
+absence takes no extra storage in those cases, and compile-time size assertions in `maybe.rs` pin that
+layout per supported shape so it cannot quietly regress.
+
+`Outcome<T, E>` is the case where the error path carries data, and its layout is whatever `repr(Rust)`
+decides, so if you want an exact result layout across an FFI boundary, wrap the payload in your own
+`#[repr(C)]` struct instead of leaning on this one.
+
+`Just` and `Maybe` both iterate, through `JustIter` and `MaybeIter`. `Outcome` gets a `Default` of
+`Ok(T::default())`, which is there so a trait can name a default without whoever writes it having to
+make up an error value that never happens.
+
+## Strategy-driven rewrite
+
+`#[profile]` tags a function with a strategy and rewrites the body to the matching tier, so the source
+stays one ordinary `Result` surface and the tier decides what it becomes, which gives less control but
+is more ergonomic for the usual cases.
+
+The authoring form is plain `Result` with `Ok` and `Err`, and the macro rewrites both the signature and
+the body from there, so nothing in the source names a carrier at all. It needs `features = ["macros"]`,
+which is off by default since it pulls in the proc-macro crate:
+
+```rust
+use notko::profile;
+
+#[derive(Debug)]
+struct Oops;
+
+// returns Outcome<u32, Oops> after expansion
+#[profile(Hot)]
+fn compute(x: u32) -> Result<u32, Oops> {
+    Ok(x + 1)
+}
+```
+
+Built-in strategies are `Hot`, `Warm` and `Cold`, passed as idents. `Hot` emits `Outcome<T, E>` in debug
+builds, so the error path stays observable; in release-internal builds, which the consumer opts into
+through its own `internal` feature, it emits `Just<T>` with `Err` lowered to a panic. `Cold` always emits
+`Outcome`. `Warm` rewrites to `Maybe<T>` in every build and drops the error, which is what choosing that
+tier decides. Do note it drops the whole `Err(..)` expression rather than evaluating it and throwing the
+value away, so anything with a side effect in there goes with it.
+
+The rewrite only fires on a return type spelled `Result<T, E>` or `Outcome<T, E>` with both arguments
+written out. Anything else, a bare type, a unit return, or the very common `type Result<T> =
+core::result::Result<T, MyError>` alias, is emitted untouched and says nothing about it. So a tag that
+appears to do nothing is usually that, and spelling the two arguments out is the fix.
+
+Third-party strategies live in a crate-local `notko-optimisers/<Name>.rs` with a
+`based_on = "Hot" | "Warm" | "Cold"` header. The `based_on` value is case-sensitive, so lowercase doesn't
+match and fails the build. A sibling proc-macro crate reusing `notko-macros-core` is the other route. See
+[`notko-macros`](https://crates.io/crates/notko-macros).
+
+Enable the `macros` feature to get `profile` re-exported at `notko`'s root.
+
+## The other four crates
+
+[`notko-hlist`](https://crates.io/crates/notko-hlist) is a heterogeneous type-level list, `Empty` and
+`Cons<H, T>`, with length, membership and append written as traits the compiler resolves rather than as
+anything that runs. A cell holds nothing and can't be constructed at all, its one field being a phantom,
+so what you get out of the list is a bound: `L: Contains<Db>` says the list holds a `Db`, and a function
+asking for that can't be called with a list that doesn't. The `List` trait is sealed, because the
+membership ones are `#[marker]` traits where an impl is a single empty line, so without the sealing a
+bound like that would only prove somebody wrote that line. It doesn't come through `notko`, so depend on
+it directly.
+
+[`notko-macros`](https://crates.io/crates/notko-macros) is where `#[profile]` lives, and the `macros`
+feature above is that same attribute re-exported from here. Depend on it directly if you want the
+attribute and none of the carriers.
+
+[`notko-macros-core`](https://crates.io/crates/notko-macros-core) is the rewrite engine underneath it, as
+an ordinary library. It's there because a proc-macro crate can't export anything but macros, and it's
+public so a third-party attribute can build on it rather than writing the rewrite again.
+
+[`notko-build`](https://crates.io/crates/notko-build) is a build-script helper for the one case where a
+tier is defined in one crate and used in another. Nothing else needs it.
 
 ## Boundary types
 
-Types that exist because something at the boundary forces a shape: layout invariants for FFI, value invariants for bounded scalars.
+Types that exist because something at a boundary forces a shape: layout invariants for FFI, value
+invariants for bounded scalars.
 
 ### Layout invariants
 
-`MaybeNull<T: NicheFilled>` is a `#[repr(transparent)]` newtype with a guaranteed null bit pattern. The sealed `NicheFilled` trait restricts `T` to types where the all-zeros bit pattern is invalid: `&T`, `&mut T`, `NonNull<T>`, every `NonZero*`, and `extern` / `unsafe extern` / plain / `unsafe` `fn` pointers of arities zero through eight. A `MaybeNull<u32>` does not compile because `u32` has no invalid bit pattern; `MaybeNull<&T>` does, with the same layout `Option<&T>` would have.
+At an `extern "C"` boundary the bytes are the contract and the compiler cannot help. `Option<T>`'s
+niche-fill is a stable documented layout for the pointer-shaped payloads, but reading a signature and
+knowing that only works if you already know niche-fill is what guarantees it.
+
+`MaybeNull<T: NicheFilled>` is that guarantee made syntactic. A `#[repr(transparent)]` newtype with a
+guaranteed null bit pattern, where the sealed `NicheFilled` trait admits only types whose all-zeros
+pattern is invalid: `&T`, `&mut T`, `NonNull<T>`, every `NonZero*`, and `extern` / `unsafe extern` / plain
+/ `unsafe` fn pointers of arities zero through eight. `MaybeNull<u32>` does not compile, because `u32` has
+no invalid pattern. `MaybeNull<&T>` does, and it lays out exactly like `Option<&T>` would, except now you
+can see that from the signature without knowing anything about niche-fill.
+
+The cost is that the niche set is fixed at the language level, so extending it takes a `notko` release
+rather than a downstream impl.
 
 ```rust
 use notko::MaybeNull;
@@ -74,82 +242,65 @@ impl ExtensionDescriptor {
 }
 ```
 
-Per-instantiation `const _LAYOUT_ASSERT` runs on every call site; the build fails if a future rustc ever regresses niche-filling for one of the supported shapes.
+There's a `const` layout assertion forced for every shape `NicheFilled` admits, so if some future rustc
+regresses niche-filling for one of them, the build breaks instead of the ABI. And since `NicheFilled` is
+sealed and covers the pointer families at all three metadata kinds, that's the whole set, not just
+whichever ones we happened to write down.
 
 ### Value invariants
 
-`Boundable` declares "this type is bounded to `[MIN, MAX]`". A `Boundable::try_new` constructor returns `Outcome<Self, BoundError<I>>`; `BoundError` names whether the rejected value was `Below { value, min }` or `Above { value, max }`.
+`Boundable` declares that a type is bounded to `[MIN, MAX]`. Its `try_new` constructor returns
+`Outcome<Self, BoundError<I>>`, and `BoundError` names whether the rejected value was `Below { value, min }`
+or `Above { value, max }`. The bound is checked once at construction, so nothing downstream has to check
+it again on every read.
 
-`NonZeroable` declares "this type has a zero sentinel and a nonzero guarantee form", the niche-fill marker. Combined with `Slot<T>`, a `T: NonZeroable + NicheFilled` becomes a pointer-niche-shaped wrapper whose `Slot::Isnt` matches `T`'s invalid bit pattern.
+`NonZeroable` declares that a type has a zero sentinel and a nonzero guarantee form. Combined with
+`Slot<T>`, a `T: NonZeroable + NicheFilled` becomes a pointer-niche-shaped wrapper whose `Slot::NONE`
+matches `T`'s invalid bit pattern.
 
-`IteratorExt` and `PartialOrdExt` bridge `core::Iterator::next` and `core::PartialOrd::partial_cmp` (which return `Option`) to `Maybe` at the call site; see rustdoc.
+`HasTrivialCtor` covers types constructible with no arguments, which is what lets a contract name a
+default without knowing the concrete type.
 
-## Layout is the contract
+`IteratorExt` and `PartialOrdExt` bridge `core::iter::Iterator::next` and
+`core::cmp::PartialOrd::partial_cmp`, which return `Option`, to `Maybe` at the call site. See rustdoc.
 
-At an `extern "C"` (or any platform ABI) boundary, the compiler can't help you: the bytes are the contract. `Option<T>`'s niche-fill is a documented stable layout for `Option<&T>`, `Option<NonNull<T>>`, `Option<NonZero*>`, and `Option<fn>`, but it relies on a reader knowing that niche-fill is what guarantees the layout.
+## Handing data across a boundary
 
-`MaybeNull` is the same guarantee made syntactically explicit. The `NicheFilled` trait is sealed; the supported set of payload types is enumerated; the build fails if you try to instantiate `MaybeNull<u32>`. A reader does not need to know about niche-fill to know `MaybeNull<&T>` lays out as a single null-or-not pointer; the sealed trait makes the intent legible at the type signature.
+Two protocols that keep coming up in code that owns no allocator, and that every crate answers privately
+and slightly differently until one of them is named.
 
-The cost is small: the niche set is fixed at the language level, so consumers who want to extend it (a new sealed trait impl) need a `notko` release. The benefit is that an FFI descriptor full of `MaybeNull<fn>` slots tells you exactly what shipped, and the compiler refuses any `MaybeNull<usize>` mistake at the boundary.
+`Push<T>` takes an item through an exclusive reference and cannot fail, with `BulkPush<T>` taking a whole
+slice at once for the cases where that is cheaper. Between them they describe a collector somebody owns
+and is filling. `Emit<T>` is the other direction: an item through a shared reference, fallibly, which is
+what an installed destination looks like when it is a log, a port, a file or a channel.
 
-`Boundable` and `NonZeroable` carry the same idea in a different domain. A value with a known range or a known sentinel can carry that fact in its type, and consumers can rely on the bound at construction rather than checking at every read.
+`Lend<T>` covers storage a caller hands over to be filled. The lent slice becomes a `Fill`, which is the
+cursor the filler writes through and which hands back the prefix that actually got written when it's
+finished with. A write past the end fails with an `Exhausted` saying how much was wanted against how much
+there was, and that last part is the reason any of it exists: a bit
+buffer, a row of edit distances, an argument vector and a line being typed have nothing in common except
+that all four want to ask exactly this, and a failure that only says "did not fit" leaves the caller
+guessing at how much bigger to try.
 
-## Installation
+Do note that it does nothing at all for bounds checks. A prefix known to be no longer than its capacity
+says nothing about whether some index is inside the part that actually got filled, so indexing stays
+checked like on any other slice.
 
-```bash
-cargo add notko
-```
-
-Or in `Cargo.toml`:
-
-```toml
-[dependencies]
-notko = "0.1"
-```
-
-## Usage
-
-```rust
-use notko::{Just, Maybe, Outcome};
-
-fn lookup(key: u32) -> Maybe<u32> {
-    if key == 0 { Maybe::Isnt } else { Maybe::Is(key * 2) }
-}
-
-fn parse(bytes: &[u8]) -> Outcome<u32, &'static str> {
-    if bytes.is_empty() { Outcome::Err("empty") } else { Outcome::Ok(42) }
-}
-
-// Post-validation: invariant proves the value is present.
-fn post_validated(value: u32) -> Just<u32> {
-    Just::new(value)
-}
-```
-
-With the `try_trait_v2` feature on nightly, `?` works on all three:
-
-```rust
-#![feature(try_trait_v2)]
-use notko::{Just, Maybe, Outcome};
-
-fn compose() -> Outcome<u32, &'static str> {
-    let a = parse(b"foo")?;
-    let b = lookup(a).ok_or("missing")?;
-    Outcome::Ok(a + b)
-}
-```
-
-## Status & features
-
-`notko` is on `0.1.x`; the API is stable enough for downstream use, but several pieces gate on unstable rustc features (`adt_const_params`, `try_trait_v2`, `const_trait_impl`). `notko` tracks them as they mature; features known to have soundness issues are intentionally skipped.
+## Cargo features
 
 | Feature | Default | Effect |
 |---|---|---|
-| `const` | on | Enable const-trait machinery (`ConstTry`, `ConstFromResidual`, `Slot`'s const inherent methods). Requires nightly. Disable via `default-features = false` on stable. |
-| `try_trait_v2` | off | Impl `core::ops::Try` for `Just` / `Maybe` / `Outcome`. Requires nightly. |
-| `macros` | off | Re-export `#[profile]` from `notko-macros` at the crate root. |
+| `const` | on | `ConstTry`, `ConstFromResidual` and `HasTrivialCtor` become `const trait`s. Needs nightly. |
+| `try_trait_v2` | off | `core::ops::Try` for `Just` / `Maybe` / `Outcome`, so `?` works. Needs nightly. |
+| `macros` | off | Re-exports `#[profile]` from `notko-macros` at the crate root. |
+| `all` | off | All three at once. |
 
-Without `try_trait_v2` the types still work; only the `?` operator is unavailable.
+Without `try_trait_v2` the types still work and `?` is what goes missing, and on stable,
+`default-features = false` leaves everything except the const paths, which then exist in plain
+non-const form.
+
+`all` is worth turning on somewhere that compiles it, a consumer or a CI check, because gated code
+nobody builds is how an upstream change breaks you without anyone noticing until much later.
 
 ## Support
 
@@ -163,4 +314,4 @@ Whether you use this project, have learned something from it, or just like it, p
 
 `SPDX-License-Identifier: MPL-2.0`
 
-> You can check out the full license [here](https://github.com/orgrinrt/notko/blob/dev/LICENSE)
+> You can check out the full license [here](https://github.com/orgrinrt/notko/blob/main/LICENSE)

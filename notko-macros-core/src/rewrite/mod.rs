@@ -1,8 +1,13 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! AST rewriting per fallibility strategy.
 
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{parse2, ItemFn, Result};
+use syn::{ItemFn, Result, parse2};
 
 use crate::discover::resolve_tier;
 use crate::parse::parse_tier_arg;
@@ -10,6 +15,7 @@ use crate::tiers::{CustomTier, Strategy};
 
 pub mod helpers;
 mod hot;
+mod maybe;
 mod outcome;
 
 pub use hot::HotRewriter;
@@ -30,6 +36,7 @@ pub fn entry(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
 pub fn rewrite_fn(tier: CustomTier, input: ItemFn) -> Result<TokenStream> {
     match tier.strategy {
         Strategy::Passthrough => Ok(quote! { #input }),
+        Strategy::Warm => maybe::rewrite(tier, input),
         Strategy::Hot => hot::rewrite(tier, input),
         Strategy::Cold => outcome::rewrite(tier, input),
     }

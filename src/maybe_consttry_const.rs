@@ -1,12 +1,19 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! Const-variant ConstTry / ConstFromResidual impls on `Maybe<T>`.
 //! Loaded only when feature `const` is enabled.
 
-use super::Maybe;
-use crate::{ConstFromResidual, ConstTry};
 use core::convert::Infallible;
+use core::marker::Destruct;
 use core::ops::ControlFlow;
 
-impl<T: Copy> const ConstTry for Maybe<T> {
+use super::Maybe;
+use crate::{ConstFromResidual, ConstTry};
+
+const impl<T: [const] Destruct> ConstTry for Maybe<T> {
     type Output = T;
     type Residual = Maybe<Infallible>;
 
@@ -24,7 +31,7 @@ impl<T: Copy> const ConstTry for Maybe<T> {
     }
 }
 
-impl<T: Copy> const ConstFromResidual<Maybe<Infallible>> for Maybe<T> {
+const impl<T: [const] Destruct> ConstFromResidual<Maybe<Infallible>> for Maybe<T> {
     #[inline]
     fn from_residual(residual: Maybe<Infallible>) -> Self {
         match residual {

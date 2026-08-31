@@ -1,7 +1,11 @@
-//! Smoke tests for the Outcome combinator surface (round-353).
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
 
-use notko::Maybe;
-use notko::Outcome;
+//! Smoke tests for the Outcome combinator surface.
+
+use notko::{Maybe, Outcome};
 
 #[test]
 fn as_ref_and_as_mut() {
@@ -144,8 +148,7 @@ fn is_ok_and_and_is_err_and() {
 #[test]
 fn inspect_and_inspect_err_pass_through() {
     let mut sum = 0_i32;
-    let o: Outcome<i32, &'static str> =
-        Outcome::Ok(7).inspect(|x| sum += *x);
+    let o: Outcome<i32, &'static str> = Outcome::Ok(7).inspect(|x| sum += *x);
     assert_eq!(sum, 7);
     assert!(matches!(o, Outcome::Ok(7)));
 

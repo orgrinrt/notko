@@ -1,0 +1,38 @@
+[workspace]
+[package]
+# A probe. It exists to hold one construction still while a panel checked
+# something about it, and it is not this repository's crate however much of it
+# was copied in to get the check to build. Never published, and said here
+# rather than left to a reader to work out from where the file sits.
+publish = false
+name = "notko"
+version = "0.0.1"
+edition = "2024"
+license = "MPL-2.0"
+[lib]
+name = "notko"
+path = "src/lib.rs"
+[features]
+default = ["const"]
+try_trait_v2 = []
+const = []
+[[test]]
+name = "ctor_const_path"
+path = "tests/ctor_const_path.rs"
+required-features = ["const"]
+[[test]]
+name = "ctor_plain_path"
+path = "tests/ctor_plain_path.rs"
+[[test]]
+name = "try_smoke"
+path = "tests/try_smoke.rs"
+required-features = ["try_trait_v2"]
+
+[[test]]
+name = "consttry_notcopy"
+path = "tests/consttry_notcopy.rs"
+required-features = ["const"]
+
+[[test]]
+name = "consttry_parity"
+path = "tests/consttry_parity.rs"

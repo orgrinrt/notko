@@ -1,0 +1,23 @@
+# A stand-in for a crate that reaches for `#[profile]`, built by
+# `consumer_cfg.rs` to check what the macro's output does on the far side of
+# the crate boundary. Its own workspace, so the repo's does not adopt it.
+[workspace]
+
+[package]
+name = "notko-profile-consumer-fixture"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# `try_trait_v2` because one of the checks writes `?` in a profiled body, and
+# `?` over these types is what that feature provides. Without it the operator
+# fails in both arms, which is a true statement about the feature and says
+# nothing about whether the two arms agree.
+notko = { path = "../../../..", features = ["macros", "try_trait_v2"] }
+
+# The convention `#[profile]` expects of a consumer. Declaring it is what makes
+# the emitted `cfg(feature = "internal")` a known value rather than an
+# unexpected one.
+[features]
+internal = []

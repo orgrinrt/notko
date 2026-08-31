@@ -1,31 +1,82 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! Smoke tests for the [`NonZeroable`] blanket impls over
 //! `core::num::NonZero{U,I}*`.
 
 use core::num::{
-    NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroIsize, NonZeroU8,
-    NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128, NonZeroUsize,
+    NonZeroI8,
+    NonZeroI16,
+    NonZeroI32,
+    NonZeroI64,
+    NonZeroI128,
+    NonZeroIsize,
+    NonZeroU8,
+    NonZeroU16,
+    NonZeroU32,
+    NonZeroU64,
+    NonZeroU128,
+    NonZeroUsize,
 };
 
 use notko::{Maybe, NonZeroable};
 
 #[test]
 fn try_new_zero_returns_isnt_unsigned() {
-    assert!(matches!(<NonZeroU8 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroU16 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroU32 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroU64 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroU128 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroUsize as NonZeroable>::try_new(0), Maybe::Isnt));
+    assert!(matches!(
+        <NonZeroU8 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroU16 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroU32 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroU64 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroU128 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroUsize as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
 }
 
 #[test]
 fn try_new_zero_returns_isnt_signed() {
-    assert!(matches!(<NonZeroI8 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroI16 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroI32 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroI64 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroI128 as NonZeroable>::try_new(0), Maybe::Isnt));
-    assert!(matches!(<NonZeroIsize as NonZeroable>::try_new(0), Maybe::Isnt));
+    assert!(matches!(
+        <NonZeroI8 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroI16 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroI32 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroI64 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroI128 as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
+    assert!(matches!(
+        <NonZeroIsize as NonZeroable>::try_new(0),
+        Maybe::Isnt
+    ));
 }
 
 #[test]

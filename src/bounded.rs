@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! [`Boundable`]: trait for types bounded to `[MIN, MAX]`.
 //! [`BoundError`]: rejection reason returned from [`Boundable::try_new`].
 
@@ -17,7 +22,7 @@ pub enum BoundError<I> {
         /// The rejected value.
         value: I,
         /// The minimum permitted value (`MIN`).
-        min: I,
+        min:   I,
     },
     /// Value was greater than `MAX`. Carries the offending value and
     /// the `MAX` bound it failed.
@@ -25,7 +30,7 @@ pub enum BoundError<I> {
         /// The rejected value.
         value: I,
         /// The maximum permitted value (`MAX`).
-        max: I,
+        max:   I,
     },
 }
 
@@ -36,7 +41,7 @@ pub enum BoundError<I> {
 /// construction ([`Self::try_new`]) with a [`BoundError`] naming the
 /// offending value and the bound it crossed.
 ///
-/// Arvo impls this trait on its `UFixed` / `IFixed` newtypes. Downstream
+/// A numeric newtype implements this for its own range. Downstream
 /// consumers take `T: Boundable` (+ associated bounds) rather than concrete
 /// types. Monomorphisation picks the storage shape at each call site.
 ///
@@ -52,7 +57,9 @@ pub enum BoundError<I> {
 /// ```
 /// use notko::{BoundError, Boundable, Outcome};
 ///
-/// fn clamp_into<T: Boundable<Inner = u32>>(value: u32) -> Outcome<T, BoundError<u32>> {
+/// fn clamp_into<T: Boundable<Inner = u32>>(
+///     value: u32,
+/// ) -> Outcome<T, BoundError<u32>> {
 ///     T::try_new(value)
 /// }
 /// ```

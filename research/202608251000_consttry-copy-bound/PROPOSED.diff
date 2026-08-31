@@ -1,0 +1,556 @@
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -7,6 +7,8 @@
+ #![cfg_attr(feature = "try_trait_v2", feature(try_trait_v2))]
+ #![cfg_attr(feature = "try_trait_v2", feature(try_trait_v2_residual))]
+ #![cfg_attr(feature = "const", feature(const_trait_impl))]
++#![cfg_attr(feature = "const", feature(const_destruct))]
++#![cfg_attr(feature = "const", feature(const_convert))]
+ 
+ //! notko: foundation primitives.
+ //!
+--- a/src/just_consttry_const.rs
++++ b/src/just_consttry_const.rs
+@@ -9,9 +9,10 @@
+ use super::Just;
+ use crate::{ConstFromResidual, ConstTry};
+ use core::convert::Infallible;
++use core::marker::Destruct;
+ use core::ops::ControlFlow;
+ 
+-const impl<T: Copy> ConstTry for Just<T> {
++const impl<T: [const] Destruct> ConstTry for Just<T> {
+     type Output = T;
+     type Residual = Infallible;
+ 
+@@ -26,7 +27,7 @@
+     }
+ }
+ 
+-const impl<T: Copy> ConstFromResidual<Infallible> for Just<T> {
++const impl<T: [const] Destruct> ConstFromResidual<Infallible> for Just<T> {
+     #[inline]
+     fn from_residual(residual: Infallible) -> Self {
+         match residual {}
+--- a/src/maybe_consttry_const.rs
++++ b/src/maybe_consttry_const.rs
+@@ -9,9 +9,10 @@
+ use super::Maybe;
+ use crate::{ConstFromResidual, ConstTry};
+ use core::convert::Infallible;
++use core::marker::Destruct;
+ use core::ops::ControlFlow;
+ 
+-const impl<T: Copy> ConstTry for Maybe<T> {
++const impl<T: [const] Destruct> ConstTry for Maybe<T> {
+     type Output = T;
+     type Residual = Maybe<Infallible>;
+ 
+@@ -29,7 +30,7 @@
+     }
+ }
+ 
+-const impl<T: Copy> ConstFromResidual<Maybe<Infallible>> for Maybe<T> {
++const impl<T: [const] Destruct> ConstFromResidual<Maybe<Infallible>> for Maybe<T> {
+     #[inline]
+     fn from_residual(residual: Maybe<Infallible>) -> Self {
+         match residual {
+--- a/src/outcome_consttry_const.rs
++++ b/src/outcome_consttry_const.rs
+@@ -9,9 +9,10 @@
+ use super::Outcome;
+ use crate::{ConstFromResidual, ConstTry};
+ use core::convert::Infallible;
++use core::marker::Destruct;
+ use core::ops::ControlFlow;
+ 
+-const impl<T: Copy, E: Copy> ConstTry for Outcome<T, E> {
++const impl<T: [const] Destruct, E: [const] Destruct> ConstTry for Outcome<T, E> {
+     type Output = T;
+     type Residual = Outcome<Infallible, E>;
+ 
+@@ -34,11 +35,15 @@
+ // needing `E -> F` conversion through ConstFromResidual reach for the
+ // non-const path via `default-features = false`. See the `# Divergence`
+ // section on `ConstFromResidual`'s declaration in `consttry_const_path.rs`.
+-const impl<T: Copy, E: Copy> ConstFromResidual<Outcome<Infallible, E>> for Outcome<T, E> {
++const impl<T, E, F: [const] From<E> + [const] Destruct> ConstFromResidual<Outcome<Infallible, E>>
++    for Outcome<T, F>
++where
++    E: [const] Destruct,
++{
+     #[inline]
+     fn from_residual(residual: Outcome<Infallible, E>) -> Self {
+         match residual {
+-            Outcome::Err(err) => Outcome::Err(err),
++            Outcome::Err(err) => Outcome::Err(F::from(err)),
+             Outcome::Ok(never) => match never {},
+         }
+     }
+--- a/src/just.rs
++++ b/src/just.rs
+@@ -324,6 +324,14 @@
+         type TryType = Just<T>;
+     }
+ }
++
++#[cfg(feature = "const")]
++#[path = "just_deref_const.rs"]
++mod deref_const;
++
++#[cfg(not(feature = "const"))]
++#[path = "just_deref_plain.rs"]
++mod deref_plain;
+ 
+ #[cfg(feature = "const")]
+ #[path = "just_consttry_const.rs"]
+--- /dev/null
++++ b/src/just_deref_const.rs
+@@ -0,0 +1,46 @@
++//--------------------------------------------------------------------------------------------------
++// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
++// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
++//--------------------------------------------------------------------------------------------------
++
++//! Const-variant `Deref` and borrow conversions on `Just<T>`.
++//! Loaded only when feature `const` is enabled.
++//!
++//! `Just<T>` is `#[repr(transparent)]` over a single `T` and documents itself
++//! as a no-op extraction of that value, so the deref target is total: there is
++//! no absent case for it to panic on. `Maybe` and `Outcome` deliberately get no
++//! `Deref`, because theirs would have to invent a value for the empty variant.
++
++use super::Just;
++use core::borrow::{Borrow, BorrowMut};
++use core::ops::{Deref, DerefMut};
++
++const impl<T> Deref for Just<T> {
++    type Target = T;
++
++    #[inline]
++    fn deref(&self) -> &T {
++        &self.0
++    }
++}
++
++const impl<T> DerefMut for Just<T> {
++    #[inline]
++    fn deref_mut(&mut self) -> &mut T {
++        &mut self.0
++    }
++}
++
++const impl<T> Borrow<T> for Just<T> {
++    #[inline]
++    fn borrow(&self) -> &T {
++        &self.0
++    }
++}
++
++const impl<T> BorrowMut<T> for Just<T> {
++    #[inline]
++    fn borrow_mut(&mut self) -> &mut T {
++        &mut self.0
++    }
++}
+--- /dev/null
++++ b/src/just_deref_plain.rs
+@@ -0,0 +1,46 @@
++//--------------------------------------------------------------------------------------------------
++// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
++// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
++//--------------------------------------------------------------------------------------------------
++
++//! Plain-variant `Deref` and borrow conversions on `Just<T>`.
++//! Loaded only when feature `const` is disabled.
++//!
++//! `Just<T>` is `#[repr(transparent)]` over a single `T` and documents itself
++//! as a no-op extraction of that value, so the deref target is total: there is
++//! no absent case for it to panic on. `Maybe` and `Outcome` deliberately get no
++//! `Deref`, because theirs would have to invent a value for the empty variant.
++
++use super::Just;
++use core::borrow::{Borrow, BorrowMut};
++use core::ops::{Deref, DerefMut};
++
++impl<T> Deref for Just<T> {
++    type Target = T;
++
++    #[inline]
++    fn deref(&self) -> &T {
++        &self.0
++    }
++}
++
++impl<T> DerefMut for Just<T> {
++    #[inline]
++    fn deref_mut(&mut self) -> &mut T {
++        &mut self.0
++    }
++}
++
++impl<T> Borrow<T> for Just<T> {
++    #[inline]
++    fn borrow(&self) -> &T {
++        &self.0
++    }
++}
++
++impl<T> BorrowMut<T> for Just<T> {
++    #[inline]
++    fn borrow_mut(&mut self) -> &mut T {
++        &mut self.0
++    }
++}
+--- /dev/null
++++ b/tests/consttry_notcopy.rs
+@@ -0,0 +1,164 @@
++//--------------------------------------------------------------------------------------------------
++// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
++// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
++//--------------------------------------------------------------------------------------------------
++
++//! Const-context proofs for `ConstTry` / `ConstFromResidual` on payloads that
++//! are **not** `Copy`.
++//!
++//! `consttry_smoke.rs` proves the const path only at `u32`. Every type it uses
++//! is `Copy`, so the suite cannot see whether the const path accepts anything
++//! else, and for a long time it did not. These proofs are that missing column:
++//! a non-Copy payload, a nested one, and `Outcome` with a non-Copy error, each
++//! evaluated at compile time.
++//!
++//! A const proof cannot be configuration-neutral, because the plain path is not
++//! const-callable at all. Runtime reach is what must match across the feature,
++//! and `consttry_parity.rs` asserts that half.
++
++#![cfg_attr(feature = "const", feature(const_trait_impl))]
++// Writing an `impl const From` in this target needs the gate in THIS crate;
++// a consumer doing the same conversion pays the same cost.
++#![cfg_attr(feature = "const", feature(const_convert))]
++
++use core::convert::Infallible;
++use core::ops::ControlFlow;
++use notko::{ConstFromResidual, ConstTry, Just, Maybe, Outcome};
++
++/// Not `Copy`, and no destructor. The type the `const` feature used to refuse.
++#[derive(PartialEq, Eq, Debug)]
++pub struct NotCopy(pub u32);
++
++/// Not `Copy`, wrapping another non-Copy field. No `Drop` impl anywhere.
++#[derive(PartialEq, Eq, Debug)]
++pub struct NotCopyNested(pub NotCopy);
++
++// ---------------------------------------------------------------- const proofs
++
++const _JUST_NOTCOPY_BRANCH: () = {
++    match <Just<NotCopy> as ConstTry>::branch(Just::new(NotCopy(42))) {
++        ControlFlow::Continue(v) => assert!(v.0 == 42),
++        ControlFlow::Break(_) => panic!("Just::branch broke on a non-Copy payload"),
++    }
++};
++
++const _JUST_NOTCOPY_ROUND_TRIP: () = {
++    let j = <Just<NotCopy> as ConstTry>::from_output(NotCopy(7));
++    match <Just<NotCopy> as ConstTry>::branch(j) {
++        ControlFlow::Continue(v) => assert!(v.0 == 7),
++        ControlFlow::Break(_) => panic!("round trip broke"),
++    }
++};
++
++const _MAYBE_NOTCOPY_IS: () = {
++    match <Maybe<NotCopy> as ConstTry>::branch(Maybe::Is(NotCopy(13))) {
++        ControlFlow::Continue(v) => assert!(v.0 == 13),
++        ControlFlow::Break(_) => panic!("Maybe::Is should Continue"),
++    }
++};
++
++const _MAYBE_NOTCOPY_ISNT: () = {
++    match <Maybe<NotCopy> as ConstTry>::branch(Maybe::Isnt) {
++        ControlFlow::Continue(_) => panic!("Maybe::Isnt should Break"),
++        ControlFlow::Break(residual) => match residual {
++            Maybe::Isnt => {}
++            Maybe::Is(_) => panic!("residual should be Isnt"),
++        },
++    }
++};
++
++const _NESTED_NOTCOPY: () = {
++    match <Just<NotCopyNested> as ConstTry>::branch(Just::new(NotCopyNested(NotCopy(5)))) {
++        ControlFlow::Continue(v) => assert!(v.0.0 == 5),
++        ControlFlow::Break(_) => panic!("nested non-Copy broke"),
++    }
++};
++
++// Outcome with a non-Copy payload AND a non-Copy error. Both type parameters
++// carried a `Copy` bound in the const path, so both are exercised.
++const _OUTCOME_NOTCOPY_OK: () = {
++    match <Outcome<NotCopy, NotCopy> as ConstTry>::branch(Outcome::Ok(NotCopy(101))) {
++        ControlFlow::Continue(v) => assert!(v.0 == 101),
++        ControlFlow::Break(_) => panic!("Outcome::Ok should Continue"),
++    }
++};
++
++const _OUTCOME_NOTCOPY_ERR: () = {
++    match <Outcome<NotCopy, NotCopy> as ConstTry>::branch(Outcome::Err(NotCopy(7))) {
++        ControlFlow::Continue(_) => panic!("Outcome::Err should Break"),
++        ControlFlow::Break(residual) => match residual {
++            Outcome::Err(e) => assert!(e.0 == 7),
++            Outcome::Ok(_) => panic!("residual should be Err"),
++        },
++    }
++};
++
++// `Outcome`'s ConstFromResidual has no const proof anywhere in the suite today,
++// which is why the dropped `From` conversion went unnoticed. This is that proof,
++// in the reflexive `E == F` shape the shipped const impl supports.
++const _OUTCOME_FROM_RESIDUAL_REFLEXIVE: () = {
++    let residual: Outcome<Infallible, NotCopy> = Outcome::Err(NotCopy(9));
++    let o: Outcome<u32, NotCopy> =
++        <Outcome<u32, NotCopy> as ConstFromResidual<Outcome<Infallible, NotCopy>>>::from_residual(
++            residual,
++        );
++    match <Outcome<u32, NotCopy> as ConstTry>::branch(o) {
++        ControlFlow::Continue(_) => panic!("from_residual(Err) should Break"),
++        ControlFlow::Break(residual) => match residual {
++            Outcome::Err(e) => assert!(e.0 == 9),
++            Outcome::Ok(_) => panic!("residual should be Err"),
++        },
++    }
++};
++
++const _JUST_FROM_RESIDUAL_NOTCOPY: () = {
++    // `Infallible` is uninhabited, so this only has to type-check to mean
++    // something: it asserts the impl is reachable for a non-Copy `T`.
++    let _ = |r: Infallible| -> Just<NotCopy> {
++        <Just<NotCopy> as ConstFromResidual<Infallible>>::from_residual(r)
++    };
++};
++
++
++// ------------------------------------------------------- cross-error conversion
++
++/// The `E -> F` conversion the const path dropped. `outcome_consttry_const.rs`
++/// documented its absence as a known divergence from the plain path; nothing in
++/// the suite asserted it in either configuration, which is why the divergence
++/// could sit there. These are that assertion.
++#[derive(PartialEq, Eq, Debug)]
++pub struct ErrLow(pub u32);
++#[derive(PartialEq, Eq, Debug)]
++pub struct ErrHigh(pub u32);
++
++const impl From<ErrLow> for ErrHigh {
++    fn from(e: ErrLow) -> Self {
++        ErrHigh(e.0)
++    }
++}
++
++const _OUTCOME_FROM_RESIDUAL_CONVERTS: () = {
++    let residual: Outcome<Infallible, ErrLow> = Outcome::Err(ErrLow(4));
++    let o: Outcome<u32, ErrHigh> =
++        <Outcome<u32, ErrHigh> as ConstFromResidual<Outcome<Infallible, ErrLow>>>::from_residual(
++            residual,
++        );
++    match <Outcome<u32, ErrHigh> as ConstTry>::branch(o) {
++        ControlFlow::Continue(_) => panic!("Err residual should Break"),
++        ControlFlow::Break(residual) => match residual {
++            Outcome::Err(e) => assert!(e.0 == 4),
++            Outcome::Ok(_) => panic!("residual should be Err"),
++        },
++    }
++};
++
++// A const target whose assertions are all `const _` blocks reports zero tests,
++// which reads like a skipped target rather than a passing one. This mirrors one
++// proof at runtime so the count is non-zero and the target is visibly alive.
++#[test]
++fn notcopy_const_proofs_compiled() {
++    match <Just<NotCopy> as ConstTry>::branch(Just::new(NotCopy(42))) {
++        ControlFlow::Continue(v) => assert_eq!(v, NotCopy(42)),
++        ControlFlow::Break(_) => panic!("Just::branch broke"),
++    }
++}
+--- /dev/null
++++ b/tests/consttry_parity.rs
+@@ -0,0 +1,93 @@
++//--------------------------------------------------------------------------------------------------
++// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
++// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
++//--------------------------------------------------------------------------------------------------
++
++//! Runtime reach of `ConstTry` must not depend on the `const` feature.
++//!
++//! The `const` feature is meant to decide whether the traits are const traits,
++//! not which types they accept. This target carries no `#[cfg]` and no feature
++//! gate, so it compiles under both configurations or neither, and a bound that
++//! one path adds and the other does not makes it fail to build in exactly one.
++//! That build failure is the assertion; the runtime bodies below are secondary.
++//!
++//! Cargo unifies features across a dependency graph, so a consumer cannot rely
++//! on `default-features = false` surviving contact with a sibling crate that
++//! takes the defaults. Parity is what makes that unification harmless, which is
++//! why it is asserted rather than documented.
++//!
++//! Run both:
++//!   cargo test --test consttry_parity
++//!   cargo test --test consttry_parity --no-default-features
++
++use core::convert::Infallible;
++use core::ops::ControlFlow;
++use notko::{ConstTry, Just, Maybe, Outcome};
++
++/// Not `Copy`, no destructor.
++#[derive(PartialEq, Eq, Debug)]
++pub struct NotCopy(pub u32);
++
++
++#[test]
++fn just_notcopy_branch_runtime() {
++    match <Just<NotCopy> as ConstTry>::branch(Just::new(NotCopy(42))) {
++        ControlFlow::Continue(v) => assert_eq!(v, NotCopy(42)),
++        ControlFlow::Break(_) => panic!("Just::branch broke"),
++    }
++}
++
++#[test]
++fn outcome_notcopy_err_runtime() {
++    match <Outcome<NotCopy, NotCopy> as ConstTry>::branch(Outcome::Err(NotCopy(3))) {
++        ControlFlow::Continue(_) => panic!("Err should break"),
++        ControlFlow::Break(Outcome::Err(e)) => assert_eq!(e, NotCopy(3)),
++        ControlFlow::Break(Outcome::Ok(_)) => panic!("residual should be Err"),
++    }
++}
++
++/// A type with a real destructor. It must work at RUNTIME through the same
++/// impl in both configurations. Const use of it is refused, and that refusal
++/// is asserted separately as a compile-fail case.
++pub struct HasDrop(pub u32);
++impl Drop for HasDrop {
++    fn drop(&mut self) {}
++}
++
++#[test]
++fn hasdrop_branch_runtime() {
++    match <Just<HasDrop> as ConstTry>::branch(Just::new(HasDrop(11))) {
++        ControlFlow::Continue(v) => assert_eq!(v.0, 11),
++        ControlFlow::Break(_) => panic!("Just::branch broke on a Drop payload"),
++    }
++}
++
++#[test]
++fn generic_runtime_no_bound() {
++    // A fully generic runtime caller writing no bound at all. This is what a
++    // consumer's own helper looks like, and it must keep working.
++    fn helper<T>(j: Just<T>) -> ControlFlow<Infallible, T> {
++        <Just<T> as ConstTry>::branch(j)
++    }
++    match helper(Just::new(HasDrop(4))) {
++        ControlFlow::Continue(v) => assert_eq!(v.0, 4),
++        ControlFlow::Break(_) => unreachable!(),
++    }
++}
++
++#[test]
++fn maybe_notcopy_runtime() {
++    match <Maybe<NotCopy> as ConstTry>::branch(Maybe::Is(NotCopy(8))) {
++        ControlFlow::Continue(v) => assert_eq!(v, NotCopy(8)),
++        ControlFlow::Break(_) => panic!("Maybe::Is should continue"),
++    }
++}
++
++#[test]
++fn outcome_from_output_notcopy_runtime() {
++    let o = <Outcome<NotCopy, NotCopy> as ConstTry>::from_output(NotCopy(21));
++    match <Outcome<NotCopy, NotCopy> as ConstTry>::branch(o) {
++        ControlFlow::Continue(v) => assert_eq!(v, NotCopy(21)),
++        ControlFlow::Break(_) => panic!("from_output should round-trip"),
++    }
++}
+--- /dev/null
++++ b/tests/just_deref.rs
+@@ -0,0 +1,86 @@
++//--------------------------------------------------------------------------------------------------
++// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
++// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
++//--------------------------------------------------------------------------------------------------
++
++//! `Deref` and the borrow conversions on `Just<T>`.
++//!
++//! Ungated on purpose: these impls exist in both feature configurations, so
++//! this target must build and pass with `const` on and off. That symmetry is
++//! the same contract `consttry_parity.rs` asserts for `ConstTry`.
++
++#![cfg_attr(feature = "const", feature(const_trait_impl))]
++// A const deref coercion needs the const-traits gates in THIS crate, because
++// `Deref`'s const-ness is `rustc_const_unstable(feature = "const_convert")`.
++// A consumer wanting `*just` in a const fn pays the same cost.
++#![cfg_attr(feature = "const", feature(const_convert))]
++
++use core::borrow::{Borrow, BorrowMut};
++use notko::Just;
++
++#[derive(PartialEq, Eq, Debug)]
++struct NotCopy(u32);
++
++#[test]
++fn deref_reads_through() {
++    let j = Just::new(NotCopy(7));
++    assert_eq!(*j, NotCopy(7));
++    assert_eq!(j.0, 7, "field access through auto-deref");
++}
++
++#[test]
++fn deref_mut_writes_through() {
++    let mut j = Just::new(NotCopy(1));
++    (*j).0 = 9;
++    assert_eq!(*j, NotCopy(9));
++}
++
++#[test]
++fn method_resolution_reaches_the_payload() {
++    // The point of Deref here: T's inherent surface is reachable without
++    // unwrapping first.
++    let j = Just::new(String::from("abc"));
++    assert_eq!(j.len(), 3);
++    assert!(j.starts_with('a'));
++}
++
++#[test]
++fn borrow_agrees_with_deref() {
++    let j = Just::new(NotCopy(4));
++    let b: &NotCopy = j.borrow();
++    assert_eq!(b, &*j);
++    assert!(core::ptr::eq(b, &*j), "borrow and deref name the same storage");
++}
++
++#[test]
++fn inherent_as_ref_still_wins_and_returns_the_functor_shape() {
++    // Guards the reason AsRef/AsMut are NOT implemented: the inherent methods
++    // return Just<&T>, and adding the traits would shadow-conflict here.
++    let j = Just::new(NotCopy(4));
++    let f: Just<&NotCopy> = j.as_ref();
++    assert_eq!(**f.get(), NotCopy(4));
++}
++
++#[test]
++fn borrow_mut_writes_through() {
++    let mut j = Just::new(NotCopy(0));
++    { let m: &mut NotCopy = j.borrow_mut(); m.0 = 6; }
++    assert_eq!(*j, NotCopy(6));
++}
++
++#[test]
++fn deref_is_zero_cost_over_t() {
++    // Just is repr(transparent); deref must not be observing a copy.
++    let j = Just::new(NotCopy(3));
++    let inner: *const NotCopy = &*j;
++    let whole: *const Just<NotCopy> = &j;
++    assert_eq!(inner as usize, whole as usize, "transparent: same address");
++}
++
++// A const proof. Gated, because the plain path's Deref is not const-callable
++// and asserting otherwise there would be asserting the feature narrows.
++#[cfg(feature = "const")]
++const _CONST_DEREF: () = {
++    let j = Just::new(7u32);
++    assert!(*j == 7);
++};

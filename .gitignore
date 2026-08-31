@@ -4,3 +4,7 @@ Cargo.lock
 *.swp
 *.swo
 *.rs.bk
+
+# The third-party discovery test writes a tier directory under the crate it
+# runs in and removes it again. An interrupted run leaves one behind.
+widget-tiers*/

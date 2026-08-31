@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! `Slot<T>`. Transparent niche-filled `Maybe<T>` wrapper.
 //!
 //! `Slot<T>` is a `#[repr(transparent)]` newtype over `Maybe<T>` for
@@ -12,10 +17,9 @@
 //! contracts:
 //!
 //! `NonZeroable` (open trait) says "this type has a zero sentinel
-//! and a guaranteed-nonzero form." Downstream crates implement
-//! `NonZeroable` on their own newtypes (e.g. arvo's nonzero
-//! flavours of UFixed / IFixed) without needing to coordinate with
-//! notko.
+//! and a guaranteed-nonzero form." A downstream crate implements it
+//! on its own newtypes, a nonzero flavour of a fixed-point type say,
+//! without coordinating with this crate.
 //!
 //! `NicheFilled` (sealed trait) says "rustc's niche-filling
 //! optimisation actually realizes the bit-pattern-zero niche for
@@ -29,27 +33,27 @@
 //! match the contract a niche occupies; NicheFilled so the layout
 //! claim holds.
 //!
-//! Per-instantiation `_LAYOUT_ASSERT` constants verify
-//! `size_of::<Slot<T>> == size_of::<T>` at compile time. Adding a
-//! new `Slot<T>` instantiation that fails the assert is a build
-//! error, not a silent layout regression.
+//! A const assertion per `NonZeroable` impl verifies
+//! `size_of::<Slot<T>> == size_of::<T>` at compile time, so a layout
+//! regression on any of them is a build error rather than something
+//! that shows up at an FFI boundary. Those assertions cover the
+//! primitives this crate implements the trait for; a consumer adding
+//! its own `NonZeroable` type is asserting its own layout.
 //!
 //! ## Composition with domain wrappers
 //!
-//! Consumers needing the +1 / -1 shift to expose 0-indexed semantics
-//! over a `NonZeroX` payload (e.g. `arvo`'s `NUSize` over
-//! `Slot<NonZeroUSize>`) wrap `Slot<T>` again at the domain layer.
-//! The shift is the wrapper's contract, not Slot's. notko stays
-//! arithmetic-free.
+//! The +1 / -1 shift that exposes 0-indexed semantics over a
+//! `NonZeroX` payload is a wrapper around `Slot<T>` at the domain
+//! layer, not something `Slot` does. The shift is that wrapper's
+//! contract, and this crate stays arithmetic-free.
 //!
 //! ## Limitations on downstream NicheFilled types
 //!
 //! `NicheFilled` is sealed in notko. Downstream crates that want a
 //! `Slot<TheirCustomNonZeroType>` cannot extend `NicheFilled` and
 //! must use `core::num::NonZero{U,I}*` or a reference type as the
-//! payload. Tracked as a future cross-repo design question; for
-//! immediate use cases (arvo's `NUSize` over `NonZeroUSize`) the
-//! seal is not load-bearing.
+//! payload. Wrapping one of those is the shape that is actually
+//! reached for, so the seal has not bound anything in practice.
 
 use crate::{Maybe, NicheFilled, NonZeroable};
 
@@ -58,8 +62,27 @@ use crate::{Maybe, NicheFilled, NonZeroable};
 /// Layout: identical to `T` (`#[repr(transparent)]` over `Maybe<T>`,
 /// which niche-fills when `T: NicheFilled`).
 #[repr(transparent)]
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub struct Slot<T: NonZeroable + NicheFilled>(Maybe<T>);
+
+impl<T: NonZeroable + NicheFilled + core::fmt::Debug> core::fmt::Debug for Slot<T> {
+    /// The type's own vocabulary, not the one it wraps.
+    ///
+    /// A derive delegates to the inner [`Maybe`] and prints `Slot(Isnt)`, which
+    /// names a variant this type's surface does not have: it says `NONE`,
+    /// `is_none` and `some`. A reader chasing an empty field is told about the
+    /// wrong layer, in a word they cannot find.
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match &self.0 {
+            Maybe::Is(value) => f.debug_tuple("Slot").field(value).finish(),
+            // `format_args!` rather than a written-out string, so the alternate
+            // form stays a tuple like the present one. A `write_str` of the
+            // whole rendering is what `{:#?}` cannot lay out, and the two arms
+            // then disagree about their shape under one format specifier.
+            Maybe::Isnt => f.debug_tuple("Slot").field(&format_args!("none")).finish(),
+        }
+    }
+}
 
 impl<T: NonZeroable + NicheFilled> Slot<T> {
     /// The absent value. Equivalent to `Slot(Maybe::Isnt)`.
@@ -78,15 +101,26 @@ impl<T: NonZeroable + NicheFilled> Slot<T> {
     }
 
     /// Consume to the underlying `Maybe<T>`. By-value extraction is
-    /// the `into_*` form; this requires `T: Copy` because const fn
-    /// cannot evaluate destructors of generic `T` under current
-    /// rustc nightly.
+    /// the `into_*` form.
     ///
-    /// In practice the `T: Copy` bound is satisfied automatically by
-    /// every type that is also [`NicheFilled`]: references, `NonNull`,
-    /// every `core::num::NonZero*`, and `fn` pointers are all `Copy`.
-    /// The bound is therefore non-restrictive at every call site that
-    /// can construct a `Slot<T>` in the first place.
+    /// The bound is there because a const fn has to be able to drop
+    /// what it consumes, and the property that names is `Destruct`
+    /// rather than `Copy`. Naming it directly would need the const
+    /// feature, and this method exists in both configurations, so it
+    /// takes the bound that works in both. `Copy` implies `Destruct`,
+    /// so nothing unsound gets through; the cost is that a non-`Copy`
+    /// payload is refused here while every other method on `Slot`
+    /// takes it.
+    ///
+    /// That payload is reachable, so the cost is real rather than
+    /// theoretical. `NicheFilled` is sealed and `NonZeroable` is not,
+    /// and what a `Slot<T>` admits is the two together: the sealed
+    /// list covers `&T`, `&mut T`, `NonNull<T>`, the function pointer
+    /// shapes and the `core::num::NonZero*` family, and a crate may
+    /// implement `NonZeroable` for a reference to a type of its own.
+    /// `&mut T` is the one member of that list that is not `Copy`, so
+    /// a `Slot<&mut Theirs>` builds, borrows and reports, and refuses
+    /// this one method.
     pub const fn into_maybe(self) -> Maybe<T>
     where
         T: Copy,
@@ -111,24 +145,22 @@ impl<T: NonZeroable + NicheFilled> Default for Slot<T> {
     }
 }
 
-// Per-instantiation layout assertions. Each named instantiation
-// pins `size_of::<Slot<T>> == size_of::<T>` at compile time. New
-// instantiations downstream consumers actually exercise (e.g.
-// arvo's `Slot<NonZeroUSize>`) should add a matching const here.
-// Drift between Slot's claimed layout and rustc's realized layout
-// surfaces as a build error.
+// Layout assertions over every type this crate implements `NonZeroable`
+// for. Drift between the claimed layout and the one rustc realizes is a
+// build error rather than something an FFI boundary discovers later.
 mod layout_assertions {
-    use super::Slot;
     use core::mem::size_of;
-    use core::num::{NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize};
 
-    const _SLOT_NONZERO_USIZE: () = assert!(size_of::<Slot<NonZeroUsize>>() == size_of::<usize>());
-    const _SLOT_NONZERO_U8: () = assert!(size_of::<Slot<NonZeroU8>>() == size_of::<u8>());
-    const _SLOT_NONZERO_U16: () = assert!(size_of::<Slot<NonZeroU16>>() == size_of::<u16>());
-    const _SLOT_NONZERO_U32: () = assert!(size_of::<Slot<NonZeroU32>>() == size_of::<u32>());
-    const _SLOT_NONZERO_U64: () = assert!(size_of::<Slot<NonZeroU64>>() == size_of::<u64>());
-    const _SLOT_NONZERO_I8: () = assert!(size_of::<Slot<NonZeroI8>>() == size_of::<i8>());
-    const _SLOT_NONZERO_I16: () = assert!(size_of::<Slot<NonZeroI16>>() == size_of::<i16>());
-    const _SLOT_NONZERO_I32: () = assert!(size_of::<Slot<NonZeroI32>>() == size_of::<i32>());
-    const _SLOT_NONZERO_I64: () = assert!(size_of::<Slot<NonZeroI64>>() == size_of::<i64>());
+    use super::Slot;
+
+    // The list mirrors `impl_nonzeroable_for_core!` in `nonzero.rs`. A
+    // hand-written subset of it drifts silently, since every assertion that
+    // is present still passes while the ones nobody typed cover nothing.
+    macro_rules! assert_slot_layout {
+        ($($nz:ty => $inner:ty),* $(,)?) => {
+            $(const _: () = assert!(size_of::<Slot<$nz>>() == size_of::<$inner>());)*
+        };
+    }
+
+    crate::nonzero::for_each_core_nonzero!(assert_slot_layout);
 }

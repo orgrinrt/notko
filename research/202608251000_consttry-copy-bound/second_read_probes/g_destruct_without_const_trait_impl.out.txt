@@ -1,0 +1,19 @@
+### g_destruct_without_const_trait_impl.rs
+### rustc 1.98.0-nightly (57d06900f 2026-05-27)
+### expected: fail
+
+error[E0658]: const trait impls are experimental
+ --> g_destruct_without_const_trait_impl.rs:5:21
+  |
+5 | const fn consume<T: [const] Destruct>(_t: T) {}
+  |                     ^^^^^^^
+  |
+  = note: see issue #143874 <https://github.com/rust-lang/rust/issues/143874> for more information
+  = help: add `#![feature(const_trait_impl)]` to the crate attributes to enable
+  = note: this compiler was built on 2026-05-27; consider upgrading it if it is out of date
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0658`.
+
+### rustc exit status: 1

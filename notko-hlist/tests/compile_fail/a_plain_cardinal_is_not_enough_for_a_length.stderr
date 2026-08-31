@@ -1,0 +1,11 @@
+error[E0277]: the trait bound `Count: const Cardinal` is not satisfied
+  --> tests/compile_fail/a_plain_cardinal_is_not_enough_for_a_length.rs:26:14
+   |
+26 |     let _ = <One as Length<Count>>::len();
+   |              ^^^
+   |
+   = note: required for `Cons<A, notko_hlist::Empty>` to implement `Length<Count>`
+help: make the `impl` of trait `Cardinal` `const`
+   |
+14 | impl const Cardinal for Count {
+   |      +++++

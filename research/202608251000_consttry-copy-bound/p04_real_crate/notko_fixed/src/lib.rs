@@ -1,0 +1,147 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
+#![no_std]
+#![cfg_attr(feature = "try_trait_v2", feature(try_trait_v2))]
+#![cfg_attr(feature = "try_trait_v2", feature(try_trait_v2_residual))]
+#![cfg_attr(feature = "const", feature(const_trait_impl))]
+#![cfg_attr(feature = "const", feature(const_destruct))]
+#![cfg_attr(feature = "const", feature(const_convert))]
+
+//! notko: foundation primitives.
+//!
+//! Finnish *notko*: hollow, trough.
+//!
+//! Zero deps, no std, no alloc. Ships the vocabulary that stands in for
+//! `core::option::Option`, `core::result::Result`, and bare integer
+//! primitives, so one set of words covers presence, fallibility and width.
+//!
+//! # Contents
+//!
+//! - [`Just<T>`]: infallible value wrapper with a zero-cost `Try` impl.
+//! - [`Maybe<T>`]: presence (Option replacement). Niche-fills for pointer-shaped `T` so
+//!   `Maybe<unsafe extern "C" fn(...)>`, `Maybe<&T>`, `Maybe<NonNull<T>>`, etc. are one
+//!   pointer wide with `Isnt` as the null bit pattern, matching `Option<T>`'s layout for
+//!   the same shapes. Size parity is const-asserted in `maybe.rs`.
+//! - [`Outcome<T, E>`]: fallible (Result replacement). Layout is tagged-union with
+//!   platform-standard field ordering; no `repr(C)` forcing. For FFI-critical two-variant
+//!   results, wrap the payload in a dedicated `#[repr(C)]` struct.
+//! - [`Slot<T>`]: niche-filled `Maybe<T>` wrapper for `T: NonZeroable + NicheFilled`,
+//!   `#[repr(transparent)]` so layout matches `T`.
+//! - [`Boundable`]: trait for "this type is bounded to `[MIN, MAX]`".
+//!   Companion [`BoundError`] enum names whether a rejected value was
+//!   below `MIN` or above `MAX` and carries the offending value.
+//! - [`sink::Push<T>`] and [`sink::BulkPush<T>`]: receive an item, or a slice of them,
+//!   through an exclusive reference and without failing. What a collector somebody owns
+//!   looks like.
+//! - [`sink::Emit<T>`]: receive an item through a shared reference, fallibly. What an
+//!   installed destination looks like: a log, a port, a file, a channel.
+//! - [`lend::Lend<T>`]: storage a caller hands over to be filled, with
+//!   [`lend::Fill`] carrying back the prefix that was written and
+//!   [`lend::Exhausted`] saying how much was wanted against how much there was.
+//! - [`NonZeroable`]: trait for "this type has a zero sentinel and a
+//!   nonzero guarantee form".
+//! - [`ConstTry`] / [`ConstFromResidual`]: const-callable parallels of
+//!   `core::ops::Try` / `FromResidual`. Gated behind the `const` cargo
+//!   feature (default-on).
+//!
+//! # Cost per call site
+//!
+//! [`Just`] / [`Maybe`] / [`Outcome`] put the hot, warm and cold split at
+//! the control-flow level, so what a branch costs is picked where the call
+//! is written instead of being fixed by the type:
+//!
+//! | Tier | Type | Cold path |
+//! |------|------|-----------|
+//! | Hot  | [`Just<T>`]       | None: no branch. `?` compiles away. |
+//! | Warm | [`Maybe<T>`]      | One-bit discriminant, no payload. |
+//! | Cold | [`Outcome<T, E>`] | Full error payload + branch. |
+//!
+//! The companion `#[profile(Hot | Warm | Cold)]` proc-macro (see the
+//! `notko-macros` crate, re-exported at the root under the `macros`
+//! feature) rewrites a function's return type between builds:
+//! `Outcome<T, E>` in debug and standalone consumers, `Just<T>` in
+//! internal-release builds where invariants are proven by construction.
+//! The primitives are usable without the macro; the macro is an optional
+//! accelerator.
+//!
+//! # ABI stability
+//!
+//! [`Maybe<T>`] participates in Rust's niche-filling optimisation. For payload
+//! types with a niche (function pointers, `&T`, `&mut T`, `NonZero*`,
+//! `NonNull<T>`, and similar), `Maybe<T>` has identical size and alignment
+//! to `T` itself, with [`Maybe::Isnt`] represented by `T`'s invalid bit
+//! pattern (null for pointers, zero for `NonZero*`). This is the same
+//! layout `Option<T>` gets for those shapes; `Maybe<T>` is a drop-in
+//! FFI-compatible replacement whenever the payload is pointer-shaped.
+//!
+//! Size parity is pinned by compile-time `assert!` in `maybe.rs`. If a
+//! future rustc drops niche-filling for user enums while keeping
+//! `Option`-specific guarantees, those assertions fail compilation and
+//! a build catches it immediately.
+//!
+//! For fully general payload types (both variants carry values, as in
+//! `Outcome<T, E>`), there is no single-pointer representation. Code
+//! that needs a specific C ABI result layout should wrap the payload
+//! in a dedicated `#[repr(C)]` struct rather than rely on
+//! `Outcome`'s default Rust-repr tagged-union layout.
+//!
+//! `Maybe` sits in a public API position for vocabulary reasons rather than
+//! layout ones. `Option<&T>`, `Option<NonNull<T>>`, `Option<NonZero*>` and
+//! `Option<fn>` all carry documented layout guarantees of their own, and
+//! `Maybe` carries the same niche-filled layout for the same shapes. What it
+//! buys is one word for presence everywhere, not a representation `core`
+//! could not have given.
+//!
+//! # Where `Option` stays
+//!
+//! The std types still exist and are still what std trait method signatures
+//! require (`fn next() -> Option<Self::Item>`, `fn partial_cmp() ->
+//! Option<Ordering>`, `fn fmt() -> fmt::Result`). Those are the places
+//! `Option` is unavoidable, so that's where it stays.
+
+// The README's `rust` blocks are compiled as doctests. Only those: the shell
+// blocks are prose as far as this is concerned, and changing a fence would drop
+// the check with nothing saying so.
+//
+// Without this the examples are the one part of the documentation nothing
+// verifies, which is the part a reader is most likely to copy. Adding it found
+// two that did not build: one calling functions it never defined, and one
+// importing `profile` without the feature that provides it.
+//
+// Gated on `macros` for the same reason `try_smoke` carries
+// `required-features`: one block shows `#[profile]`, which does not exist
+// without it, so under default features this would fail on a feature's absence
+// rather than on anything being wrong. `cargo test --all-features` is the run
+// that exercises the examples.
+#[cfg(all(doctest, feature = "macros"))]
+#[doc = include_str!("../README.md")]
+struct Readme;
+
+pub mod bounded;
+pub mod cmp;
+pub mod consttry;
+pub mod ctor;
+pub mod iter;
+pub mod just;
+pub mod lend;
+pub mod maybe;
+pub mod nonzero;
+pub mod outcome;
+pub mod prelude;
+pub mod sink;
+pub mod slot;
+
+pub use bounded::{BoundError, Boundable};
+pub use consttry::{ConstFromResidual, ConstTry};
+pub use ctor::HasTrivialCtor;
+pub use just::{Just, JustIter};
+pub use maybe::{Maybe, MaybeIter, MaybeNull, NicheFilled};
+pub use nonzero::NonZeroable;
+pub use outcome::Outcome;
+pub use slot::Slot;
+
+#[cfg(feature = "macros")]
+pub use notko_macros::profile;

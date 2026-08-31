@@ -1,0 +1,16 @@
+error[E0277]: `u8` has no length in `Count`
+  --> tests/compile_fail/a_tail_that_is_not_a_list_has_no_length.rs:25:14
+   |
+25 |     let _ = <Malformed as Length<Count>>::len();
+   |              ^^^^^^^^^ the trait `Length<Count>` is not implemented for `u8`
+   |
+   = note: A length is defined for lists built from `Empty` and `Cons<H, T>`, and only in a count type implementing `Cardinal`. Check that `Count` implements `Cardinal`, and that the tail of every cell is itself a list rather than a bare type.
+help: the following other types implement trait `Length<N>`
+  --> src/length_const_path.rs
+   |
+   | impl<N: const Cardinal> Length<N> for Empty {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `notko_hlist::Empty`
+...
+   | impl<N: const Cardinal, H, T: Length<N>> Length<N> for Cons<H, T> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Cons<H, T>`
+   = note: required for `Cons<A, u8>` to implement `Length<Count>`

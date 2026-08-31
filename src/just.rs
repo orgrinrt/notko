@@ -1,3 +1,8 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! [`Just<T>`]: infallible value wrapper.
 
 use core::fmt;
@@ -8,11 +13,17 @@ use core::fmt;
 ///
 /// Use as the hot-path type for positions that logically could be
 /// [`crate::Outcome`] / [`crate::Maybe`] but whose error / absent variant
-/// has been proven unreachable (codegen, reified invariants).
+/// has been proven unreachable (codegen, invariants made concrete).
 ///
-/// Implements [`core::ops::Try`] (with `Residual = core::convert::Infallible`)
-/// when the `try_trait_v2` feature is enabled, so `?` on a `Just<T>` is a
-/// no-op extraction of the inner value.
+/// Implements [`core::ops::Try`] (with the dedicated empty residual
+/// `JustResidual`) when the `try_trait_v2` feature is enabled, so `?` on a
+/// `Just<T>` is a no-op extraction of the inner value.
+///
+/// `?` on a [`crate::Outcome`] or a [`crate::Maybe`] **inside** a function
+/// returning one panics on the failing arm, which is what the proof of
+/// unreachability being wrong looks like at runtime. A narrowed function has
+/// nowhere to propagate to, so the alternative to panicking is not compiling,
+/// and not compiling is what it used to do in release only.
 #[repr(transparent)]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd, Default)]
 #[must_use = "Just<T> wraps a value; ignoring it discards the wrapped T"]
@@ -143,8 +154,10 @@ impl<T> Just<T> {
         self.0
     }
 
-    /// Return the inner value. The `Default` bound is documentation only;
-    /// `Just<T>` always carries a value. Tier-symmetric mirror of
+    /// Return the inner value. `Just<T>` always carries one, so the default is
+    /// never reached, but the bound is a real one: a payload without `Default`
+    /// is refused here and accepted by every other method on `Just`. It is the
+    /// price of the mirror being exact. Tier-symmetric mirror of
     /// [`crate::Maybe::unwrap_or_default`] /
     /// [`crate::Outcome::unwrap_or_default`].
     #[inline]
@@ -175,11 +188,7 @@ impl<T> Just<T> {
     /// Tier-symmetric mirror of [`crate::Maybe::map_or_else`] /
     /// [`crate::Outcome::map_or_else`].
     #[inline]
-    pub fn map_or_else<U, D: FnOnce() -> U, F: FnOnce(T) -> U>(
-        self,
-        _default: D,
-        f: F,
-    ) -> U {
+    pub fn map_or_else<U, D: FnOnce() -> U, F: FnOnce(T) -> U>(self, _default: D, f: F) -> U {
         f(self.0)
     }
 
@@ -247,8 +256,8 @@ impl<T> ExactSizeIterator for JustIter<T> {
 impl<T> core::iter::FusedIterator for JustIter<T> {}
 
 impl<T> IntoIterator for Just<T> {
-    type Item = T;
     type IntoIter = JustIter<T>;
+    type Item = T;
 
     #[inline]
     fn into_iter(self) -> JustIter<T> {
@@ -259,8 +268,8 @@ impl<T> IntoIterator for Just<T> {
 }
 
 impl<'a, T> IntoIterator for &'a Just<T> {
-    type Item = &'a T;
     type IntoIter = JustIter<&'a T>;
+    type Item = &'a T;
 
     #[inline]
     fn into_iter(self) -> JustIter<&'a T> {
@@ -281,15 +290,26 @@ impl<T: fmt::Debug> fmt::Debug for Just<T> {
     }
 }
 
+/// Uninhabited residual for [`Just`]'s infallible `Try`.
+///
+/// `Just<T>` never short-circuits (`branch` always returns `Continue`), so
+/// its `?` residual is the empty type. This carries the `Residual<T>` impl
+/// that `core::ops::Try::Residual` now requires. Bare
+/// `core::convert::Infallible` cannot: orphan rules forbid implementing
+/// `core`'s `Residual` for a foreign type, which is why `core` uses its own
+/// internal residual for the same purpose.
+#[cfg(feature = "try_trait_v2")]
+pub enum JustResidual {}
+
 #[cfg(feature = "try_trait_v2")]
 mod try_impl {
-    use super::Just;
-    use core::convert::Infallible;
-    use core::ops::{ControlFlow, FromResidual, Try};
+    use core::ops::{ControlFlow, FromResidual, Residual, Try};
+
+    use super::{Just, JustResidual};
 
     impl<T> Try for Just<T> {
         type Output = T;
-        type Residual = Infallible;
+        type Residual = JustResidual;
 
         #[inline]
         fn from_output(output: Self::Output) -> Self {
@@ -302,10 +322,52 @@ mod try_impl {
         }
     }
 
-    impl<T> FromResidual<Infallible> for Just<T> {
+    impl<T> FromResidual<JustResidual> for Just<T> {
         #[inline]
-        fn from_residual(residual: Infallible) -> Self {
+        fn from_residual(residual: JustResidual) -> Self {
             match residual {}
+        }
+    }
+
+    impl<T> Residual<T> for JustResidual {
+        type TryType = Just<T>;
+    }
+
+    /// `?` on a fallible value, inside a function that has been narrowed to
+    /// [`Just`].
+    ///
+    /// This is what `#[profile(Hot)]` needs to hold its own claim. The
+    /// attribute emits the function twice, once returning [`Outcome`] and once
+    /// returning `Just`, and the whole point of the pair is that the two arms
+    /// mean the same program. Without this impl they do not: `let v = f()?;`
+    /// compiles in the arm that is tested and does not compile in the arm that
+    /// ships, so the divergence surfaces on the consumer's release build and
+    /// nowhere earlier.
+    ///
+    /// The semantics are the ones the rest of the release arm already has.
+    /// `Err(e)` written out is rewritten to a panic there, so a `?` that would
+    /// have propagated an error panics too. What it does not do is print the
+    /// error: a bound on `E` here would make `?` usable only with errors that
+    /// carry one, and the attribute's own panic already reports the error at
+    /// every site where the author wrote the failure down.
+    ///
+    /// [`Outcome`]: crate::Outcome
+    impl<T, E> FromResidual<crate::Outcome<core::convert::Infallible, E>> for Just<T> {
+        #[inline]
+        #[track_caller]
+        fn from_residual(_: crate::Outcome<core::convert::Infallible, E>) -> Self {
+            panic!("hot path invariant violated: `?` propagated an error")
+        }
+    }
+
+    /// The same, for a [`Maybe`] short-circuiting inside a narrowed function.
+    ///
+    /// [`Maybe`]: crate::Maybe
+    impl<T> FromResidual<crate::Maybe<core::convert::Infallible>> for Just<T> {
+        #[inline]
+        #[track_caller]
+        fn from_residual(_: crate::Maybe<core::convert::Infallible>) -> Self {
+            panic!("hot path invariant violated: `?` found nothing")
         }
     }
 }

@@ -1,12 +1,19 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
 //! Const-variant ConstTry / ConstFromResidual impls on `Just<T>`.
 //! Loaded only when feature `const` is enabled.
 
-use super::Just;
-use crate::{ConstFromResidual, ConstTry};
 use core::convert::Infallible;
+use core::marker::Destruct;
 use core::ops::ControlFlow;
 
-impl<T: Copy> const ConstTry for Just<T> {
+use super::Just;
+use crate::{ConstFromResidual, ConstTry};
+
+const impl<T: [const] Destruct> ConstTry for Just<T> {
     type Output = T;
     type Residual = Infallible;
 
@@ -21,7 +28,7 @@ impl<T: Copy> const ConstTry for Just<T> {
     }
 }
 
-impl<T: Copy> const ConstFromResidual<Infallible> for Just<T> {
+const impl<T: [const] Destruct> ConstFromResidual<Infallible> for Just<T> {
     #[inline]
     fn from_residual(residual: Infallible) -> Self {
         match residual {}
