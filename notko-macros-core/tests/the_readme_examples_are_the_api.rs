@@ -61,14 +61,28 @@ fn the_hand_built_tier_example_still_builds_and_rewrites() {
         !out.contains(":: notko"),
         "the emission names notko, which the example never asked for: {out}"
     );
+    // The third thing the example demonstrates, and it was set and never looked at.
+    // `panic_fmt` is the hot strategy's alone, which is what `Hot` above makes this
+    // the arm that can check it.
+    assert!(
+        out.contains("asserted invariant violated"),
+        "the panic message the example set did not reach the emission: {out}"
+    );
 }
 
 #[test]
-fn the_discovery_example_still_names_every_field() {
-    // `## Letting a consumer write their own tiers`. Every field is written out
-    // in the readme deliberately, so that a field added here breaks the example
-    // rather than silently inheriting notko's answer, and this arm is what makes
-    // that promise checkable: it does not spread a default either.
+fn a_discovery_written_out_field_by_field_resolves_and_keeps_its_crate() {
+    // `## Letting a consumer write their own tiers`, as far as this can go. What it
+    // pins is that writing every field out works and carries the author's crate
+    // through the resolve, and that a field added to `Discovery` breaks whoever did
+    // so rather than letting them inherit notko's answer.
+    //
+    // It does not check the readme, and an earlier name here said it did. What it
+    // compares against is its own literal below, so the readme's block drifting from
+    // this one is caught by nothing: the structural arm at the bottom of this file is
+    // module-deep, and a field renamed in the readme's copy sails past both. Comparing
+    // the two would want the block parsed out of the markdown, which is worth doing
+    // and is not done here.
     let mine = Discovery {
         krate:        parse_quote!(::my_runtime),
         gate_feature: "my_release_arm".to_string(),
