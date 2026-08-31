@@ -129,9 +129,9 @@ so it isn't offered as a fallback.
 ## Status
 
 Under active development and pre-1.0, so the api hasn't settled and breaking changes should be
-expected. The shape here has been through three independent reinventions in other crates before landing
-as one, which is some evidence it's about right, but I'd still caution against leaning on the exact
-spellings for anything serious yet.
+expected, though the shape of it has been steady for a while and I'd be surprised if the cell and the
+leaf moved at all. It's the trait names around them I'd caution against leaning on for anything serious
+just yet.
 
 ## Support
 

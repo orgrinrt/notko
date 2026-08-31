@@ -62,24 +62,22 @@
 //!
 //! # ABI stability
 //!
-//! [`Maybe<T>`] participates in Rust's niche-filling optimisation. For payload
-//! types with a niche (function pointers, `&T`, `&mut T`, `NonZero*`,
-//! `NonNull<T>`, and similar), `Maybe<T>` has identical size and alignment
-//! to `T` itself, with [`Maybe::Isnt`] represented by `T`'s invalid bit
-//! pattern (null for pointers, zero for `NonZero*`). This is the same
-//! layout `Option<T>` gets for those shapes; `Maybe<T>` is a drop-in
-//! FFI-compatible replacement whenever the payload is pointer-shaped.
+//! [`Maybe<T>`] takes part in the compiler's niche filling, so where the payload
+//! has an invalid bit pattern of its own (a function pointer, `&T`, `&mut T`, a
+//! `NonZero*`, a `NonNull<T>`, and the rest of that family) it comes out the same
+//! size and alignment as the `T`, with [`Maybe::Isnt`] sitting in that pattern,
+//! null for the pointers and zero for the `NonZero*`. That's the layout
+//! `Option<T>` already gets for the same shapes, which makes `Maybe` a drop-in
+//! across an FFI boundary whenever the payload is shaped like a pointer.
 //!
-//! Size parity is pinned by compile-time `assert!` in `maybe.rs`. If a
-//! future rustc drops niche-filling for user enums while keeping
-//! `Option`-specific guarantees, those assertions fail compilation and
-//! a build catches it immediately.
+//! The size parity is pinned by a `const` assertion per shape in `maybe.rs`, so a
+//! future compiler dropping niche filling for user enums while keeping the
+//! `Option` guarantee breaks the build rather than the ABI.
 //!
-//! For fully general payload types (both variants carry values, as in
-//! `Outcome<T, E>`), there is no single-pointer representation. Code
-//! that needs a specific C ABI result layout should wrap the payload
-//! in a dedicated `#[repr(C)]` struct rather than rely on
-//! `Outcome`'s default Rust-repr tagged-union layout.
+//! Do note there's no such thing where both variants carry a value, as in
+//! [`Outcome<T, E>`], since nothing can be folded into anything. If you want an
+//! exact result layout across the boundary, wrap the payload in your own
+//! `#[repr(C)]` struct instead of leaning on `repr(Rust)`'s tagged union.
 //!
 //! `Maybe` sits in a public API position for vocabulary reasons rather than
 //! layout ones. `Option<&T>`, `Option<NonNull<T>>`, `Option<NonZero*>` and
@@ -90,10 +88,12 @@
 //!
 //! # Where `Option` stays
 //!
-//! The std types still exist and are still what std trait method signatures
-//! require (`fn next() -> Option<Self::Item>`, `fn partial_cmp() ->
-//! Option<Ordering>`, `fn fmt() -> fmt::Result`). Those are the places
-//! `Option` is unavoidable, so that's where it stays.
+//! The core types are still there and still what the core traits ask for in their
+//! own signatures, `fn next() -> Option<Self::Item>`, `fn partial_cmp() ->
+//! Option<Ordering>`, `fn fmt() -> fmt::Result`, and nothing here changes that.
+//! Those are the places `Option` cannot be avoided, so that's where it stays, and
+//! [`iter::IteratorExt`] and [`cmp::PartialOrdExt`] are the bridge at the call
+//! site rather than an attempt to move the boundary.
 
 // The README's `rust` blocks are compiled as doctests. Only those: the shell
 // blocks are prose as far as this is concerned, and changing a fence would drop

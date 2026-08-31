@@ -3,15 +3,23 @@
 // SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
 //--------------------------------------------------------------------------------------------------
 
-//! `#[profile(Hot | Warm | Cold)]` AST-rewriting attribute for notko primitives.
+//! `#[profile(Hot | Warm | Cold)]`, which takes an ordinary `Result` function and
+//! rewrites both its signature and its body into the [notko] tier named on the
+//! tag, so the choice sits in one place instead of in every type spelled out
+//! inside the function.
 //!
-//! This crate is a thin proc-macro entry point. All rewrite logic lives in
-//! the sibling [`notko-macros-core`] library so third-party proc-macro
-//! crates can reuse it.
+//! There is nothing else here. The rewrite itself lives in
+//! [`notko-macros-core`], as an ordinary library rather than a proc-macro one,
+//! so an attribute of your own can build on it instead of doing the rewrite
+//! again, and the tiers live in [notko], which is what the rewritten body names.
 //!
-//! See the crate README for the tier table, usage patterns, and the shape
-//! of custom-tier `notko-optimisers/<Name>.rs` files.
+//! Do note the rewrite fires on a return type spelled `Result<T, E>` or
+//! `Outcome<T, E>` with both arguments written out, and anything else is emitted
+//! exactly as written with no error and no warning, the common `type Result<T>`
+//! alias included. The crate README carries that, the tier table, and the shape
+//! of a custom `notko-optimisers/<Name>.rs`.
 //!
+//! [notko]: https://crates.io/crates/notko
 //! [`notko-macros-core`]: https://crates.io/crates/notko-macros-core
 
 use proc_macro::TokenStream;

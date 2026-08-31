@@ -97,7 +97,22 @@ fn the_readme_does_not_name_a_module_this_crate_lacks() {
     // readme prose rather than in a compiled block. Module granularity is all a
     // grep can honestly claim, so a renamed function inside a module still gets
     // past this one and is what the arms above are for.
-    const MODULES: [&str; 4] = ["discover", "parse", "rewrite", "tiers"];
+    //
+    // Read off `lib.rs` rather than typed out. A literal here is a second copy of
+    // the module list, and a second copy is one that disagrees: a module removed
+    // from the crate and left in the literal makes this arm pass by checking the
+    // readme against a crate that no longer exists.
+    let lib = include_str!("../src/lib.rs");
+    let modules: Vec<String> = lib
+        .lines()
+        .filter_map(|l| l.trim().strip_prefix("pub mod "))
+        .filter_map(|rest| rest.split(';').next())
+        .map(|m| m.trim().to_string())
+        .collect();
+    assert!(
+        modules.len() >= 4,
+        "the public modules were not read off lib.rs, only {modules:?} came back"
+    );
 
     let readme = include_str!("../README.md");
     let mut wrong = Vec::new();
@@ -109,7 +124,7 @@ fn the_readme_does_not_name_a_module_this_crate_lacks() {
                 .chars()
                 .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
                 .collect();
-            if !named.is_empty() && !MODULES.contains(&named.as_str()) {
+            if !named.is_empty() && !modules.contains(&named) {
                 wrong.push(format!("README.md:{}: `{named}`", at + 1));
             }
         }
@@ -118,7 +133,7 @@ fn the_readme_does_not_name_a_module_this_crate_lacks() {
     assert!(
         wrong.is_empty(),
         "the readme names paths under modules this crate does not have, and \
-         the public modules are {MODULES:?}:\n{}",
+         the public modules are {modules:?}:\n{}",
         wrong.join("\n"),
     );
 }
