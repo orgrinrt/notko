@@ -12,9 +12,14 @@ categories = ["no-std", "rust-patterns"]
 keywords = ["no_std", "no_alloc", "hlist", "type-level", "notko"]
 
 # Named rather than excluded, so a file added later has to be asked for
-# rather than shipping by accident. Three of the four test targets check the
-# crate, so those ship; the fourth reads a fixture tree and the toolchain pin,
-# neither of which a package carries.
+# rather than shipping by accident. Five of the six test targets check the
+# crate, so those ship; `the_refusals_hold` reads a fixture tree and the
+# toolchain pin, neither of which a package carries.
+#
+# It stays declared anyway, because a declared target is what makes it run at
+# all here, and it is the only thing pinning the compile-fail cases. The cost
+# is one `cargo package` warning saying it is ignored as not included, which is
+# the truth rather than a defect.
 include = [
     "src/**/*.rs",
     "tests/lists/mod.rs",
