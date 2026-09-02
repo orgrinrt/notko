@@ -121,7 +121,7 @@ fn build_release(tier: &CustomTier, func: &mut ItemFn, ok_ty: Type) -> TokenStre
 /// weaker demand, since `panic!("no placeholder", err = e)` is `named argument
 /// never used`.
 ///
-/// **What it does not cover**, stated rather than left to be discovered: an
+/// What it does not cover, stated rather than left to be discovered: an
 /// error type written `impl Trait`. `impl Trait` is not allowed in a closure
 /// parameter, so emitting this against one is a build failure in the debug arm
 /// and nothing in the release arm, which is the divergence this exists to

@@ -3,7 +3,7 @@ members = [".", "notko-hlist", "notko-macros", "notko-macros-core", "notko-build
 resolver = "2"
 
 [workspace.package]
-version = "0.0.1"
+version = "0.0.2"
 edition = "2024"
 # The floor for the build with the default features off, which is the one that
 # works on stable at all: the default set turns on const-trait machinery that
@@ -147,7 +147,7 @@ const = []
 all = ["const", "macros", "try_trait_v2"]
 
 [dependencies]
-notko-macros = { path = "notko-macros", version = "0.0.1", optional = true }
+notko-macros = { path = "notko-macros", version = "0.0.2", optional = true }
 
 # docs.rs builds default features only, and half of what is worth reading here
 # sits behind `try_trait_v2` and `macros`. Without this the page documents a

@@ -76,7 +76,7 @@ On stable Rust, and anywhere the const paths aren't wanted:
 cargo add notko --no-default-features
 ```
 
-`cargo add` writes `notko = "0.0.1"`, and on a `0.0.x` version that already means that one and nothing
+`cargo add` writes `notko = "0.0.2"`, and on a `0.0.x` version that already means that one and nothing
 else, so what it wrote is the pin. Getting the next one is you changing the number yourself, and reading
 the log between the two tags before you do.
 

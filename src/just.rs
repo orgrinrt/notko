@@ -19,7 +19,7 @@ use core::fmt;
 /// `JustResidual`) when the `try_trait_v2` feature is enabled, so `?` on a
 /// `Just<T>` is a no-op extraction of the inner value.
 ///
-/// `?` on a [`crate::Outcome`] or a [`crate::Maybe`] **inside** a function
+/// `?` on a [`crate::Outcome`] or a [`crate::Maybe`] inside a function
 /// returning one panics on the failing arm, which is what the proof of
 /// unreachability being wrong looks like at runtime. A narrowed function has
 /// nowhere to propagate to, so the alternative to panicking is not compiling,

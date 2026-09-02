@@ -69,7 +69,7 @@ impl<H, T, X> Contains<X> for Cons<H, T> where T: Contains<X> + List {}
 /// Order does not carry: the subset may name its members in any order, and
 /// may name one of them twice, because each is checked on its own.
 ///
-/// The base impl is a blanket over lists, so **every** list holds every member
+/// The base impl is a blanket over lists, so any list at all holds every member
 /// of the empty one. That is what makes the recursion terminate, and it means
 /// a bound of `ContainsAll<Empty>` says nothing and is not worth writing. The
 /// blanket stops at lists rather than covering every type: the sentence is

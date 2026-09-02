@@ -32,7 +32,7 @@ Or add to your `Cargo.toml`:
 
 ```toml
 [build-dependencies]
-notko-build = "0.0.1"
+notko-build = "0.0.2"
 ```
 
 It has no dependencies of its own, and it belongs under `[build-dependencies]` rather than
@@ -49,10 +49,10 @@ name = "my-crate"
 build = "build.rs"
 
 [build-dependencies]
-notko-build = "0.0.1"
+notko-build = "0.0.2"
 
 [dependencies]
-notko-macros = "0.0.1"
+notko-macros = "0.0.2"
 # ... plus whichever crates in your dep tree provide the tiers you want to
 # consume via `#[profile(X)]`
 ```
@@ -84,7 +84,7 @@ build = "build.rs"
 links = "notko-optimisers-my-provider"  # any value, as long as it's unique in the graph
 
 [build-dependencies]
-notko-build = "0.0.1"
+notko-build = "0.0.2"
 ```
 
 `links` is what makes cargo carry the metadata to your dependents at all, and cargo requires the value be

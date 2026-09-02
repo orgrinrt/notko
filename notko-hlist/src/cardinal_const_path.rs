@@ -39,7 +39,7 @@
 /// # Why `Cardinal`
 ///
 /// Not `Countable`, because `-able` says the thing can be counted and this
-/// type **is** the count. Not `Natural`, which is exactly precise and is the
+/// type is the count itself. Not `Natural`, which is exactly precise and is the
 /// problem: it claims a mathematical primitive, and that belongs to whichever
 /// crate owns the numerics rather than to a list.
 pub const trait Cardinal: Sized {
