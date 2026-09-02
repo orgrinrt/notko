@@ -42,7 +42,7 @@ internal = []
 proc-macro = true
 
 [dependencies]
-notko-macros-core = { path = "../notko-macros-core", version = "0.0.1" }
+notko-macros-core = { path = "../notko-macros-core", version = "0.0.2" }
 proc-macro2 = "1"
 
 [dev-dependencies]
