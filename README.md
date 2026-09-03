@@ -20,10 +20,10 @@ keeps a matching api on purpose (same `?`, same combinators, largely identical m
 a function across is usually a type change with the body left alone, although the guarantees are not
 equal.
 
-Do note that `Result<T, Infallible>` already gets you a good part of the way to `Just<T>`, since the
-uninhabited error niches away and the branch is dead by construction. What you don't get from it is one
-api across all three tiers, or the `#[profile]` attribute picking a tier per function, and those are
-what this is actually for.
+Do note that `Result<T, Infallible>` already covers a good part of the way to `Just<T>`, since the
+uninhabited error niches away and the branch is dead by construction. What it doesn't cover is one api
+across all three tiers, or the `#[profile]` attribute picking a tier per function, and those are what
+this is actually for.
 
 The `#[profile]` attribute takes an ordinary `Result` function and rewrites the signature and the body
 into one of the three, so the choice sits in one place per function and the types inside follow from
@@ -128,12 +128,11 @@ match and fails the build. A sibling proc-macro crate reusing `notko-macros-core
 
 ## Example
 
-Here's a small row parser of the kind that keeps turning up in code with no allocator: a line of comma
+Here's a small row parser of the kind that keeps turning up in code with no allocator. A line of comma
 separated numbers goes in, the numbers land in storage the caller lent, and the filled prefix comes back.
 A single byte is a digit or it isn't, with no reason attached either way, so that one is a `Maybe`. A
 whole field can fail for a reason worth reporting, so the tier goes up to `Outcome` there, and the
-lent storage answers with `Exhausted` when it runs out, which says how much was wanted against how much
-there was.
+lent storage answers with `Exhausted` when it runs out.
 
 ```rust
 use notko::prelude::*;
@@ -183,16 +182,14 @@ assert_eq!(
 
 The `?` on the `Maybe` goes through `ok_or`, since a `Maybe` has no error to hand over and the conversion
 has to be spelled, and the `?` on the `Outcome` goes straight through, same as it would on a `Result`.
-The `Exhausted` at the end carries both numbers on purpose, because a failure that only says "did not
-fit" leaves the caller guessing at how much bigger to try.
 
 ## Motivation
 
 `Option<T>` is fine for most code and the discriminant it carries is rarely worth thinking about, but a
 function handing one back says the value might be missing whether or not the caller already knew
 better, so the check gets emitted and the optimiser only sometimes manages to remove it again (in an
-inner loop, sometimes is not often enough). Whether any of it shows up in your own measurements is a
-separate question, and depends much on what the surrounding code looks like.
+inner loop, sometimes is not often enough). Whether any of it shows up in a measurement is a separate
+question, and depends much on what the surrounding code looks like.
 
 So the cost gets picked per tier, where the call is written, and the type follows from that. `Just<T>`
 carries no error variant, so it is the layout of the `T` and nothing more, and a `?` on it has no arm to
