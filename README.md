@@ -21,7 +21,7 @@ a function across is usually a type change with the body left alone, although th
 equal.
 
 Do note that `Result<T, Infallible>` already covers a good part of the way to `Just<T>`, since the
-uninhabited error niches away and the branch is dead by construction. What it doesn't cover is one api
+uninhabited error niches away and the branch is dead by construction. What it leaves out is one api
 across all three tiers, or the `#[profile]` attribute picking a tier per function, and those are what
 this is actually for.
 
