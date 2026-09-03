@@ -26,7 +26,7 @@ use notko_macros_core::rewrite::rewrite_fn;
 use notko_macros_core::tiers::{CustomTier, Hot};
 use proc_macro2::Span;
 use quote::quote;
-use syn::{ItemFn, parse2, parse_quote};
+use syn::{ItemFn, parse_quote, parse2};
 
 /// The function every arm here rewrites. Spelled with both arguments written
 /// out, since that is the only shape the rewrite fires on.
@@ -133,7 +133,7 @@ fn the_readme_does_not_name_a_module_this_crate_lacks() {
     for (at, line) in readme.lines().enumerate() {
         let mut rest = line;
         while let Some(found) = rest.find("notko_macros_core::") {
-            rest = &rest[found + "notko_macros_core::".len()..];
+            rest = &rest[found + "notko_macros_core::".len() ..];
             let named: String = rest
                 .chars()
                 .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
