@@ -18,7 +18,7 @@
 
 //! notko: foundation primitives.
 //!
-//! Finnish *notko*: hollow, trough.
+//! Finnish notko: hollow, trough.
 //!
 //! Core's carriers differ by what they hold, `Option<T>` for absence and
 //! `Result<T, E>` for an error with a payload, and the three here differ by

@@ -52,7 +52,7 @@ than of the strategies, since a custom tier file sets `inline` itself and can tu
 
 `#[profile(Hot)]` emits a `cfg(feature = "internal")`, and a `cfg` written by an attribute macro is read
 against the features of the crate it expanded into. So the feature that decides which arm you get is
-**yours**, not this crate's, and it has to be declared:
+yours, not this crate's, and it has to be declared:
 
 ```toml
 [features]

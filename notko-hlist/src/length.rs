@@ -18,7 +18,7 @@
 //! `Length`, and a generic function written for one configuration would not
 //! compile in the other.
 //!
-//! **This only holds together because the trait is sealed.** `Length` has
+//! This only holds together because the trait is sealed. `Length` has
 //! [`List`](crate::List) as a supertrait, `List` is sealed, and the two impls
 //! here are therefore the only impls of `Length` that can exist anywhere. So
 //! "a count that carries a length is a cardinal" is a fact about the whole

@@ -103,7 +103,7 @@ with rather than in a `usize` you have to convert at every use.
 `List` is implemented for `Empty` and `Cons` and cannot be implemented for anything else, and
 `Contains`, `ContainsAll`, `Length` and `Concat` all have it as a supertrait. So a type of your own
 cannot claim to hold something, and `L: Contains<Db>` proves `Db` is in there instead of proving that
-somebody wrote an empty impl saying so. A membership witness anybody can forge isn't a witness.
+somebody wrote an empty impl saying so, which wouldn't be worth much as a guarantee.
 
 What it costs is bringing your own list type, which isn't really what the crate is for anyway: the
 intended shape is aliasing the cell and the leaf into your own vocabulary, the way the example above
