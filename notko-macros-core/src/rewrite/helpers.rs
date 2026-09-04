@@ -87,7 +87,7 @@ pub fn names_result_ctor(path: &Path, name: &str) -> bool {
 /// this cannot resolve. All of them are shapes with no fallibility to lift, and
 /// the caller's job on `None` is to emit the function untouched.
 ///
-/// **Untouched and silent**, which is worth knowing before it happens to you.
+/// Untouched and silent, which is worth knowing before it happens to you.
 /// A `#[profile]` on one of these is not an error and produces no diagnostic;
 /// the function comes back exactly as written. The case that catches people is
 /// the ordinary crate-local alias, `type Result<T> = core::result::Result<T,

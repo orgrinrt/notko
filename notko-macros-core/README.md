@@ -85,8 +85,8 @@ let tier = mine().resolve(&name, span)?;
 Every field is named rather than spread over a default, and deliberately so:
 `Discovery::default()` is notko's own, all six of them, and reaching for it in
 your macro emits code naming `notko` in consumers that never depended on it. A
-field added here later is a breaking change, which is the honest shape before
-1.0 and beats a silent inheritance of somebody else's answer.
+field added here later is a breaking change then, which seems the better trade
+before 1.0, since the alternative is silently inheriting somebody else's answer.
 
 `krate` and `gate_feature` are the two worth a second look. A rewrite has to name some
 crate for the type it produces, and whatever it names becomes a requirement on
