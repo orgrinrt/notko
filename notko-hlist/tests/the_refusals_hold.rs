@@ -127,7 +127,7 @@ fn every_case_carries_the_diagnostic_it_must_produce() {
         }
     }
     assert!(
-        cases >= 12,
+        cases >= 17,
         "the fixture directory holds {cases} cases, too few to be the set"
     );
     assert!(
@@ -144,9 +144,15 @@ fn the_blessed_diagnostics_carry_this_crate_s_own_notes() {
     // note deleted from the source shows up here as a `.stderr` that no longer
     // matches, but only if a case actually reaches one.
     //
-    // So this asserts the fixtures cover all five traits that carry a note,
+    // So this asserts the fixtures cover every trait that carries a note,
     // which is what makes the blessed files a check on the notes rather than
     // on rustc's generic phrasing alone.
+    //
+    // The seal fragment now has two traits behind it, `List` and `Position`,
+    // and rustc words it the same way for both, so a single fragment cannot
+    // say which one was reached. The case count above is what keeps the second
+    // one from being deleted without notice, and `has no member at` reaches
+    // `At` on its own.
     let dir = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/compile_fail"));
     let mut blessed = String::new();
     for entry in std::fs::read_dir(dir).expect("the fixture directory") {
@@ -165,6 +171,8 @@ fn the_blessed_diagnostics_carry_this_crate_s_own_notes() {
         "has no length in",
         "cannot append",
         "is not a list",
+        "has no member at",
+        "has no index in",
         // The sealing is the load-bearing one and rustc words it, not us, so
         // this is the check that a fixture actually reaches a sealed impl
         // rather than failing earlier for some other reason.

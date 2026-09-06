@@ -1,0 +1,11 @@
+error[E0271]: type mismatch resolving `<Cons<A, Cons<B, Cons<C, Empty>>> as At<There<Here>>>::Member == C`
+  --> tests/compile_fail/a_member_cannot_be_claimed_to_be_another_type.rs:22:17
+   |
+22 |     member_is::<Three, There<Here>, C>();
+   |                 ^^^^^ expected `C`, found `B`
+   |
+note: required by a bound in `member_is`
+  --> tests/compile_fail/a_member_cannot_be_claimed_to_be_another_type.rs:18:23
+   |
+18 | fn member_is<L: At<P, Member = M>, P, M>() {}
+   |                       ^^^^^^^^^^ required by this bound in `member_is`

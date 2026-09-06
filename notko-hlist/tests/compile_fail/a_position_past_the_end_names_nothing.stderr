@@ -1,0 +1,20 @@
+error[E0277]: `notko_hlist::Empty` has no member at `Here`
+  --> tests/compile_fail/a_position_past_the_end_names_nothing.rs:20:17
+   |
+20 |     member_of::<Two, There<There<Here>>>();
+   |                 ^^^ the trait `At<Here>` is not implemented for `notko_hlist::Empty`
+   |
+   = note: A member is at `Here` in a `Cons`, and at `There<P>` when the tail has one at `P`. The usual causes are an index past the end of the list, which leaves `Empty` holding the position, and a position that is not built from `Here` and `There`.
+help: the trait `At<Here>` is implemented for `Cons<H, T>`
+  --> src/at.rs
+   |
+   | impl<H, T: List> At<Here> for Cons<H, T> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: required for `Cons<B, notko_hlist::Empty>` to implement `At<There<Here>>`
+   = note: 1 redundant requirement hidden
+   = note: required for `Cons<A, Cons<B, notko_hlist::Empty>>` to implement `At<There<There<Here>>>`
+note: required by a bound in `member_of`
+  --> tests/compile_fail/a_position_past_the_end_names_nothing.rs:17:17
+   |
+17 | fn member_of<L: At<P>, P>() {}
+   |                 ^^^^^ required by this bound in `member_of`

@@ -13,7 +13,7 @@
 
 #![allow(dead_code)]
 
-use notko_hlist::{Cons, Empty};
+use notko_hlist::{Cons, Empty, Here, There};
 
 pub struct A;
 pub struct B;
@@ -54,3 +54,27 @@ pub type Eight<T> = Cons<A, Cons<B, Cons<C, Cons<D, Cons<E, Cons<A, Cons<B, Cons
 /// gets before it reaches for the raised one.
 pub type L8 = Eight<Empty>;
 pub type L32 = Eight<Eight<Eight<Eight<Empty>>>>;
+
+/// The first eight positions, written out, so a target indexing a list says
+/// which member it means rather than nesting `There` at the use site and
+/// leaving the reader to count the angle brackets.
+///
+/// Named for the index they carry, so `P0` is the front and `P0` through `P7`
+/// address `L8` exactly.
+pub type P0 = Here;
+pub type P1 = There<P0>;
+pub type P2 = There<P1>;
+pub type P3 = There<P2>;
+pub type P4 = There<P3>;
+pub type P5 = There<P4>;
+pub type P6 = There<P5>;
+pub type P7 = There<P6>;
+
+/// Eight positions further along than `P`, the way [`Eight`] is eight cells in
+/// front of a list, so a deep position is built by nesting rather than by
+/// writing thirty-one `There`.
+pub type Onwards<P> = There<There<There<There<There<There<There<There<P>>>>>>>>;
+
+/// The last position in `L32`, which is the one an off-by-one at either end
+/// puts outside the list.
+pub type P31 = Onwards<Onwards<Onwards<P7>>>;

@@ -3,9 +3,15 @@
 // SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
 //--------------------------------------------------------------------------------------------------
 
-//! `Cardinal` and `Length` on the const path: every length is a constant, so
-//! most of the file is decided by the compiler and a wrong number is a build
-//! failure rather than a failing run.
+//! `Cardinal`, `Length` and `Position` on the const path: every count is a
+//! constant, so most of the file is decided by the compiler and a wrong number
+//! is a build failure rather than a failing run.
+//!
+//! Both counts are here because both are the same question, how many cells,
+//! answered about a list and about a position, and both land in the consumer's
+//! own number type through the same three `Cardinal` impls. Which member sits
+//! at a position is a different question and is in
+//! `a_member_sits_at_a_position`, which needs no count and no feature.
 //!
 //! The plain path counts the same lists in `a_count_counts_without_const`, off
 //! the same shared module, and the bound spellings both paths must accept are
@@ -19,7 +25,7 @@
 mod lists;
 
 use lists::*;
-use notko_hlist::{Cardinal, Empty, Length};
+use notko_hlist::{Cardinal, Empty, Here, Length, Position, There};
 
 // ---------------------------------------------------------------------------
 // Three count types, because the count being the consumer's choice is the
@@ -108,6 +114,36 @@ const _: () = assert!(<L4 as Length<Count>>::LEN.0 == 4);
 const _: () = assert!(<L4 as Length<Tally>>::LEN.0 == 4);
 const _: () = assert!(<L4 as Length<Saturating>>::LEN.0 == 4);
 
+/// A position's index, zero through seven, which is the other place an
+/// off-by-one lives. `Here` is nought rather than one, so the index is what a
+/// consumer hands a slice and not what it hands a human.
+const _: () = assert!(<P0 as Position<Count>>::INDEX.0 == 0);
+const _: () = assert!(<P1 as Position<Count>>::INDEX.0 == 1);
+const _: () = assert!(<P2 as Position<Count>>::INDEX.0 == 2);
+const _: () = assert!(<P3 as Position<Count>>::INDEX.0 == 3);
+const _: () = assert!(<P7 as Position<Count>>::INDEX.0 == 7);
+
+/// Deep enough that the recursion is doing real work, and `Onwards` is pinned
+/// under it for the reason `Eight` is: a wrong eight gives a wrong thirty-one
+/// that still looks like a number somebody meant.
+const _: () = assert!(<Onwards<P0> as Position<Count>>::INDEX.0 == 8);
+const _: () = assert!(<P31 as Position<Count>>::INDEX.0 == 31);
+
+/// An index and a length are the same walk from opposite ends, so the last
+/// position of a list is one under its length. Nothing enforces that and
+/// nothing could: they are two traits over two kinds of thing, and this is
+/// where the pair is held to it.
+const _: () = assert!(<P31 as Position<Count>>::INDEX.0 + 1 == <L32 as Length<Count>>::LEN.0);
+const _: () = assert!(<P7 as Position<Count>>::INDEX.0 + 1 == <L8 as Length<Count>>::LEN.0);
+
+/// A position counts in whichever type it is asked in, and the saturating one
+/// stops where it says it does, exactly as a length does. An index that
+/// saturates is a real shape and a wrong one to hand a slice, which is the
+/// consumer's call rather than this crate's.
+const _: () = assert!(<P3 as Position<Saturating>>::INDEX.0 == 3);
+const _: () = assert!(<P7 as Position<Saturating>>::INDEX.0 == 4);
+const _: () = assert!(<P3 as Position<Tally>>::INDEX.0 == 3);
+
 // ---------------------------------------------------------------------------
 // Run-time restatements. The constants above are the real check; these exist so
 // a reader running the suite sees the numbers rather than an empty test list,
@@ -140,6 +176,39 @@ fn the_constants_are_the_numbers_they_should_be() {
 }
 
 #[test]
+fn index_reads_the_same_constant() {
+    // The provided method is here for the same reason `len` is, so it has to
+    // be the same number.
+    assert_eq!(
+        <P0 as Position<Count>>::index(),
+        <P0 as Position<Count>>::INDEX
+    );
+    assert_eq!(
+        <P31 as Position<Count>>::index(),
+        <P31 as Position<Count>>::INDEX
+    );
+    assert_eq!(
+        <P7 as Position<Saturating>>::index(),
+        <P7 as Position<Saturating>>::INDEX
+    );
+}
+
+#[test]
+fn the_front_is_nought_and_a_step_is_one_more() {
+    // The whole of what a position means, spelled out, so the two impls are
+    // pinned by something other than the numbers they add up to.
+    assert_eq!(<Here as Position<Count>>::INDEX, Count::ZERO);
+    assert_eq!(
+        <There<Here> as Position<Count>>::INDEX,
+        <Here as Position<Count>>::INDEX.succ()
+    );
+    assert_eq!(
+        <There<There<Here>> as Position<Count>>::INDEX,
+        <There<Here> as Position<Count>>::INDEX.succ()
+    );
+}
+
+#[test]
 fn a_zero_is_a_zero_in_every_count() {
     assert_eq!(<Empty as Length<Count>>::LEN, Count::ZERO);
     assert_eq!(<Empty as Length<Saturating>>::LEN, Saturating::ZERO);
@@ -161,6 +230,21 @@ fn a_generic_bound_takes_every_list_and_every_count() {
     assert_eq!(length_of::<L32, Count>(), Count(32));
     assert_eq!(length_of::<Repeated, Tally>(), Tally(3));
     assert_eq!(length_of::<L5, Saturating>(), Saturating(4));
+}
+
+#[test]
+fn a_generic_bound_takes_every_position_and_every_count() {
+    // The same shape as `length_of` and for the same reason: a bound that only
+    // works on concrete positions would satisfy every constant above and no
+    // consumer.
+    fn index_of<P: Position<N>, N: Cardinal>() -> N {
+        <P as Position<N>>::index()
+    }
+
+    assert_eq!(index_of::<P0, Count>(), Count(0));
+    assert_eq!(index_of::<P31, Count>(), Count(31));
+    assert_eq!(index_of::<P7, Saturating>(), Saturating(4));
+    assert_eq!(index_of::<P3, Tally>(), Tally(3));
 }
 
 #[test]

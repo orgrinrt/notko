@@ -27,6 +27,7 @@ include = [
     "tests/a_count_counts_without_const.rs",
     "tests/both_paths_take_the_same_bounds.rs",
     "tests/append_is_append.rs",
+    "tests/a_member_sits_at_a_position.rs",
     "tests/the_list_holds_what_it_holds.rs",
     "README.md",
     "LICENSE",
@@ -71,6 +72,14 @@ path = "tests/both_paths_take_the_same_bounds.rs"
 [[test]]
 name = "append_is_append"
 path = "tests/append_is_append.rs"
+
+# `At` needs neither either: its two impls do not overlap, so no marker
+# attribute, and it answers a type rather than computing a constant, so no const
+# path. The index that goes with a position is a count and is pinned beside
+# `Length` in the two counting targets.
+[[test]]
+name = "a_member_sits_at_a_position"
+path = "tests/a_member_sits_at_a_position.rs"
 
 # Every bound in it names `Contains` or `ContainsAll`, which do not exist
 # without the feature.

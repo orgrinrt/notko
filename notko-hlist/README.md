@@ -8,7 +8,7 @@
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/issues)
 ![License](https://img.shields.io/github/license/orgrinrt/notko?color=%23009689)
 
-> A heterogeneous type-level list, and the structural facts about one. Length in your own count type, membership, and append, all decided by the compiler.
+> A heterogeneous type-level list, and the structural facts about one. Length in your own count type, membership, position, and append, all decided by the compiler.
 
 </div>
 
@@ -18,9 +18,15 @@ the solver discharges. So `Cons<Db, Cons<Cache, Empty>>` is a set of things a fu
 touch, or the axes of a shape, or the commands a shell knows, and a bound like `L: Contains<Db>` is the
 compiler agreeing before anything runs.
 
-Do note that this is deliberately small. Length, membership and append are the structural folds, the
-ones needing no algebra, and a value-level fold that reduces with an identity and a combine is not
-here, because that is numerics territory and belongs where the algebra lives.
+Membership and position are two ways of asking after a member and they answer different questions.
+`L: Contains<Db>` says the type is in there and keeps the depth out of the bound, so a list reordered
+later breaks nobody. `At<P>` says which type is at a place, with the place written as `Here` or
+`There<P>` and read back as a number through `Position`, which is what a consumer indexing a flat run
+of values beside the list actually needs.
+
+Do note that this is deliberately small. Length, membership, position and append are the structural
+folds, the ones needing no algebra, and a value-level fold that reduces with an identity and a combine
+is not here, because that is numerics territory and belongs where the algebra lives.
 
 ## Installation
 
@@ -49,7 +55,7 @@ notko-hlist = { version = "0.0.1", default-features = false }
 // The default set needs nightly, and this is where you say so.
 #![feature(const_trait_impl)]
 
-use notko_hlist::{Cardinal, Concat, Cons, Contains, ContainsAll, Empty, Length};
+use notko_hlist::{At, Cardinal, Concat, Cons, Contains, ContainsAll, Empty, Here, Length, Position, There};
 
 // The names are meant to appear at the definition and almost nowhere else, so
 // alias them into whatever the thing actually is.
@@ -81,14 +87,29 @@ const READS: Count = <Reads as Length<Count>>::LEN;
 // Composition: a unit declaring both sets ends up with everything either had.
 type Touched = <Reads as Concat<Writes>>::Out;
 
+// Position, where the depth is the question rather than something to hide.
+// `Cache` is the second store read, and the index is what you hand a run of
+// values sitting beside the list.
+type Second = There<Here>;
+const SECOND: Count = <Second as Position<Count>>::INDEX;
+
 // And the bound a caller actually writes. `Touched` holding `Log` is checked
 // here, and passing a set that does not is a compile error rather than a
 // lookup that fails later.
 fn runs_against<Set: Contains<Log> + ContainsAll<Reads>>() {}
 
+// The member at a position, named in the signature. Handed the wrong position
+// this does not compile, which is the whole reason to index this way.
+fn second_store<L: At<Second, Member = M>, M>(value: M) -> M {
+    let _ = core::marker::PhantomData::<L>;
+    value
+}
+
 fn main() {
     assert_eq!(READS, Count(2));
+    assert_eq!(SECOND, Count(1));
     runs_against::<Touched>();
+    let _: Cache = second_store::<Reads, Cache>(Cache);
 }
 ```
 
@@ -101,9 +122,13 @@ with rather than in a `usize` you have to convert at every use.
 ## The traits are sealed
 
 `List` is implemented for `Empty` and `Cons` and cannot be implemented for anything else, and
-`Contains`, `ContainsAll`, `Length` and `Concat` all have it as a supertrait. So a type of your own
-cannot claim to hold something, and `L: Contains<Db>` proves `Db` is in there instead of proving that
-somebody wrote an empty impl saying so, which wouldn't be worth much as a guarantee.
+`Contains`, `ContainsAll`, `Length`, `At` and `Concat` all have it as a supertrait. So a type of your
+own cannot claim to hold something, and `L: Contains<Db>` proves `Db` is in there instead of proving
+that somebody wrote an empty impl saying so, which wouldn't be worth much as a guarantee.
+
+`Position` is sealed the same way, through `Here` and `There`, and for the sharper version of the same
+reason: a position of your own could carry whatever index it liked, `At` would answer no member for
+it, and a bound reading the count alone would index wherever it was told.
 
 What it costs is bringing your own list type, which isn't really what the crate is for anyway: the
 intended shape is aliasing the cell and the leaf into your own vocabulary, the way the example above
@@ -112,19 +137,21 @@ does, and that keeps them these two types.
 ## Features
 
 Both are on by default and both need nightly. With the defaults off you get the list, `List`, `Concat`,
-and `Length` through `len()`, which is what builds on stable back to 1.85.
+`At`, and `Length` and `Position` through their calls, which is what builds on stable back to 1.85.
 
 | Feature | Adds | Unstable gate |
 |---|---|---|
-| `const` | `Cardinal` becomes a const trait, and `Length` gains `LEN`, resolved at compile time | `const_trait_impl` |
+| `const` | `Cardinal` becomes a const trait, `Length` gains `LEN` and `Position` gains `INDEX`, both resolved at compile time | `const_trait_impl` |
 | `membership` | `Contains` and `ContainsAll` | `marker_trait_attr` |
 
 Without `const` the count is still there and still right, just computed rather than named. Without
 `membership` there is no way to ask whether a list holds a type at all, and that one is not a
 simplification we chose: the head match and the recursive tail match overlap by construction, and
-`#[marker]` is how coherence gets told the overlap is intended. There is a shape that works on stable,
-carrying a position index through the bound, but it is a different surface rather than this one weaker,
-so it isn't offered as a fallback.
+`#[marker]` is how coherence gets told the overlap is intended. There is a membership shape that works
+on stable, carrying an index witness through the bound, but it is a different surface rather than this
+one weaker, so it isn't offered as a fallback. `At` is not that shape and is not a fallback for it: it
+answers which member is at a place you name, where membership answers whether a type is in there at
+all, and it needs no feature because its two impls do not overlap.
 
 ## Status
 
