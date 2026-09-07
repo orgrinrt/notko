@@ -127,7 +127,7 @@ fn every_case_carries_the_diagnostic_it_must_produce() {
         }
     }
     assert!(
-        cases >= 12,
+        cases >= 19,
         "the fixture directory holds {cases} cases, too few to be the set"
     );
     assert!(
@@ -144,9 +144,17 @@ fn the_blessed_diagnostics_carry_this_crate_s_own_notes() {
     // note deleted from the source shows up here as a `.stderr` that no longer
     // matches, but only if a case actually reaches one.
     //
-    // So this asserts the fixtures cover all five traits that carry a note,
+    // So this asserts the fixtures cover every trait that carries a note,
     // which is what makes the blessed files a check on the notes rather than
     // on rustc's generic phrasing alone.
+    //
+    // Two seals, worded differently by rustc, so both are named. `List` is
+    // sealed on itself and gets the "sealed trait" phrasing; `Place` is a
+    // public marker over a private supertrait, which is what lets a consumer
+    // spell the bound, and rustc reports that as a requirement rather than as
+    // a seal. Both `At` and `Position` reach it, so the fragment says a seal
+    // was reached and the case count above is what keeps each of the two
+    // cases from being deleted unnoticed.
     let dir = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/compile_fail"));
     let mut blessed = String::new();
     for entry in std::fs::read_dir(dir).expect("the fixture directory") {
@@ -165,10 +173,13 @@ fn the_blessed_diagnostics_carry_this_crate_s_own_notes() {
         "has no length in",
         "cannot append",
         "is not a list",
+        "has no member at",
+        "has no index in",
         // The sealing is the load-bearing one and rustc words it, not us, so
-        // this is the check that a fixture actually reaches a sealed impl
+        // these are the check that a fixture actually reaches a sealed impl
         // rather than failing earlier for some other reason.
         "is a \"sealed trait\"",
+        "to implement `Place`",
     ] {
         assert!(
             blessed.contains(fragment),

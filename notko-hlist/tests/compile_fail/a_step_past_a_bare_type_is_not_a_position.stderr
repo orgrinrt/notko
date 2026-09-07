@@ -1,0 +1,16 @@
+error[E0277]: `u8` has no index in `Count`
+  --> tests/compile_fail/a_step_past_a_bare_type_is_not_a_position.rs:24:14
+   |
+24 |     let _ = <There<u8> as Position<Count>>::index();
+   |              ^^^^^^^^^ the trait `Position<Count>` is not implemented for `u8`
+   |
+   = note: A position is `Here`, or `There<P>` where `P` is itself a position, and the count `Count` has to implement `Cardinal`. The trait is sealed through `Place`, so a marker of your own cannot become one. If the compiler reports `overflow evaluating the requirement` instead, the count is one step per cell and the position is further along than the default recursion limit, so the crate root wants `#![recursion_limit = "1024"]`.
+help: the following other types implement trait `Position<N>`
+  --> src/position_const_path.rs
+   |
+   | impl<N: const Cardinal> Position<N> for Here {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Here`
+...
+   | impl<N: const Cardinal, P: Position<N>> Position<N> for There<P> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `There<P>`
+   = note: required for `There<u8>` to implement `Position<Count>`

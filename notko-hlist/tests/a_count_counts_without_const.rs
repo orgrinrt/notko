@@ -3,8 +3,9 @@
 // SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
 //--------------------------------------------------------------------------------------------------
 
-//! `Cardinal` and `Length` on the plain path: the same lengths over the same
-//! lists as `a_count_counts`, arrived at by calling rather than by being named.
+//! `Cardinal`, `Length` and `Position` on the plain path: the same counts over
+//! the same lists and positions as `a_count_counts`, arrived at by calling
+//! rather than by being named.
 //!
 //! Every assertion there that can be expressed here is expressed here, so the
 //! two configurations are not tested to different standards.
@@ -19,7 +20,7 @@
 mod lists;
 
 use lists::*;
-use notko_hlist::{Cardinal, Empty, Length};
+use notko_hlist::{At, Cardinal, Empty, Here, Length, Position, There};
 
 /// The ordinary case: counts up forever.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -137,4 +138,115 @@ fn succ_from_zero_is_the_whole_of_a_cardinal() {
         Saturating::ZERO.succ().succ().succ().succ().succ().succ(),
         Saturating(4)
     );
+}
+
+#[test]
+fn a_position_says_how_far_along_it_is() {
+    // Zero through seven, then deep, which is where an off-by-one lives.
+    // `Here` is nought rather than one, so the index is what a consumer hands
+    // a slice and not what it hands a human.
+    assert_eq!(<P0 as Position<Count>>::index(), Count(0));
+    assert_eq!(<P1 as Position<Count>>::index(), Count(1));
+    assert_eq!(<P2 as Position<Count>>::index(), Count(2));
+    assert_eq!(<P3 as Position<Count>>::index(), Count(3));
+    assert_eq!(<P7 as Position<Count>>::index(), Count(7));
+    assert_eq!(<Onwards<P0> as Position<Count>>::index(), Count(8));
+    assert_eq!(<P31 as Position<Count>>::index(), Count(31));
+}
+
+#[test]
+fn the_front_is_nought_and_a_step_is_one_more() {
+    // The whole of what a position means, spelled out, so the two impls are
+    // pinned by something other than the numbers they add up to.
+    assert_eq!(<Here as Position<Count>>::index(), Count::ZERO);
+    assert_eq!(
+        <There<Here> as Position<Count>>::index(),
+        <Here as Position<Count>>::index().succ()
+    );
+    assert_eq!(
+        <There<There<Here>> as Position<Count>>::index(),
+        <There<Here> as Position<Count>>::index().succ()
+    );
+}
+
+#[test]
+fn the_last_position_of_a_list_is_one_under_its_length() {
+    // An index and a length are the same walk from opposite ends. Nothing
+    // enforces that and nothing could: they are two traits over two kinds of
+    // thing, and this is where the pair is held to it.
+    assert_eq!(
+        <P31 as Position<Count>>::index().succ(),
+        <L32 as Length<Count>>::len()
+    );
+    assert_eq!(
+        <P7 as Position<Count>>::index().succ(),
+        <L8 as Length<Count>>::len()
+    );
+}
+
+#[test]
+fn a_position_counts_in_whichever_type_it_is_asked_in() {
+    // The saturating one stops where it says it does, exactly as a length
+    // does. An index that saturates is a real shape and a wrong one to hand a
+    // slice, which is the consumer's call rather than this crate's.
+    assert_eq!(<P3 as Position<Saturating>>::index(), Saturating(3));
+    assert_eq!(<P7 as Position<Saturating>>::index(), Saturating(4));
+    assert_eq!(<P3 as Position<Tally>>::index(), Tally(3));
+}
+
+#[test]
+fn a_generic_bound_takes_every_position_and_every_count() {
+    // The same shape as `length_of` above and for the same reason: a bound
+    // that only works on concrete positions would satisfy every assertion here
+    // and no consumer.
+    fn index_of<P: Position<N>, N: Cardinal>() -> N {
+        <P as Position<N>>::index()
+    }
+
+    assert_eq!(index_of::<P0, Count>(), Count(0));
+    assert_eq!(index_of::<P31, Count>(), Count(31));
+    assert_eq!(index_of::<P7, Saturating>(), Saturating(4));
+    assert_eq!(index_of::<P3, Tally>(), Tally(3));
+}
+
+#[test]
+fn the_two_halves_of_a_position_mean_the_same_cell() {
+    // The same law the const path pins, through the call rather than the
+    // constant. It is worth having on both paths because `At` is shared and
+    // `Position` is not: the member is answered by one impl in either
+    // configuration and the index by a different one, so agreeing on the const
+    // path is not agreeing here.
+    //
+    // The name is what a member and an index can both be compared through,
+    // since a type cannot be indexed for at runtime, and `run` is the list
+    // written out in order by hand, which is what keeps this from restating
+    // either impl.
+    fn agree<L: At<P, Member = M>, P: Position<Count>, M>(run: &[&str]) {
+        // The list is named in the body as well as in the bound, since a
+        // parameter appearing only in a bound reads to a linter as one nobody
+        // uses, and here the bound is half of what is being asserted.
+        let _ = core::marker::PhantomData::<L>;
+        let i = <P as Position<Count>>::index().0;
+        let member = core::any::type_name::<M>();
+        assert!(
+            member.ends_with(run[i]),
+            "the position counts to {i}, where the list has {}, and the member \
+             at it is {member}",
+            run[i]
+        );
+    }
+
+    let five = ["A", "B", "C", "D", "E"];
+    agree::<L5, P0, A>(&five);
+    agree::<L5, P1, B>(&five);
+    agree::<L5, P4, E>(&five);
+
+    let block = ["A", "B", "C", "D", "E", "A", "B", "C"];
+    let mut thirty_two = [""; 32];
+    for (i, slot) in thirty_two.iter_mut().enumerate() {
+        *slot = block[i % block.len()];
+    }
+    agree::<L32, P0, A>(&thirty_two);
+    agree::<L32, P7, C>(&thirty_two);
+    agree::<L32, P31, C>(&thirty_two);
 }

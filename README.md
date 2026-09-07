@@ -250,7 +250,7 @@ nobody builds is how an upstream change breaks a consumer without anyone noticin
 ### The other crates
 
 [`notko-hlist`](https://crates.io/crates/notko-hlist) is a heterogeneous type-level list, `Empty` and
-`Cons<H, T>`, with length, membership and append written as traits the compiler resolves rather than as
+`Cons<H, T>`, with length, membership, position and append written as traits the compiler resolves rather than as
 anything that runs. A cell holds nothing and can't be constructed at all, its one field being a phantom,
 so what comes out of the list is a bound: `L: Contains<Db>` says the list holds a `Db`, and a function
 asking for that can't be called with a list that doesn't. The `List` trait is sealed, because the

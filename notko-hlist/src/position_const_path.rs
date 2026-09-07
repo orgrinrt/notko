@@ -1,0 +1,70 @@
+//--------------------------------------------------------------------------------------------------
+// Copyright (c) 2026                   orgrinrt                 ort@hiisi.digital
+// SPDX-License-Identifier: MPL-2.0     https://mozilla.org/MPL/2.0        contact@hiisi.digital
+//--------------------------------------------------------------------------------------------------
+
+//! Const-path `Position` declaration. See `position.rs` for the cfg-gated
+//! module layout rationale.
+
+use crate::cardinal::Cardinal;
+use crate::position::{Here, Place, There};
+
+/// How far along a position is, in the consumer's own count.
+///
+/// The same arrangement [`Length`](crate::Length) has and for the same
+/// reason: a crate that picked the number type would hand every consumer a
+/// conversion at each use. `Here` is zero and `There<P>` is one more than
+/// `P`, so the count is the depth and nothing else.
+///
+/// ```
+/// # #![feature(const_trait_impl)]
+/// use notko_hlist::{Cardinal, Here, Position, There};
+///
+/// #[derive(Clone, Copy, PartialEq, Debug)]
+/// struct Count(usize);
+///
+/// const impl Cardinal for Count {
+///     const ZERO: Self = Count(0);
+///
+///     fn succ(self) -> Self {
+///         Count(self.0 + 1)
+///     }
+/// }
+///
+/// const THIRD: Count = <There<There<Here>> as Position<Count>>::INDEX;
+/// assert_eq!(THIRD, Count(2));
+/// ```
+///
+/// Const-feature variant: `INDEX` is an associated constant, so a consumer
+/// indexing a fixed run of values with it pays nothing at runtime. The plain
+/// path answers the same number through `index()`.
+///
+/// Sealed through the two markers, so these two impls are the only ones there
+/// will ever be. Without that a consumer could declare a position of its own,
+/// give it whatever index it liked, and hand it to a bound that would then be
+/// saying nothing: [`At`](crate::At) would answer no type for it, and a
+/// consumer that read the count alone would index wherever it was told.
+#[diagnostic::on_unimplemented(
+    message = "`{Self}` has no index in `{N}`",
+    note = "A position is `Here`, or `There<P>` where `P` is itself a position, and the count `{N}` has to implement `Cardinal`. The trait is sealed through `Place`, so a marker of your own cannot become one. If the compiler reports `overflow evaluating the requirement` instead, the count is one step per cell and the position is further along than the default recursion limit, so the crate root wants `#![recursion_limit = \"1024\"]`."
+)]
+pub trait Position<N>: Place {
+    /// How many cells in, resolved by the compiler.
+    const INDEX: N;
+
+    /// The same number, as a call.
+    ///
+    /// Reads `INDEX`, so it is arrived at the same way. It exists so that
+    /// code written against the plain path compiles here unchanged.
+    fn index() -> N {
+        <Self as Position<N>>::INDEX
+    }
+}
+
+impl<N: const Cardinal> Position<N> for Here {
+    const INDEX: N = N::ZERO;
+}
+
+impl<N: const Cardinal, P: Position<N>> Position<N> for There<P> {
+    const INDEX: N = <P as Position<N>>::INDEX.succ();
+}

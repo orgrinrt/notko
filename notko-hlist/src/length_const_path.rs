@@ -41,7 +41,7 @@ use crate::list::{Cons, Empty, List};
 /// ```
 #[diagnostic::on_unimplemented(
     message = "`{Self}` has no length in `{N}`",
-    note = "A length is defined for lists built from `Empty` and `Cons<H, T>`, and only in a count type implementing `Cardinal`. Check that `{N}` implements `Cardinal`, and that the tail of every cell is itself a list rather than a bare type."
+    note = "A length is defined for lists built from `Empty` and `Cons<H, T>`, and only in a count type implementing `Cardinal`. Check that `{N}` implements `Cardinal`, and that the tail of every cell is itself a list rather than a bare type. If the compiler reports `overflow evaluating the requirement` instead, the count is one step per cell and the list is deeper than the default recursion limit, so the crate root wants `#![recursion_limit = \"1024\"]`."
 )]
 pub trait Length<N>: List {
     /// The count, resolved by the compiler.

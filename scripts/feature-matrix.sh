@@ -54,6 +54,17 @@ main() {
     run "macros, defaults"             cargo test -p notko-macros
     run "macros, internal + release"   cargo test -p notko-macros --features internal --release
 
+    # `notko-hlist` carries the only cfg-split module pairs in the workspace,
+    # three of them, where each feature selects a whole file rather than a
+    # branch inside one. A configuration nobody builds is a file nobody
+    # compiles, so every arm is here rather than only the two the defaults and
+    # `--all-features` cover.
+    run "hlist, defaults"              cargo test -p notko-hlist
+    run "hlist, no defaults"           cargo test -p notko-hlist --no-default-features
+    run "hlist, all features"          cargo test -p notko-hlist --all-features
+    run "hlist, const only"            cargo test -p notko-hlist --no-default-features --features const
+    run "hlist, membership only"       cargo test -p notko-hlist --no-default-features --features membership
+
     # Neither of these has a feature, so one arm each. They are here because
     # the matrix is the one command, and a crate absent from it is a crate
     # whose suite runs when somebody remembers to name it.
@@ -86,6 +97,27 @@ main() {
         printf '%-46s ' "stable, defaults refused"
         if cargo +stable build -p notko >/dev/null 2>&1; then
             printf 'FAILED (it built, so the README overstates the need)\n'
+            fail=1
+        else
+            printf 'ok\n'
+        fi
+
+        # `notko-hlist` tells a reader the same thing in its own README and its
+        # claim was checked by hand and by nothing else. A build rather than a
+        # test run: `trybuild` is a dev dependency wanting a newer compiler than
+        # the claim is about, and the claim is about a consumer, who resolves
+        # neither.
+        printf '%-46s ' "stable, hlist no defaults, builds"
+        if out=$(cargo +stable build -p notko-hlist --no-default-features 2>&1); then
+            printf 'ok\n'
+        else
+            printf 'FAILED (the hlist README overstates what stable carries)\n'
+            echo "$out" | grep -E '^error' | head -5 | sed 's/^/    /'
+            fail=1
+        fi
+        printf '%-46s ' "stable, hlist defaults refused"
+        if cargo +stable build -p notko-hlist >/dev/null 2>&1; then
+            printf 'FAILED (it built, so that README overstates the need)\n'
             fail=1
         else
             printf 'ok\n'

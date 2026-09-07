@@ -1,0 +1,22 @@
+error[E0277]: the trait bound `NotACount: Cardinal` is not satisfied
+  --> tests/compile_fail/a_position_has_no_index_in_a_count_that_is_not_one.rs:17:16
+   |
+17 |     index_of::<Here, NotACount>();
+   |                ^^^^ unsatisfied trait bound
+   |
+help: the trait `Cardinal` is not implemented for `NotACount`
+  --> tests/compile_fail/a_position_has_no_index_in_a_count_that_is_not_one.rs:12:1
+   |
+12 | struct NotACount;
+   | ^^^^^^^^^^^^^^^^
+help: the trait `Position<N>` is implemented for `Here`
+  --> src/position_const_path.rs
+   |
+   | impl<N: const Cardinal> Position<N> for Here {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: required for `Here` to implement `Position<NotACount>`
+note: required by a bound in `index_of`
+  --> tests/compile_fail/a_position_has_no_index_in_a_count_that_is_not_one.rs:14:16
+   |
+14 | fn index_of<P: Position<N>, N>() {}
+   |                ^^^^^^^^^^^ required by this bound in `index_of`

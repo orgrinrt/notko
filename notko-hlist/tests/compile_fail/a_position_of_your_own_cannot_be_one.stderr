@@ -1,0 +1,24 @@
+error[E0277]: the trait bound `Ninth: notko_hlist::position::sealed::Sealed` is not satisfied
+  --> tests/compile_fail/a_position_of_your_own_cannot_be_one.rs:24:26
+   |
+24 | impl Position<Count> for Ninth {
+   |                          ^^^^^ unsatisfied trait bound
+   |
+help: the trait `notko_hlist::position::sealed::Sealed` is not implemented for `Ninth`
+  --> tests/compile_fail/a_position_of_your_own_cannot_be_one.rs:22:1
+   |
+22 | struct Ninth;
+   | ^^^^^^^^^^^^
+help: the following other types implement trait `notko_hlist::position::sealed::Sealed`
+  --> src/position.rs
+   |
+   | impl sealed::Sealed for Here {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Here`
+   | impl<P> sealed::Sealed for There<P> {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `There<P>`
+   = note: required for `Ninth` to implement `Place`
+note: required by a bound in `Position`
+  --> src/position_const_path.rs
+   |
+   | pub trait Position<N>: Place {
+   |                        ^^^^^ required by this bound in `Position`

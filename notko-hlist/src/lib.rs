@@ -28,10 +28,17 @@
 //!
 //! The structural facts come as [`Length<N>`] for the count, [`Contains<X>`]
 //! and [`ContainsAll<L>`] for membership of one type and of every member of
-//! another list, and [`Concat<L>`] for append as a type-level function. The
-//! count lands in whatever number type the consumer already has, through
-//! [`Cardinal`], which is zero and a successor and nothing else, so this crate
-//! never picks the number type on anybody's behalf.
+//! another list, [`At<P>`] for which member sits at a position, and
+//! [`Concat<L>`] for append as a type-level function. The count lands in
+//! whatever number type the consumer already has, through [`Cardinal`], which
+//! is zero and a successor and nothing else, so this crate never picks the
+//! number type on anybody's behalf.
+//!
+//! Membership and position are the two ways of asking after a member and they
+//! are different questions. [`Contains<X>`] says the type is in there and
+//! keeps the depth out of the bound; [`At<P>`] says which type is at a place,
+//! and the place is [`Here`] or [`There<P>`], with [`Position<N>`] reading
+//! that place back as a count for a consumer indexing a run of values by it.
 //!
 //! # Naming the list in your own vocabulary
 //!
@@ -57,7 +64,7 @@
 //! There's no value-level fold, since reducing a list with an identity and an
 //! associative combine needs the algebra, and the algebra sits in numerics
 //! rather than here. The structural folds need none of that, so those are the
-//! ones that ship: length, concatenation and membership.
+//! ones that ship: length, concatenation, membership and position.
 //!
 //! # Features
 //!
@@ -67,13 +74,15 @@
 //!
 //! | Feature | What it adds | Why it is not stable |
 //! |---|---|---|
-//! | `const` | [`Cardinal`] becomes a const trait and [`Length`] gains `LEN`, a compile-time constant | `const_trait_impl` |
+//! | `const` | [`Cardinal`] becomes a const trait, [`Length`] gains `LEN` and [`Position`] gains `INDEX`, both compile-time constants | `const_trait_impl` |
 //! | `membership` | [`Contains`] and [`ContainsAll`] | `marker_trait_attr` |
 //!
-//! Without `const` the count is still there and still correct, as
-//! [`Length::len`], computed rather than named. Without `membership` there is
-//! no way to ask whether a list holds a type, because the two impls that
-//! answer it overlap by construction.
+//! Without `const` the count and the index are still there and still correct,
+//! as [`Length::len`] and [`Position::index`], computed rather than named.
+//! Without `membership` there is no way to ask whether a list holds a type,
+//! because the two impls that answer it overlap by construction. [`At`] is in
+//! both configurations: its two impls do not overlap, since a position is
+//! either the front or further along and never both.
 
 // The README's `rust` block is compiled as a doctest, because the example a
 // reader is most likely to copy is otherwise the one part of the crate nothing
@@ -84,16 +93,20 @@
 #[doc = include_str!("../README.md")]
 pub struct Readme;
 
+mod at;
 mod cardinal;
 mod concat;
 mod length;
 mod list;
 #[cfg(feature = "membership")]
 mod membership;
+mod position;
 
+pub use at::At;
 pub use cardinal::Cardinal;
 pub use concat::Concat;
 pub use length::Length;
 pub use list::{Cons, Empty, List};
 #[cfg(feature = "membership")]
 pub use membership::{Contains, ContainsAll};
+pub use position::{Here, Place, Position, There};

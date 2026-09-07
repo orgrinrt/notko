@@ -20,7 +20,7 @@
 mod lists;
 
 use lists::*;
-use notko_hlist::{Cardinal, Concat, Cons, Empty, Length, List};
+use notko_hlist::{At, Cardinal, Concat, Cons, Empty, Length, List, Place, Position};
 
 // The count-carrying signatures below are never called. A generic function's
 // body and bounds are checked where it is declared, so declaring one is the
@@ -59,6 +59,36 @@ fn a_length_implies_a_cardinal<L: Length<N>, N: Cardinal>() -> N {
     N::ZERO
 }
 
+/// The index, from a bound naming only `Position` and `Cardinal`. The count is
+/// bounded the same two ways on the two paths, exactly as `Length`'s is, and
+/// it is kept off the trait declaration for the same reason.
+#[allow(dead_code)]
+fn index_of<P: Position<N>, N: Cardinal>() -> N {
+    <P as Position<N>>::index()
+}
+
+/// The member at a position, from a bound naming nothing but `At`. No count
+/// appears, which is the arrangement: what sits there is the list's fact and
+/// how far along it is is the position's, so a consumer wanting only the type
+/// never names a number type it does not care about.
+fn member_of<L: At<P, Member = M>, P: Place, M>(value: M) -> M {
+    // Named in the body as well as in the bound, since a parameter appearing
+    // only in a `where` clause reads to a linter as one nobody uses, and here
+    // the bound is the whole point of the signature.
+    let _ = core::marker::PhantomData::<L>;
+    value
+}
+
+/// Both halves at once, which is the shape a consumer indexing a flat run of
+/// values writes: the bound proves the type and hands over the number to reach
+/// it with.
+#[allow(dead_code)]
+fn read_at<L: At<P, Member = M>, P: Position<N>, M, N: Cardinal>(values: &[M]) -> N {
+    let _ = values;
+    let _ = core::marker::PhantomData::<L>;
+    <P as Position<N>>::index()
+}
+
 #[test]
 fn the_bounds_above_compile_in_this_configuration() {
     // Instantiating what can be instantiated without a concrete count. The
@@ -74,6 +104,11 @@ fn the_bounds_above_compile_in_this_configuration() {
     let _ = appended::<L2, L3>();
     let _ = appended::<Empty, L5>();
     let _ = appended::<Cons<A, Empty>, Empty>();
+
+    // `At` carries no count, so unlike the others it can be instantiated here.
+    let _: A = member_of::<L5, P0, A>(A);
+    let _: E = member_of::<L5, P4, E>(E);
+    let _: C = member_of::<L32, P31, C>(C);
 }
 
 #[test]

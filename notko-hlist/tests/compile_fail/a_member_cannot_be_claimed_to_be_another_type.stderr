@@ -1,0 +1,28 @@
+error[E0277]: the trait bound `P: Place` is not satisfied
+  --> tests/compile_fail/a_member_cannot_be_claimed_to_be_another_type.rs:18:17
+   |
+18 | fn member_is<L: At<P, Member = M>, P, M>() {}
+   |                 ^^^^^^^^^^^^^^^^^ the trait `notko_hlist::position::sealed::Sealed` is not implemented for `P`
+   |
+   = note: required for `P` to implement `Place`
+note: required by a bound in `At`
+  --> src/at.rs
+   |
+   | pub trait At<P: Place>: List {
+   |                 ^^^^^ required by this bound in `At`
+help: consider restricting type parameter `P` with trait `Sealed`
+   |
+18 | fn member_is<L: At<P, Member = M>, P: notko_hlist::position::sealed::Sealed, M>() {}
+   |                                     +++++++++++++++++++++++++++++++++++++++
+
+error[E0271]: type mismatch resolving `<Cons<A, Cons<B, Cons<C, Empty>>> as At<There<Here>>>::Member == C`
+  --> tests/compile_fail/a_member_cannot_be_claimed_to_be_another_type.rs:22:17
+   |
+22 |     member_is::<Three, There<Here>, C>();
+   |                 ^^^^^ expected `C`, found `B`
+   |
+note: required by a bound in `member_is`
+  --> tests/compile_fail/a_member_cannot_be_claimed_to_be_another_type.rs:18:23
+   |
+18 | fn member_is<L: At<P, Member = M>, P, M>() {}
+   |                       ^^^^^^^^^^ required by this bound in `member_is`
