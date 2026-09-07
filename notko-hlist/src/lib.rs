@@ -109,4 +109,4 @@ pub use length::Length;
 pub use list::{Cons, Empty, List};
 #[cfg(feature = "membership")]
 pub use membership::{Contains, ContainsAll};
-pub use position::{Here, Position, There};
+pub use position::{Here, Place, Position, There};

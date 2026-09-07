@@ -4,7 +4,7 @@ error[E0277]: `u8` has no length in `Count`
 21 |     let _ = <u8 as Length<Count>>::len();
    |              ^^ the trait `Length<Count>` is not implemented for `u8`
    |
-   = note: A length is defined for lists built from `Empty` and `Cons<H, T>`, and only in a count type implementing `Cardinal`. Check that `Count` implements `Cardinal`, and that the tail of every cell is itself a list rather than a bare type.
+   = note: A length is defined for lists built from `Empty` and `Cons<H, T>`, and only in a count type implementing `Cardinal`. Check that `Count` implements `Cardinal`, and that the tail of every cell is itself a list rather than a bare type. If the compiler reports `overflow evaluating the requirement` instead, the count is one step per cell and the list is deeper than the default recursion limit, so the crate root wants `#![recursion_limit = "1024"]`.
 help: the following other types implement trait `Length<N>`
   --> src/length_const_path.rs
    |

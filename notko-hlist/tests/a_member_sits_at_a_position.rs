@@ -19,7 +19,7 @@
 mod lists;
 
 use lists::*;
-use notko_hlist::{At, Concat, Cons, Empty, There};
+use notko_hlist::{At, Concat, Cons, Empty, Place, There};
 
 /// Compiles exactly when the member of `L` at `P` is `M`.
 ///
@@ -27,7 +27,7 @@ use notko_hlist::{At, Concat, Cons, Empty, There};
 /// type equality in a `where` clause is checked where the function is
 /// declared, so instantiating it in a constant is a build failure on any
 /// mismatch and costs nothing at runtime.
-const fn at_is<L, P, M>()
+const fn at_is<L, P: Place, M>()
 where
     L: At<P, Member = M>,
 {
@@ -115,7 +115,7 @@ fn a_member_is_reached_through_a_generic_bound() {
     // constants above do, and it is worth pinning separately because a bound
     // that only works on concrete types would satisfy every constant and no
     // consumer.
-    fn member_of<L: At<P, Member = M>, P, M>(value: M) -> M {
+    fn member_of<L: At<P, Member = M>, P: Place, M>(value: M) -> M {
         let _ = core::marker::PhantomData::<L>;
         value
     }

@@ -20,7 +20,7 @@
 mod lists;
 
 use lists::*;
-use notko_hlist::{At, Cardinal, Concat, Cons, Empty, Length, List, Position};
+use notko_hlist::{At, Cardinal, Concat, Cons, Empty, Length, List, Place, Position};
 
 // The count-carrying signatures below are never called. A generic function's
 // body and bounds are checked where it is declared, so declaring one is the
@@ -71,7 +71,7 @@ fn index_of<P: Position<N>, N: Cardinal>() -> N {
 /// appears, which is the arrangement: what sits there is the list's fact and
 /// how far along it is is the position's, so a consumer wanting only the type
 /// never names a number type it does not care about.
-fn member_of<L: At<P, Member = M>, P, M>(value: M) -> M {
+fn member_of<L: At<P, Member = M>, P: Place, M>(value: M) -> M {
     // Named in the body as well as in the bound, since a parameter appearing
     // only in a `where` clause reads to a linter as one nobody uses, and here
     // the bound is the whole point of the signature.

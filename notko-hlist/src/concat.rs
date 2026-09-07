@@ -34,7 +34,7 @@ use crate::list::{Cons, Empty, List};
 /// enforces that; it falls out of the two impls, and the tests pin it.
 #[diagnostic::on_unimplemented(
     message = "cannot append `{L}` onto `{Self}`",
-    note = "Concat walks the left-hand side, so `{Self}` has to be a list built from `Empty` and `Cons<H, T>`. The right-hand side is not walked and may be anything, which is why the error names the left one."
+    note = "Concat walks the left-hand side, so `{Self}` has to be a list built from `Empty` and `Cons<H, T>`. The right-hand side is not walked and may be anything, which is why the error names the left one. If the compiler reports `overflow evaluating the requirement` instead, that walk is one step per cell and the left-hand side is deeper than the default recursion limit, so the crate root wants `#![recursion_limit = \"1024\"]`."
 )]
 pub trait Concat<L>: List {
     /// The appended list.

@@ -6,10 +6,17 @@ rust-version.workspace = true
 license.workspace = true
 homepage.workspace = true
 repository.workspace = true
-description = "A heterogeneous type-level list, and the structural facts about one. Length in your own count type, membership, and append, all decided by the compiler."
+description = "A heterogeneous type-level list, and the structural facts about one. Length in your own count type, membership, position, and append, all decided by the compiler."
 readme = "README.md"
 categories = ["no-std", "rust-patterns"]
 keywords = ["no_std", "no_alloc", "hlist", "type-level", "notko"]
+
+# Without this cargo discovers every `tests/*.rs` and the `[[test]]` blocks
+# below only replace the ones whose path they name, so a file added later would
+# build in every configuration however carefully the blocks were written. The
+# comment above them claimed the opposite and read as true for as long as no
+# such file existed.
+autotests = false
 
 # Named rather than excluded, so a file added later has to be asked for
 # rather than shipping by accident. Five of the six test targets check the
@@ -42,7 +49,9 @@ path = "src/lib.rs"
 # compiled without its feature. `required-features` is the mechanism that
 # actually skips a target, where a `#[cfg]` inside it cannot: a crate-level
 # `#![cfg_attr(..., feature(...))]` in a configuration where the gate is off
-# leaves the body unbuildable.
+# leaves the body unbuildable. `package.autotests` is what makes the
+# declarations the whole set rather than a shadowing of it, and it is set above
+# for that reason.
 
 # The const path. `const impl` is gated at parse time, so a `#[cfg]` around it
 # does not save an ungated target: the span is recorded before cfg-stripping

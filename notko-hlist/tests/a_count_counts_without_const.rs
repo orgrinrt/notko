@@ -20,7 +20,7 @@
 mod lists;
 
 use lists::*;
-use notko_hlist::{Cardinal, Empty, Here, Length, Position, There};
+use notko_hlist::{At, Cardinal, Empty, Here, Length, Position, There};
 
 /// The ordinary case: counts up forever.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -207,4 +207,46 @@ fn a_generic_bound_takes_every_position_and_every_count() {
     assert_eq!(index_of::<P31, Count>(), Count(31));
     assert_eq!(index_of::<P7, Saturating>(), Saturating(4));
     assert_eq!(index_of::<P3, Tally>(), Tally(3));
+}
+
+#[test]
+fn the_two_halves_of_a_position_mean_the_same_cell() {
+    // The same law the const path pins, through the call rather than the
+    // constant. It is worth having on both paths because `At` is shared and
+    // `Position` is not: the member is answered by one impl in either
+    // configuration and the index by a different one, so agreeing on the const
+    // path is not agreeing here.
+    //
+    // The name is what a member and an index can both be compared through,
+    // since a type cannot be indexed for at runtime, and `run` is the list
+    // written out in order by hand, which is what keeps this from restating
+    // either impl.
+    fn agree<L: At<P, Member = M>, P: Position<Count>, M>(run: &[&str]) {
+        // The list is named in the body as well as in the bound, since a
+        // parameter appearing only in a bound reads to a linter as one nobody
+        // uses, and here the bound is half of what is being asserted.
+        let _ = core::marker::PhantomData::<L>;
+        let i = <P as Position<Count>>::index().0;
+        let member = core::any::type_name::<M>();
+        assert!(
+            member.ends_with(run[i]),
+            "the position counts to {i}, where the list has {}, and the member \
+             at it is {member}",
+            run[i]
+        );
+    }
+
+    let five = ["A", "B", "C", "D", "E"];
+    agree::<L5, P0, A>(&five);
+    agree::<L5, P1, B>(&five);
+    agree::<L5, P4, E>(&five);
+
+    let block = ["A", "B", "C", "D", "E", "A", "B", "C"];
+    let mut thirty_two = [""; 32];
+    for (i, slot) in thirty_two.iter_mut().enumerate() {
+        *slot = block[i % block.len()];
+    }
+    agree::<L32, P0, A>(&thirty_two);
+    agree::<L32, P7, C>(&thirty_two);
+    agree::<L32, P31, C>(&thirty_two);
 }

@@ -17,7 +17,7 @@
 //! reordered later then breaks a consumer that never cared.
 
 use crate::list::{Cons, List};
-use crate::position::{Here, There};
+use crate::position::{Here, Place, There};
 
 /// The member of `Self` at position `P`.
 ///
@@ -42,16 +42,19 @@ use crate::position::{Here, There};
 /// position, which is the honest way round: the position is what the consumer
 /// wrote and the list is what could not answer it.
 ///
-/// The impls are closed without a seal, unlike everything else here. `At` is
-/// this crate's trait and [`Cons`] is this crate's type, so no other crate can
-/// write one, and the supertrait keeps `Self` a list besides. What a seal
-/// would add is protection against this crate writing a third impl, which is
-/// not what sealing is for.
+/// The two impls are what there is, and [`Place`] on the parameter is what
+/// holds them to it. Being this crate's trait over this crate's type is not
+/// enough on its own: `P` sits after `Self` and is free, so a downstream
+/// crate filling it with a type of its own satisfies the orphan rule, and
+/// `impl<H, T: List> At<Yours> for Cons<H, T>` is then a blanket over every
+/// list, written from outside, answering whatever it likes. That construction
+/// compiles against an unbounded `P` and is a case in
+/// `tests/compile_fail/` now that the bound refuses it.
 #[diagnostic::on_unimplemented(
     message = "`{Self}` has no member at `{P}`",
-    note = "A member is at `Here` in a `Cons`, and at `There<P>` when the tail has one at `P`. The usual causes are an index past the end of the list, which leaves `Empty` holding the position, and a position that is not built from `Here` and `There`."
+    note = "A member is at `Here` in a `Cons`, and at `There<P>` when the tail has one at `P`. The usual causes are an index past the end of the list, which leaves `Empty` holding the position, and a position that is not built from `Here` and `There`. If the compiler reports `overflow evaluating the requirement` instead, the walk is one step per cell and the list is deeper than the default recursion limit, so the crate root wants `#![recursion_limit = \"1024\"]`."
 )]
-pub trait At<P>: List {
+pub trait At<P: Place>: List {
     /// The type sitting there.
     type Member;
 }
@@ -60,6 +63,6 @@ impl<H, T: List> At<Here> for Cons<H, T> {
     type Member = H;
 }
 
-impl<H, P, T: At<P>> At<There<P>> for Cons<H, T> {
+impl<H, P: Place, T: At<P>> At<There<P>> for Cons<H, T> {
     type Member = <T as At<P>>::Member;
 }

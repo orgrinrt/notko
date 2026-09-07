@@ -1,0 +1,24 @@
+error[E0277]: the trait bound `Rogue: notko_hlist::position::sealed::Sealed` is not satisfied
+  --> tests/compile_fail/the_empty_list_cannot_be_given_a_member.rs:16:6
+   |
+16 | impl At<Rogue> for Empty {
+   |      ^^^^^^^^^ unsatisfied trait bound
+   |
+help: the trait `notko_hlist::position::sealed::Sealed` is not implemented for `Rogue`
+  --> tests/compile_fail/the_empty_list_cannot_be_given_a_member.rs:13:1
+   |
+13 | struct Rogue;
+   | ^^^^^^^^^^^^
+help: the following other types implement trait `notko_hlist::position::sealed::Sealed`
+  --> src/position.rs
+   |
+   | impl sealed::Sealed for Here {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Here`
+   | impl<P> sealed::Sealed for There<P> {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `There<P>`
+   = note: required for `Rogue` to implement `Place`
+note: required by a bound in `At`
+  --> src/at.rs
+   |
+   | pub trait At<P: Place>: List {
+   |                 ^^^^^ required by this bound in `At`

@@ -4,7 +4,7 @@ error[E0277]: cannot append `Cons<A, notko_hlist::Empty>` onto `u8`
 12 |     let _: core::marker::PhantomData<<u8 as Concat<One>>::Out> = core::marker::PhantomData;
    |                                       ^^ the trait `notko_hlist::Concat<Cons<A, notko_hlist::Empty>>` is not implemented for `u8`
    |
-   = note: Concat walks the left-hand side, so `u8` has to be a list built from `Empty` and `Cons<H, T>`. The right-hand side is not walked and may be anything, which is why the error names the left one.
+   = note: Concat walks the left-hand side, so `u8` has to be a list built from `Empty` and `Cons<H, T>`. The right-hand side is not walked and may be anything, which is why the error names the left one. If the compiler reports `overflow evaluating the requirement` instead, that walk is one step per cell and the left-hand side is deeper than the default recursion limit, so the crate root wants `#![recursion_limit = "1024"]`.
 help: the following other types implement trait `notko_hlist::Concat<L>`
   --> src/concat.rs
    |

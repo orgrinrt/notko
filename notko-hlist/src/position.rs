@@ -47,6 +47,24 @@ pub(crate) mod sealed {
     pub trait Sealed {}
 }
 
+/// A place in a list, which is [`Here`] or [`There<P>`] and nothing else.
+///
+/// The bound [`At`](crate::At) takes on its parameter, and the reason it is a
+/// public name rather than the private seal underneath it: a consumer writing
+/// a signature generic over the position has to be able to spell the bound,
+/// and `Sealed` is not spellable outside this crate.
+///
+/// It carries nothing and is implemented for everything sealed, so the two
+/// markers get it and nobody else can. What that buys is the closure `At`
+/// would otherwise only claim: `At`'s parameter appears after `Self` and is
+/// free, so `impl<H, T: List> At<Yours> for Cons<H, T>` with a local `Yours`
+/// satisfies the orphan rule and a downstream crate could answer for every
+/// list at a place of its own. `tests/compile_fail/` holds that construction
+/// as a case.
+pub trait Place: sealed::Sealed {}
+
+impl<P: sealed::Sealed> Place for P {}
+
 /// The front of the list.
 ///
 /// Carries nothing and means nothing on its own, the way [`Empty`](crate::Empty)

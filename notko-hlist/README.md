@@ -126,9 +126,15 @@ with rather than in a `usize` you have to convert at every use.
 own cannot claim to hold something, and `L: Contains<Db>` proves `Db` is in there instead of proving
 that somebody wrote an empty impl saying so, which wouldn't be worth much as a guarantee.
 
-`Position` is sealed the same way, through `Here` and `There`, and for the sharper version of the same
-reason: a position of your own could carry whatever index it liked, `At` would answer no member for
-it, and a bound reading the count alone would index wherever it was told.
+A place is sealed the same way, through `Here` and `There`, and `Place` is the public name of that seal
+because a consumer writing a signature generic over the position has to be able to spell the bound. Both
+`At` and `Position` take it, and for `Position` the reason is the sharper version of the one above: a
+position of your own could carry whatever index it liked, and a bound reading the count alone would index
+wherever it was told. `At` needs it for a reason that is not obvious and cost a review to find. Its
+parameter comes after `Self` and would otherwise be free, so a crate downstream of this one could fill it
+with a type of its own and write `impl<H, T: List> At<Mine> for Cons<H, T>`, which the orphan rule allows
+and which answers for every list in the graph. The bound is what refuses that, and
+`tests/compile_fail/` holds the construction.
 
 What it costs is bringing your own list type, which isn't really what the crate is for anyway: the
 intended shape is aliasing the cell and the leaf into your own vocabulary, the way the example above

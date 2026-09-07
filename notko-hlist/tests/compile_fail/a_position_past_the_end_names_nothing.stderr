@@ -1,10 +1,27 @@
+error[E0277]: the trait bound `P: Place` is not satisfied
+  --> tests/compile_fail/a_position_past_the_end_names_nothing.rs:17:17
+   |
+17 | fn member_of<L: At<P>, P>() {}
+   |                 ^^^^^ the trait `notko_hlist::position::sealed::Sealed` is not implemented for `P`
+   |
+   = note: required for `P` to implement `Place`
+note: required by a bound in `At`
+  --> src/at.rs
+   |
+   | pub trait At<P: Place>: List {
+   |                 ^^^^^ required by this bound in `At`
+help: consider restricting type parameter `P` with trait `Sealed`
+   |
+17 | fn member_of<L: At<P>, P: notko_hlist::position::sealed::Sealed>() {}
+   |                         +++++++++++++++++++++++++++++++++++++++
+
 error[E0277]: `notko_hlist::Empty` has no member at `Here`
   --> tests/compile_fail/a_position_past_the_end_names_nothing.rs:20:17
    |
 20 |     member_of::<Two, There<There<Here>>>();
    |                 ^^^ the trait `At<Here>` is not implemented for `notko_hlist::Empty`
    |
-   = note: A member is at `Here` in a `Cons`, and at `There<P>` when the tail has one at `P`. The usual causes are an index past the end of the list, which leaves `Empty` holding the position, and a position that is not built from `Here` and `There`.
+   = note: A member is at `Here` in a `Cons`, and at `There<P>` when the tail has one at `P`. The usual causes are an index past the end of the list, which leaves `Empty` holding the position, and a position that is not built from `Here` and `There`. If the compiler reports `overflow evaluating the requirement` instead, the walk is one step per cell and the list is deeper than the default recursion limit, so the crate root wants `#![recursion_limit = "1024"]`.
 help: the trait `At<Here>` is implemented for `Cons<H, T>`
   --> src/at.rs
    |
