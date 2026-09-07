@@ -59,10 +59,25 @@ pub trait At<P: Place>: List {
     type Member;
 }
 
+// Neither impl is offered as a suggestion when the bound goes unsatisfied. The
+// note above already says where a member sits and what the usual causes are,
+// which is the whole of what a reader needs, and `help: the trait is
+// implemented for `Cons<H, T>`` adds nothing to it.
+//
+// What it does add is a path. The compiler points at the impl's own source, and
+// in a consumer that reaches this crate over git that is an absolute path
+// through somebody's home directory and the checkout revision the pin resolved
+// to. Inside this repository the same diagnostic is workspace-relative and
+// reads fine, so the defect is invisible where it is written and lands on
+// whoever commits a compile-fail case downstream: the file is green on one
+// machine and red on every other, and it reddens again on the next update for a
+// reason unrelated to any code.
+#[diagnostic::do_not_recommend]
 impl<H, T: List> At<Here> for Cons<H, T> {
     type Member = H;
 }
 
+#[diagnostic::do_not_recommend]
 impl<H, P: Place, T: At<P>> At<There<P>> for Cons<H, T> {
     type Member = <T as At<P>>::Member;
 }
