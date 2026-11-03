@@ -12,28 +12,24 @@
 
 </div>
 
-It's here because a proc-macro crate can't export anything that isn't a macro, so there was nowhere
-else to put the rewrite engine that [`notko-macros`](https://crates.io/crates/notko-macros) runs on.
-And once it had to exist separately it may as well be public, so a fallibility-tier attribute of your
-own can build on this instead of doing the rewrite engine over again.
+A proc-macro crate cannot export anything that is not a macro, so the rewrite engine that [`notko-macros`](https://crates.io/crates/notko-macros) runs on lives here as an ordinary library, which also lets a fallibility-tier attribute of your own build on it instead of doing the rewriting over again.
 
-Do note the surface still moves with the rest of the crates, and on a `0.0.x` version cargo resolves to
-that one and nothing else, so what `cargo add` writes is already the pin.
+The surface moves with the rest of the crates, and on a `0.0.x` version cargo resolves to exactly that one, so what `cargo add` writes is already the pin.
 
-## Installation
+## Usage
 
 ```bash
 cargo add notko-macros-core
 ```
 
-## What's in it
+### What is in it
 
 The rewrite engine, the tier vocabulary it rewrites against, and the discovery
 that turns a tier name into something to rewrite with. The full surface with
 working links is on [docs.rs](https://docs.rs/notko-macros-core), which is a
 better place for it than a table here that drifts the first time a type moves.
 
-## Authoring a third-party attribute macro
+## Example
 
 ```rust
 // my-macros/src/lib.rs
@@ -58,7 +54,13 @@ pub fn profile_asserted(_attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 ```
 
-## Letting a consumer write their own tiers
+## Motivation
+
+A tier file, the crate and the gate feature are all things a macro author names, and a rewrite that defaults to notko's own answers emits code naming `notko` in consumers that never depended on it. The library takes every one of them as a field, so the answer is always the author's.
+
+## Extras
+
+### Custom tiers
 
 `Discovery` is the same lookup notko's own macro runs, with every name in it
 yours. It reads a tier file out of the directory you name, under the marker you
@@ -104,6 +106,8 @@ attribute a panic with no span on it, where `to_compile_error` points at their o
 
 ## Support
 
+Feel free to contribute! If unsure about wasting work, the best practice is to throw in an issue describing what you'd do, and only then commit to writing a big PR, because chances are, it might not be something that belongs here. However, forks are always a valid choice and we'd encourage everyone to experiment and have their own takes on this. When doing this, do mind the license(s) though!
+
 Whether you use this project, have learned something from it, or just like it, please consider supporting it by buying me a coffee, so I can dedicate more time on open-source projects like this :)
 
 <a href="https://buymeacoffee.com/orgrinrt" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
@@ -114,4 +118,4 @@ Whether you use this project, have learned something from it, or just like it, p
 
 `SPDX-License-Identifier: MPL-2.0`
 
-> You can check out the full license [here](https://github.com/orgrinrt/notko/blob/main/LICENSE)
+> You can check out the full license [here](https://github.com/orgrinrt/notko/blob/dev/LICENSE)
