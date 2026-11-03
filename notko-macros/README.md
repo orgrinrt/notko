@@ -103,8 +103,8 @@ nothing has usually done nothing, and writing the two arguments out at that one 
 ### The `internal` feature
 
 `#[profile(Hot)]` emits a `cfg(feature = "internal")`, and a `cfg` written by an attribute macro is read
-against the features of the crate it expanded into. So the feature that decides which arm you get is
-yours, not this crate's, and it has to be declared:
+against the features of the crate it expanded into. So the feature that decides which arm is taken is
+the consuming crate's, not this crate's, and it has to be declared:
 
 ```toml
 [features]
@@ -123,7 +123,7 @@ decided the error cannot happen. Both halves are load-bearing, so the feature on
 changes nothing.
 
 `internal` is the name `#[profile]` uses and it is fixed there. Neither the attribute nor a tier file
-changes it. What does change it is a different attribute of your own built on
+changes it. What does change it is a different attribute of a crate's own built on
 [`notko-macros-core`](https://crates.io/crates/notko-macros-core), which takes a name of its own, and
 that's what keeps two frameworks in one dependency graph from sharing a switch neither of them can turn
 off separately.
@@ -164,12 +164,12 @@ after the two above. That's what [`notko-build`](https://crates.io/crates/notko-
 case where a tier is defined in one crate and used in another. It reaches the direct dependencies that
 opted into it rather than the whole graph, and that crate's readme has the conditions.
 
-### Writing your own attribute macro
+### Writing a separate attribute macro
 
-If the built-in strategies don't cover what you want and you need real AST-level control,
+If the built-in strategies don't cover what is wanted and real AST-level control is needed,
 [`notko-macros-core`](https://crates.io/crates/notko-macros-core) has the pieces this crate is built
-from, under `notko_macros_core::{tiers, parse, discover, rewrite}`. Nothing stops you writing your own
-attribute on top of it. That crate's readme points at the docs, which is where the surface actually is.
+from, under `notko_macros_core::{tiers, parse, discover, rewrite}`. Nothing stops a separate
+attribute from being written on top of it. That crate's readme points at the docs, which is where the surface actually is.
 
 ## Support
 

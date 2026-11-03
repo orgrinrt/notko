@@ -8,7 +8,7 @@
 [![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/issues)
 ![License](https://img.shields.io/github/license/orgrinrt/notko?color=%23009689)
 
-> A heterogeneous type-level list, and the structural facts about one. Length in your own count type, membership, position, and append, all decided by the compiler.
+> A heterogeneous type-level list, and the structural facts about one. Length in a count type of the consumer's own, membership, position, and append, all decided by the compiler.
 
 </div>
 
@@ -34,7 +34,7 @@ is not here, because that is numerics territory and belongs where the algebra li
 cargo add notko-hlist
 ```
 
-Or add to your `Cargo.toml`:
+Or in a `Cargo.toml`:
 
 ```toml
 [dependencies]
@@ -52,7 +52,7 @@ notko-hlist = { version = "0.0.1", default-features = false }
 ## Example
 
 ```rust
-// The default set needs nightly, and this is where you say so.
+// The default set needs nightly, and this is where that gets said.
 #![feature(const_trait_impl)]
 
 use notko_hlist::{At, Cardinal, Concat, Cons, Contains, ContainsAll, Empty, Here, Length, Position, There};
@@ -69,7 +69,7 @@ struct Log;
 type Reads = Store<Db, Store<Cache, NoStores>>;
 type Writes = Store<Log, NoStores>;
 
-// The count is your type, not one this crate picked. Implement the two Peano
+// The count is the consumer's type, not one this crate picked. Implement the two Peano
 // constructors on it and every list has a length in it.
 #[derive(Clone, Copy, PartialEq, Debug)]
 struct Count(usize);
@@ -88,7 +88,7 @@ const READS: Count = <Reads as Length<Count>>::LEN;
 type Touched = <Reads as Concat<Writes>>::Out;
 
 // Position, where the depth is the question rather than something to hide.
-// `Cache` is the second store read, and the index is what you hand a run of
+// `Cache` is the second store read, and the index is what gets handed to a run of
 // values sitting beside the list.
 type Second = There<Here>;
 const SECOND: Count = <Second as Position<Count>>::INDEX;
@@ -117,9 +117,9 @@ fn main() {
 
 The count is a parameter of the traits, which can look like ceremony. This crate sits
 under everything else, so it can't name a number type from a crate above it, and a counting crate above
-it can't implement a trait and a type that are both foreign. Leaving the count to you is the one
-arrangement the orphan rule allows, and it means the length comes back in the type you already count
-with rather than in a `usize` you have to convert at every use.
+it can't implement a trait and a type that are both foreign. Leaving the count to the consumer is the one
+arrangement the orphan rule allows, and it means the length comes back in the type already used for counting
+with rather than in a `usize` converted at every use.
 
 ## Extras
 
@@ -132,7 +132,7 @@ just yet.
 
 ### Cargo features
 
-Both are on by default and both need nightly. With the defaults off you get the list, `List`, `Concat`,
+Both are on by default and both need nightly. With the defaults off what remains is the list, `List`, `Concat`,
 `At`, and `Length` and `Position` through their calls, which is what builds on stable back to 1.85.
 
 | Feature | Adds | Unstable gate |
@@ -146,28 +146,28 @@ simplification we chose: the head match and the recursive tail match overlap by 
 `#[marker]` is how coherence gets told the overlap is intended. There is a membership shape that works
 on stable, carrying an index witness through the bound, but it is a different surface rather than this
 one weaker, so it isn't offered as a fallback. `At` is not that shape and is not a fallback for it: it
-answers which member is at a place you name, where membership answers whether a type is in there at
+answers which member is at a named place, where membership answers whether a type is in there at
 all, and it needs no feature because its two impls do not overlap.
 
 ### Sealed traits
 
 `List` is implemented for `Empty` and `Cons` and cannot be implemented for anything else, and
-`Contains`, `ContainsAll`, `Length`, `At` and `Concat` all have it as a supertrait. So a type of your
+`Contains`, `ContainsAll`, `Length`, `At` and `Concat` all have it as a supertrait. So a type of a consumer's
 own cannot claim to hold something, and `L: Contains<Db>` proves `Db` is in there instead of proving
 that somebody wrote an empty impl saying so, which wouldn't be worth much as a guarantee.
 
 A place is sealed the same way, through `Here` and `There`, and `Place` is the public name of that seal
 because a consumer writing a signature generic over the position has to be able to spell the bound. Both
 `At` and `Position` take it, and for `Position` the reason is the sharper version of the one above: a
-position of your own could carry whatever index it liked, and a bound reading the count alone would index
+position of its own could carry whatever index it liked, and a bound reading the count alone would index
 wherever it was told. `At` needs it for a less obvious reason. Its
 parameter comes after `Self` and would otherwise be free, so a crate downstream of this one could fill it
 with a type of its own and write `impl<H, T: List> At<Mine> for Cons<H, T>`, which the orphan rule allows
 and which answers for every list in the graph. The bound is what refuses that, and
 `tests/compile_fail/` holds the construction.
 
-What it costs is bringing your own list type, which isn't really what the crate is for anyway: the
-intended shape is aliasing the cell and the leaf into your own vocabulary, the way the example above
+What it costs is bringing a list type of the consumer's own, which isn't really what the crate is for anyway: the
+intended shape is aliasing the cell and the leaf into the consumer's own vocabulary, the way the example above
 does, and that keeps them these two types.
 
 ## Support
