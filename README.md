@@ -364,4 +364,4 @@ Whether you use this project, have learned something from it, or just like it, p
 
 `SPDX-License-Identifier: MPL-2.0`
 
-> You can check out the full license [here](https://github.com/orgrinrt/notko/blob/main/LICENSE)
+> You can check out the full license [here](https://github.com/orgrinrt/notko/blob/dev/LICENSE)
