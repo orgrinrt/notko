@@ -1,20 +1,10 @@
 # `notko-macros-core`
 
-<div align="center" style="text-align: center;">
-
-[![GitHub Stars](https://img.shields.io/github/stars/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/stargazers)
-[![Crates.io](https://img.shields.io/crates/v/notko-macros-core)](https://crates.io/crates/notko-macros-core)
-[![docs.rs](https://img.shields.io/docsrs/notko-macros-core)](https://docs.rs/notko-macros-core)
-[![GitHub Issues](https://img.shields.io/github/issues/orgrinrt/notko.svg)](https://github.com/orgrinrt/notko/issues)
-![License](https://img.shields.io/github/license/orgrinrt/notko?color=%23009689)
+[![Crates.io](https://img.shields.io/crates/v/notko-macros-core)](https://crates.io/crates/notko-macros-core) [![docs.rs](https://img.shields.io/docsrs/notko-macros-core)](https://docs.rs/notko-macros-core)
 
 > The AST rewriting behind `#[profile(Tier)]`, as an ordinary library. Ships `tiers`, `parse`, `discover` and `rewrite`, which is what another crate's fallibility-tier attribute would build on.
 
-</div>
-
-A proc-macro crate cannot export anything that is not a macro, so the rewrite engine that [`notko-macros`](https://crates.io/crates/notko-macros) runs on lives here as an ordinary library, which also lets a fallibility-tier attribute of another crate's own build on it instead of doing the rewriting over again.
-
-The surface moves with the rest of the crates, and on a `0.0.x` version cargo resolves to exactly that one, so what `cargo add` writes is already the pin.
+A proc-macro crate can't export anything that isn't a macro, so the rewrite engine that [`notko-macros`](https://crates.io/crates/notko-macros) runs on lives here as an ordinary library, and an attribute of another crate's own can build on it instead of doing the rewriting again. It holds the rewrite engine, the tier vocabulary it rewrites against and the discovery that turns a tier name into something to rewrite with, and the full surface is on [docs.rs](https://docs.rs/notko-macros-core).
 
 ## Usage
 
@@ -22,14 +12,7 @@ The surface moves with the rest of the crates, and on a `0.0.x` version cargo re
 cargo add notko-macros-core
 ```
 
-### What is in it
-
-The rewrite engine, the tier vocabulary it rewrites against, and the discovery
-that turns a tier name into something to rewrite with. The full surface with
-working links is on [docs.rs](https://docs.rs/notko-macros-core), which is a
-better place for it than a table here that drifts the first time a type moves.
-
-## Example
+A rewrite has to name some crate for the type it produces, and a gate feature for the release arm, and both belong to the calling crate rather than to this one. So the library takes them as fields and defaults to nothing you'd want:
 
 ```rust
 // my-macros/src/lib.rs
@@ -54,17 +37,7 @@ pub fn profile_asserted(_attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 ```
 
-## Motivation
-
-A tier file, the crate and the gate feature are all things a macro author names, and a rewrite that defaults to notko's own answers emits code naming `notko` in consumers that never depended on it. The library takes every one of them as a field, so the answer is always the author's.
-
-## Extras
-
-### Custom tiers
-
-`Discovery` is the same lookup notko's own macro runs, with every name in it
-the calling crate's. It reads a tier file out of the directory it is given, under the marker it is
-given, and stamps the crate and the gate feature onto whatever it finds:
+`Discovery` is the same lookup notko's own macro runs, with every name in it the calling crate's. Every field is named rather than spread over `Discovery::default()`, which is notko's own and would emit code naming `notko` in consumers that never depended on it:
 
 ```rust
 use notko_macros_core::discover::Discovery;
@@ -84,33 +57,7 @@ fn mine() -> Discovery {
 let tier = mine().resolve(&name, span)?;
 ```
 
-Every field is named rather than spread over a default, and deliberately so:
-`Discovery::default()` is notko's own, all six of them, and reaching for it in
-a macro emits code naming `notko` in consumers that never depended on it. A
-field added here later is a breaking change then, which seems the better trade
-before 1.0, since the alternative is silently inheriting somebody else's answer.
-
-`krate` and `gate_feature` are the two worth a second look. A rewrite has to name some
-crate for the type it produces, and whatever it names becomes a requirement on
-the macro users' crates rather than on the macro's own. Same for the feature the release arm is
-gated on: that `cfg` is read where the attribute expanded, so leaving it at the
-default means anyone who flips it flips the macro's too.
-
-`krate` is read whichever strategy is picked, since every one of them names a
-crate for the type it writes. `gate_feature` is the hot strategy's alone: on a
-cold or warm tier it sits there unused, and the day the strategy changes is the
-day it starts mattering.
-
-Do note the parse is matched, not unwrapped. In a proc-macro an `unwrap` gives whoever used the
-attribute a panic with no span on it, where `to_compile_error` points at their own code.
-
-## Support
-
-Feel free to contribute! If unsure about wasting work, the best practice is to throw in an issue describing what you'd do, and only then commit to writing a big PR, because chances are, it might not be something that belongs here. However, forks are always a valid choice and we'd encourage everyone to experiment and have their own takes on this. When doing this, do mind the license(s) though!
-
-Whether you use this project, have learned something from it, or just like it, please consider supporting it by buying me a coffee, so I can dedicate more time on open-source projects like this :)
-
-<a href="https://buymeacoffee.com/orgrinrt" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
+The surface moves with the rest of the crates, and on a `0.0.x` version cargo resolves to exactly that one, so what `cargo add` writes is already the pin.
 
 ## License
 
