@@ -24,11 +24,11 @@ later breaks nobody. `At<P>` says which type is at a place, with the place writt
 `There<P>` and read back as a number through `Position`, which is what a consumer indexing a flat run
 of values beside the list actually needs.
 
-Do note that this is deliberately small. Length, membership, position and append are the structural
+The crate is deliberately small. Length, membership, position and append are the structural
 folds, the ones needing no algebra, and a value-level fold that reduces with an identity and a combine
 is not here, because that is numerics territory and belongs where the algebra lives.
 
-## Installation
+## Usage
 
 ```bash
 cargo add notko-hlist
@@ -49,7 +49,7 @@ the defaults off:
 notko-hlist = { version = "0.0.1", default-features = false }
 ```
 
-## Usage
+## Example
 
 ```rust
 // The default set needs nightly, and this is where you say so.
@@ -113,34 +113,24 @@ fn main() {
 }
 ```
 
-The count being a parameter is the part worth explaining, since it looks like ceremony. This crate sits
+## Motivation
+
+The count is a parameter of the traits, which can look like ceremony. This crate sits
 under everything else, so it can't name a number type from a crate above it, and a counting crate above
 it can't implement a trait and a type that are both foreign. Leaving the count to you is the one
 arrangement the orphan rule allows, and it means the length comes back in the type you already count
 with rather than in a `usize` you have to convert at every use.
 
-## The traits are sealed
+## Extras
 
-`List` is implemented for `Empty` and `Cons` and cannot be implemented for anything else, and
-`Contains`, `ContainsAll`, `Length`, `At` and `Concat` all have it as a supertrait. So a type of your
-own cannot claim to hold something, and `L: Contains<Db>` proves `Db` is in there instead of proving
-that somebody wrote an empty impl saying so, which wouldn't be worth much as a guarantee.
+### Status
 
-A place is sealed the same way, through `Here` and `There`, and `Place` is the public name of that seal
-because a consumer writing a signature generic over the position has to be able to spell the bound. Both
-`At` and `Position` take it, and for `Position` the reason is the sharper version of the one above: a
-position of your own could carry whatever index it liked, and a bound reading the count alone would index
-wherever it was told. `At` needs it for a reason that is not obvious and cost a review to find. Its
-parameter comes after `Self` and would otherwise be free, so a crate downstream of this one could fill it
-with a type of its own and write `impl<H, T: List> At<Mine> for Cons<H, T>`, which the orphan rule allows
-and which answers for every list in the graph. The bound is what refuses that, and
-`tests/compile_fail/` holds the construction.
+Under active development and pre-1.0, so the api hasn't settled and breaking changes should be
+expected, though the shape of it has been steady for a while and I'd be surprised if the cell and the
+leaf moved at all. It's the trait names around them I'd caution against leaning on for anything serious
+just yet.
 
-What it costs is bringing your own list type, which isn't really what the crate is for anyway: the
-intended shape is aliasing the cell and the leaf into your own vocabulary, the way the example above
-does, and that keeps them these two types.
-
-## Features
+### Cargo features
 
 Both are on by default and both need nightly. With the defaults off you get the list, `List`, `Concat`,
 `At`, and `Length` and `Position` through their calls, which is what builds on stable back to 1.85.
@@ -159,14 +149,30 @@ one weaker, so it isn't offered as a fallback. `At` is not that shape and is not
 answers which member is at a place you name, where membership answers whether a type is in there at
 all, and it needs no feature because its two impls do not overlap.
 
-## Status
+### Sealed traits
 
-Under active development and pre-1.0, so the api hasn't settled and breaking changes should be
-expected, though the shape of it has been steady for a while and I'd be surprised if the cell and the
-leaf moved at all. It's the trait names around them I'd caution against leaning on for anything serious
-just yet.
+`List` is implemented for `Empty` and `Cons` and cannot be implemented for anything else, and
+`Contains`, `ContainsAll`, `Length`, `At` and `Concat` all have it as a supertrait. So a type of your
+own cannot claim to hold something, and `L: Contains<Db>` proves `Db` is in there instead of proving
+that somebody wrote an empty impl saying so, which wouldn't be worth much as a guarantee.
+
+A place is sealed the same way, through `Here` and `There`, and `Place` is the public name of that seal
+because a consumer writing a signature generic over the position has to be able to spell the bound. Both
+`At` and `Position` take it, and for `Position` the reason is the sharper version of the one above: a
+position of your own could carry whatever index it liked, and a bound reading the count alone would index
+wherever it was told. `At` needs it for a less obvious reason. Its
+parameter comes after `Self` and would otherwise be free, so a crate downstream of this one could fill it
+with a type of its own and write `impl<H, T: List> At<Mine> for Cons<H, T>`, which the orphan rule allows
+and which answers for every list in the graph. The bound is what refuses that, and
+`tests/compile_fail/` holds the construction.
+
+What it costs is bringing your own list type, which isn't really what the crate is for anyway: the
+intended shape is aliasing the cell and the leaf into your own vocabulary, the way the example above
+does, and that keeps them these two types.
 
 ## Support
+
+Feel free to contribute! If unsure about wasting work, the best practice is to throw in an issue describing what you'd do, and only then commit to writing a big PR, because chances are, it might not be something that belongs here. However, forks are always a valid choice and we'd encourage everyone to experiment and have their own takes on this. When doing this, do mind the license(s) though!
 
 Whether you use this project, have learned something from it, or just like it, please consider supporting it by buying me a coffee, so I can dedicate more time on open-source projects like this :)
 
@@ -178,4 +184,4 @@ Whether you use this project, have learned something from it, or just like it, p
 
 `SPDX-License-Identifier: MPL-2.0`
 
-> You can check out the full license [here](https://github.com/orgrinrt/notko/blob/main/LICENSE)
+> You can check out the full license [here](https://github.com/orgrinrt/notko/blob/dev/LICENSE)

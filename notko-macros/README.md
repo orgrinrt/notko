@@ -19,17 +19,59 @@ the function.
 The tiers themselves live in [`notko`](https://crates.io/crates/notko), which defines them and is what
 the rewritten body names, so that one belongs in the dependencies as well.
 
-## What gets rewritten, and what doesn't
+## Usage
 
-The rewrite fires on a return type spelled `Result<T, E>` or `Outcome<T, E>`, with both arguments written
-out at that signature. Anything else is emitted exactly as written, with no error and no warning: a
-unit return, a bare type, and in particular the `type Result<T> = core::result::Result<T, MyError>` alias
-that most crates of any size end up with.
+```bash
+cargo add notko-macros
+```
 
-That last one is worth knowing before you spend an afternoon on it. A tag that appears to have done
-nothing has usually done nothing, and writing the two arguments out at that one signature is the fix.
+Or reach it through `notko` itself, which re-exports `#[profile]` at its root under the `macros` feature:
 
-## Built-in tiers
+```bash
+cargo add notko --features macros
+```
+
+That second line leaves `notko`'s own defaults on, and those want a nightly compiler. On stable it's
+
+```bash
+cargo add notko --no-default-features --features macros
+```
+
+instead, and `notko`'s readme carries the rest of that story.
+
+## Example
+
+```rust
+use notko_macros::profile;
+
+#[derive(Debug)]
+pub struct LookupErr;
+
+#[profile(Hot)]
+pub fn lookup(id: u32) -> Result<u32, LookupErr> {
+    if id > 1000 {
+        return Err(LookupErr);
+    }
+    Ok(id * 2)
+}
+
+#[derive(Debug)]
+pub struct SetupErr;
+
+#[profile(Cold)]
+pub fn init(retries: u32) -> Result<u32, SetupErr> {
+    if retries == 0 {
+        return Err(SetupErr);
+    }
+    Ok(retries)
+}
+```
+
+Both want `notko` in scope of the crate they land in, since that's what the rewritten signatures name.
+
+## Extras
+
+### Built-in tiers
 
 | Tier | Debug, or the feature off | Release with the feature on |
 |------|---------------------------|-----------------------------|
@@ -48,7 +90,17 @@ same bet the tier is already making, but it is a second rewrite rather than a co
 `Hot` gets `#[inline]` and `Cold` and `Warm` do not. That's a property of the built-in markers rather
 than of the strategies, since a custom tier file sets `inline` itself and can turn it either way.
 
-## The `internal` feature belongs to your crate
+### What gets rewritten, and what does not
+
+The rewrite fires on a return type spelled `Result<T, E>` or `Outcome<T, E>`, with both arguments written
+out at that signature. Anything else is emitted exactly as written, with no error and no warning: a
+unit return, a bare type, and in particular the `type Result<T> = core::result::Result<T, MyError>` alias
+that most crates of any size end up with.
+
+That last one is easy to miss. A tag that appears to have done
+nothing has usually done nothing, and writing the two arguments out at that one signature is the fix.
+
+### The `internal` feature
 
 `#[profile(Hot)]` emits a `cfg(feature = "internal")`, and a `cfg` written by an attribute macro is read
 against the features of the crate it expanded into. So the feature that decides which arm you get is
@@ -80,57 +132,7 @@ Do note this crate declares an `internal` feature too, and it is not that switch
 crate's own tests and `src/` never reads it, so `cargo add notko-macros --features internal` does
 nothing at all.
 
-## Installation
-
-```bash
-cargo add notko-macros
-```
-
-Or reach it through `notko` itself, which re-exports `#[profile]` at its root under the `macros` feature:
-
-```bash
-cargo add notko --features macros
-```
-
-That second line leaves `notko`'s own defaults on, and those want a nightly compiler. On stable it's
-
-```bash
-cargo add notko --no-default-features --features macros
-```
-
-instead, and `notko`'s readme carries the rest of that story.
-
-## Usage
-
-```rust
-use notko_macros::profile;
-
-#[derive(Debug)]
-pub struct LookupErr;
-
-#[profile(Hot)]
-pub fn lookup(id: u32) -> Result<u32, LookupErr> {
-    if id > 1000 {
-        return Err(LookupErr);
-    }
-    Ok(id * 2)
-}
-
-#[derive(Debug)]
-pub struct SetupErr;
-
-#[profile(Cold)]
-pub fn init(retries: u32) -> Result<u32, SetupErr> {
-    if retries == 0 {
-        return Err(SetupErr);
-    }
-    Ok(retries)
-}
-```
-
-Both want `notko` in scope of the crate they land in, since that's what the rewritten signatures name.
-
-## Custom tiers (crate-local)
+### Custom tiers
 
 Drop a file at `$CRATE_ROOT/notko-optimisers/<Name>.rs` with this shape:
 
@@ -162,7 +164,7 @@ after the two above. That's what [`notko-build`](https://crates.io/crates/notko-
 case where a tier is defined in one crate and used in another. It reaches the direct dependencies that
 opted into it rather than the whole graph, and that crate's readme has the conditions.
 
-## Writing your own attribute macro
+### Writing your own attribute macro
 
 If the built-in strategies don't cover what you want and you need real AST-level control,
 [`notko-macros-core`](https://crates.io/crates/notko-macros-core) has the pieces this crate is built
@@ -170,6 +172,8 @@ from, under `notko_macros_core::{tiers, parse, discover, rewrite}`. Nothing stop
 attribute on top of it. That crate's readme points at the docs, which is where the surface actually is.
 
 ## Support
+
+Feel free to contribute! If unsure about wasting work, the best practice is to throw in an issue describing what you'd do, and only then commit to writing a big PR, because chances are, it might not be something that belongs here. However, forks are always a valid choice and we'd encourage everyone to experiment and have their own takes on this. When doing this, do mind the license(s) though!
 
 Whether you use this project, have learned something from it, or just like it, please consider supporting it by buying me a coffee, so I can dedicate more time on open-source projects like this :)
 
@@ -181,4 +185,4 @@ Whether you use this project, have learned something from it, or just like it, p
 
 `SPDX-License-Identifier: MPL-2.0`
 
-> You can check out the full license [here](https://github.com/orgrinrt/notko/blob/main/LICENSE)
+> You can check out the full license [here](https://github.com/orgrinrt/notko/blob/dev/LICENSE)
