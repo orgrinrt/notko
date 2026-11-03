@@ -14,7 +14,7 @@
 
 Custom tiers are ordinary files a crate keeps in its own `notko-optimisers/` directory, and by default
 the [`notko-macros`](https://crates.io/crates/notko-macros) proc-macro only sees the ones belonging to
-the crate it's expanding into. That's fine until you want a tier defined once and used elsewhere, and
+the crate it's expanding into. That's fine until a tier is wanted defined once and used elsewhere, and
 cargo gives a proc-macro no way to reach a file in a dependency.
 
 So this runs in a build script instead. It copies the crate's own optimiser files and the ones its
@@ -28,7 +28,7 @@ the first place.
 cargo add --build notko-build
 ```
 
-Or add to your `Cargo.toml`:
+Or in a `Cargo.toml`:
 
 ```toml
 [build-dependencies]
@@ -53,7 +53,7 @@ notko-build = "0.0.1"
 
 [dependencies]
 notko-macros = "0.0.1"
-# ... plus whichever crates in your dep tree provide the tiers you want to
+# ... plus whichever crates in the dep tree provide the tiers to
 # consume via `#[profile(X)]`
 ```
 
@@ -69,7 +69,7 @@ It's idempotent, so calling it every build is the intended shape rather than som
 anywhere that isn't a build script it returns an error rather than doing something surprising, since it
 reads `CARGO_MANIFEST_DIR` and `OUT_DIR` and neither is there.
 
-That's it, with one limit worth knowing before you count on it. `DEP_*` reaches your *direct*
+That's it, with one limit worth knowing before counting on it. `DEP_*` reaches a crate's *direct*
 dependencies only, and only the ones that declare `links` and run `collect_and_distribute` themselves. A
 tier two hops away arrives if the crate in between forwards it, and does not if that crate does nothing.
 So the reach is whatever the chain cooperates on, which is usually less than the whole graph.
@@ -87,11 +87,11 @@ links = "notko-optimisers-my-provider"  # any value, as long as it's unique in t
 notko-build = "0.0.1"
 ```
 
-`links` is what makes cargo carry the metadata to your dependents at all, and cargo requires the value be
+`links` is what makes cargo carry the metadata to its dependents at all, and cargo requires the value be
 unique across the whole graph. The `notko-optimisers-` prefix above is only a habit that keeps two of
 them from colliding; nothing here reads it.
 
-Drop your optimiser files into `./notko-optimisers/*.rs`. Each needs the marker line and a `based_on`,
+Optimiser files go into `./notko-optimisers/*.rs`, and each needs the marker line and a `based_on`,
 and the other two keys are optional:
 
 ```rust
@@ -133,7 +133,7 @@ its own build script will see these accumulated into its own `$OUT_DIR/notko-opt
 
 Two dependencies providing the same tier name is a build error, since nothing ranks one dependency
 above another. The error names both source paths. Resolve it by renaming, or by putting a file of that
-name in your own `notko-optimisers/`, which wins over every dependency's.
+name in the crate's own `notko-optimisers/`, which wins over every dependency's.
 
 ### Discovery precedence
 
@@ -146,7 +146,7 @@ The notko-macros proc-macro consults sources in this order:
    sets that variable, though the lookup reads it wherever it came from).
 
 The shadowing above is a separate thing from this list, and both point the same way. A dependency's file
-losing to your own happens here, in the build script, where the loser is never copied and so never
+losing to the crate's own happens here, in the build script, where the loser is never copied and so never
 reaches `$OUT_DIR` to be looked up at all.
 
 ### Limitations
@@ -155,7 +155,7 @@ The pieces have tests, the whole does not. Nothing in this repository declares `
 script, so the cargo handshake this crate exists for, provider emits, cargo forwards, consumer
 accumulates, proc-macro resolves, has never been run end to end here. The copying, the collision, the
 shadowing and the two emitted strings are all pinned; the hop between two crates is on paper. Worth
-knowing which half you're relying on.
+knowing which half is being relied on.
 
 ## Support
 
