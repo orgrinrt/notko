@@ -22,7 +22,7 @@ dependencies handed over into `$OUT_DIR/notko-optimisers/`, and points the proc-
 through `NOTKO_OPTIMISERS_PATH`, which is only worth doing when tiers are shared between crates in
 the first place.
 
-## Installation
+## Usage
 
 ```bash
 cargo add --build notko-build
@@ -38,9 +38,9 @@ notko-build = "0.0.1"
 It has no dependencies of its own, and it belongs under `[build-dependencies]` rather than
 `[dependencies]`, since nothing in it runs outside a build script.
 
-## Usage
+## Example
 
-### Consumer-only crate (uses optimisers from deps)
+#### Consumer-only crate (uses optimisers from deps)
 
 ```toml
 # Cargo.toml
@@ -74,7 +74,7 @@ dependencies only, and only the ones that declare `links` and run `collect_and_d
 tier two hops away arrives if the crate in between forwards it, and does not if that crate does nothing.
 So the reach is whatever the chain cooperates on, which is usually less than the whole graph.
 
-### Provider crate (publishes optimisers to downstream dependents)
+#### Provider crate (publishes optimisers to downstream dependents)
 
 ```toml
 # Cargo.toml
@@ -109,7 +109,9 @@ Anything that directly depends on `my-provider` and also runs `notko_build::coll
 its own build script will see these accumulated into its own `$OUT_DIR/notko-optimisers/` and usable by
 `#[profile(Name)]`.
 
-## How it works
+## Extras
+
+### How it works
 
 1. Scans `$CARGO_MANIFEST_DIR/notko-optimisers/` for `*.rs`. One directory, not walked recursively, so a
    file in a subdirectory of it is not found.
@@ -133,7 +135,7 @@ Two dependencies providing the same tier name is a build error, since nothing ra
 above another. The error names both source paths. Resolve it by renaming, or by putting a file of that
 name in your own `notko-optimisers/`, which wins over every dependency's.
 
-## Discovery precedence
+### Discovery precedence
 
 The notko-macros proc-macro consults sources in this order:
 
@@ -147,7 +149,7 @@ The shadowing above is a separate thing from this list, and both point the same 
 losing to your own happens here, in the build script, where the loser is never copied and so never
 reaches `$OUT_DIR` to be looked up at all.
 
-## What isn't covered yet
+### Limitations
 
 The pieces have tests, the whole does not. Nothing in this repository declares `links` or runs a build
 script, so the cargo handshake this crate exists for, provider emits, cargo forwards, consumer
@@ -156,6 +158,8 @@ shadowing and the two emitted strings are all pinned; the hop between two crates
 knowing which half you're relying on.
 
 ## Support
+
+Feel free to contribute! If unsure about wasting work, the best practice is to throw in an issue describing what you'd do, and only then commit to writing a big PR, because chances are, it might not be something that belongs here. However, forks are always a valid choice and we'd encourage everyone to experiment and have their own takes on this. When doing this, do mind the license(s) though!
 
 Whether you use this project, have learned something from it, or just like it, please consider supporting it by buying me a coffee, so I can dedicate more time on open-source projects like this :)
 
@@ -167,4 +171,4 @@ Whether you use this project, have learned something from it, or just like it, p
 
 `SPDX-License-Identifier: MPL-2.0`
 
-> You can check out the full license [here](https://github.com/orgrinrt/notko/blob/main/LICENSE)
+> You can check out the full license [here](https://github.com/orgrinrt/notko/blob/dev/LICENSE)
