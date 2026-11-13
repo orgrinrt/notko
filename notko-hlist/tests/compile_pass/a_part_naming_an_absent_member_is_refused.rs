@@ -1,6 +1,6 @@
 // The twin: the part names a member the whole holds.
 
-use notko_hlist::{Cons, Elem, Empty, Project, SubOf};
+use notko_hlist::{Cons, Elem, Empty, List, Project, SubOf};
 
 struct A;
 impl Elem for A {
@@ -17,7 +17,7 @@ impl Elem for Absent {
 
 type Whole = Cons<A, Cons<B, Empty>>;
 
-fn part<S: Project, L: SubOf<S, Ps>, Ps>() {}
+fn part<S: Project, L: SubOf<S, Ps>, Ps: List>() {}
 
 fn main() {
     part::<Whole, Cons<B, Empty>, _>();

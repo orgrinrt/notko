@@ -155,6 +155,29 @@ fn a_split_cuts_every_column_at_the_same_row() {
     assert_eq!(Lanes::read_row::<Arr<4>>(&cols, 2), row(0, 0, 0));
 }
 
+// The contract on a row past the end is the slice's: a panic, the same as
+// indexing or `split_at_mut` past the end, and never a read of another row.
+#[test]
+#[should_panic]
+fn a_row_past_the_end_panics_rather_than_reading() {
+    let cols: <Lanes as Project>::Prod<Arr<4>> = Lanes::made::<4>(&row(0, 0, 0));
+    let _ = Lanes::read_row::<Arr<4>>(&cols, 4);
+}
+
+#[test]
+#[should_panic]
+fn a_split_past_the_end_panics_rather_than_cutting() {
+    let mut cols: <Lanes as Project>::Prod<Arr<4>> = Lanes::made::<4>(&row(0, 0, 0));
+    let _ = Lanes::split_mut(Lanes::cols_mut::<4>(&mut cols), 5);
+}
+
+#[test]
+fn a_split_at_the_end_leaves_the_back_empty() {
+    let mut cols: <Lanes as Project>::Prod<Arr<4>> = Lanes::made::<4>(&row(0, 0, 0));
+    let (front, back) = Lanes::split_mut(Lanes::cols_mut::<4>(&mut cols), 4);
+    assert_eq!((front.head.len(), back.tail.tail.head.len()), (4, 0));
+}
+
 fn heat<L: Has<Heat, P>, P: Place>(cols: &mut L::Prod<Arr<2>>) -> &mut [u8; 2] {
     L::pick_mut::<Arr<2>>(cols)
 }

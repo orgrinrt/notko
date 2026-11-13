@@ -123,8 +123,10 @@ trybuild = "1"
 
 [features]
 default = ["const", "membership"]
-# `Cardinal` is declared `const trait` and `Length` gains `LEN`, a compile-time
-# constant rather than a call. Requires nightly (`const_trait_impl`).
+# `Cardinal` is declared `const trait`, `Length` gains `LEN` and `Position`
+# gains `INDEX`, compile-time constants rather than calls, and `Project`, `Has`,
+# `SubOf`, `Vals` and the carrier capabilities `ByRow`, `ByRowMut` and `Dup`
+# become callable in a constant. Requires nightly (`const_trait_impl`).
 # Default-on; consumers on stable Rust opt out via `default-features = false`
 # and keep `Length::len`.
 const = []

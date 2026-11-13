@@ -30,6 +30,13 @@
 use crate::carrier::{Arr, ByRow, ByRowMut, Carrier, Col, ColMut, Elem, Val};
 use crate::list::{Cons, Empty, List};
 
+/// The seal on [`Project`]: a token only this crate can name.
+mod seal {
+    /// Passed to `Project::sealed`. Public in a private
+    /// module, so a signature can carry it and nothing outside can write one.
+    pub struct Token;
+}
+
 /// A cell of a product: what carrier `C` holds for member `H`, then the rest.
 pub struct PCons<C: Carrier, H: Elem, T> {
     /// What `C` holds for the head member.
@@ -117,11 +124,11 @@ macro_rules! project_items {
         /// assert_eq!(Lanes::read_row::<Arr<4>>(&cols, 2).tail.head, 9);
         /// ```
         ///
-        /// No impl outside this crate exists or can. `Project` has no
-        /// parameters, so an impl names only its `Self`, and `List` as the
-        /// supertrait limits that to `Empty` and `Cons<H, T>`, both of them this
-        /// crate's types under this crate's sealed trait. That closure is what
-        /// [`Project::made`] rests its `unsafe` on.
+        /// No impl outside this crate exists or can. `Project` has a required
+        /// method, `Project::sealed`, taking a token whose type is unnameable
+        /// outside this crate, so an impl elsewhere cannot be written whatever its
+        /// `Self`. That closure is what [`Project::made`] rests its `unsafe` on:
+        /// the two impls below are every impl there is.
         #[diagnostic::on_unimplemented(
             message = "`{Self}` has no product",
             note = "A product is defined for lists built from `Empty` and `Cons<H, T>` whose every member implements `Elem`, so the usual cause is a member that names no value type, or a tail that is not a list."
@@ -130,6 +137,11 @@ macro_rules! project_items {
             /// The product through carrier `C`: [`PCons`] per cell, [`PNil`]
             /// at the end.
             type Prod<C: Carrier>;
+
+            /// The seal. Takes a token nothing outside this crate can name, so no
+            /// impl outside it can supply this method. Never needs calling.
+            #[doc(hidden)]
+            fn sealed(_: seal::Token);
 
             /// The values at row `i`, one per member.
             fn read_row<C: $([$c])? ByRow>(p: &Self::Prod<C>, i: usize) -> Self::Prod<Val>;
@@ -164,8 +176,8 @@ macro_rules! project_items {
                 let mut p = core::mem::MaybeUninit::uninit();
                 Self::splat_in::<N>(&mut p, row);
                 // SAFETY: every impl of `Project` is one of the two below, since
-                // the trait takes no parameters and its supertrait `List` is
-                // sealed. Both `splat_in`s write every field of the product, the
+                // an impl must supply `sealed`, whose `seal::Token` argument no
+                // other crate can name. Both `splat_in`s write every field of the product, the
                 // head and then the tail through the tail's own `splat_in`, down
                 // to `PNil`, so `p` is initialised here.
                 unsafe { p.assume_init() }
@@ -175,6 +187,8 @@ macro_rules! project_items {
         #[diagnostic::do_not_recommend]
         $($c)? impl Project for Empty {
             type Prod<C: Carrier> = PNil;
+
+            fn sealed(_: seal::Token) {}
 
             fn read_row<C: $([$c])? ByRow>(_: &PNil, _: usize) -> PNil {
                 PNil
@@ -200,6 +214,8 @@ macro_rules! project_items {
         #[diagnostic::do_not_recommend]
         $($c)? impl<H: Elem, T: $([$c])? Project> Project for Cons<H, T> {
             type Prod<C: Carrier> = PCons<C, H, T::Prod<C>>;
+
+            fn sealed(_: seal::Token) {}
 
             fn read_row<C: $([$c])? ByRow>(p: &Self::Prod<C>, i: usize) -> Self::Prod<Val> {
                 PCons {
@@ -287,7 +303,8 @@ project_items!();
 /// assert_eq!(cols.head, [10, 20, 3, 4]);
 /// ```
 ///
-/// Closed for the reason `Project` is: no parameters, and `List` sealed under it.
+/// Closed through `Project`: its supertrait cannot be implemented outside this
+/// crate, so neither can this. No `unsafe` rests on it.
 pub trait Split: Project {
     /// Every member's column cut at `mid`, the rows before it in the first
     /// product and the rest in the second.

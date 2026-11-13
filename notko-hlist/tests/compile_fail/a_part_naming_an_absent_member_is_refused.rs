@@ -1,7 +1,7 @@
 // A part names only members of the whole. One it names that the whole lacks
 // leaves the cut with nowhere to read the field from.
 
-use notko_hlist::{Cons, Elem, Empty, Project, SubOf};
+use notko_hlist::{Cons, Elem, Empty, List, Project, SubOf};
 
 struct A;
 impl Elem for A {
@@ -18,7 +18,7 @@ impl Elem for Absent {
 
 type Whole = Cons<A, Cons<B, Empty>>;
 
-fn part<S: Project, L: SubOf<S, Ps>, Ps>() {}
+fn part<S: Project, L: SubOf<S, Ps>, Ps: List>() {}
 
 fn main() {
     part::<Whole, Cons<Absent, Empty>, _>();

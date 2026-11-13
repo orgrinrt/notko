@@ -1,8 +1,8 @@
 // `Project::made` reads its product as initialised on the strength of
-// `splat_in` writing every field, which only this crate's two impls promise.
-// That rests on no impl from outside existing, and this is the attempt: the
-// trait takes no parameters, so the impl can only name its own type, and
-// `List` under it is sealed.
+// `splat_in` writing every field, which only this crate's two impls do. This
+// is the plainest attempt at another: an impl for a type of the consumer's own.
+// `List` refuses it before the seal is reached; the full attempt is
+// `a_full_impl_on_a_list_of_your_own_is_refused`.
 
 use notko_hlist::Project;
 

@@ -17,13 +17,16 @@
 
 use crate::carrier::{ByRowMut, Dup, Elem, Val};
 use crate::has::Has;
-use crate::list::{Cons, Empty};
+use crate::list::{Cons, Empty, List};
 use crate::position::Place;
 use crate::project::{PCons, PNil, Project};
 
 macro_rules! sub_items {
     ($($c:ident)?) => {
         /// Every member of `Self` is in `S`, at the places `Ps`.
+        ///
+        /// `Ps` is a [`List`], and lists are sealed, so an impl outside this crate
+        /// has no type of its own to name in it and the orphan rule refuses it.
         ///
         /// ```
         /// use notko_hlist::{Cons, Elem, Empty, PCons, PNil, Project, SubOf, Val};
@@ -56,7 +59,7 @@ macro_rules! sub_items {
             message = "`{Self}` is not a part of `{S}`",
             note = "Each member of `{Self}` is found in `{S}` through `Has`, so the one that failed is not named here. Bound on `PlaceOf<M, _>` for the individual member to find out which, and check that both lists have a product, which takes every member implementing `Elem`."
         )]
-        pub $($c)? trait SubOf<S: Project, Ps>: Project {
+        pub $($c)? trait SubOf<S: Project, Ps: List>: Project {
             /// The narrower product, each field duplicated out of `s`.
             fn sub<C: $([$c])? Dup>(s: &S::Prod<C>) -> Self::Prod<C>;
 
@@ -86,6 +89,7 @@ macro_rules! sub_items {
             S: $([$c])? Has<H, P>,
             H: Elem,
             P: Place,
+            Ps: List,
             T: $([$c])? SubOf<S, Ps>,
         {
             fn sub<C: $([$c])? Dup>(s: &S::Prod<C>) -> Self::Prod<C> {

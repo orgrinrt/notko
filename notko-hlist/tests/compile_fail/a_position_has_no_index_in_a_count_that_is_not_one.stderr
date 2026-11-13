@@ -4,7 +4,7 @@ error[E0277]: `Here` has no index in `NotACount`
 17 |     index_of::<Here, NotACount>();
    |                ^^^^ the trait `Position<NotACount>` is not implemented for `Here`
    |
-   = note: A position is `Here`, or `There<P>` where `P` is itself a position, and the count `NotACount` has to implement `Cardinal`. The trait is sealed through `Place`, so a marker of your own cannot become one. If the compiler reports `overflow evaluating the requirement` instead, the count is one step per cell and the position is further along than the default recursion limit, so the crate root wants `#![recursion_limit = "1024"]`.
+   = note: A position is `Here`, or `There<P>` where `P` is itself a position, and the count `NotACount` has to implement `const Cardinal`: a plain `impl Cardinal` is not enough here, since the index is a constant. The trait is sealed through `Place`, so a marker of your own cannot become one. If the compiler reports `overflow evaluating the requirement` instead, the count is one step per cell and the position is further along than the default recursion limit, so the crate root wants `#![recursion_limit = "1024"]`.
 note: required by a bound in `index_of`
   --> tests/compile_fail/a_position_has_no_index_in_a_count_that_is_not_one.rs:14:16
    |

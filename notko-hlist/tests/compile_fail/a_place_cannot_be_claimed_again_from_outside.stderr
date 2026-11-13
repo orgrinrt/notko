@@ -1,0 +1,9 @@
+error[E0119]: conflicting implementations of trait `PlaceOf<Mine, Here>` for type `Cons<Mine, notko_hlist::Empty>`
+  --> tests/compile_fail/a_place_cannot_be_claimed_again_from_outside.rs:15:1
+   |
+15 | impl PlaceOf<Mine, Here> for Cons<Mine, Empty> {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: conflicting implementation in crate `notko_hlist`:
+           - impl<M, T> PlaceOf<M, Here> for Cons<M, T>
+             where T: List;

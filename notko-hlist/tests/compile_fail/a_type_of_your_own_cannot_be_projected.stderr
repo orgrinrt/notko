@@ -1,10 +1,11 @@
-error[E0046]: not all trait items implemented, missing: `Prod`, `read_row`, `write_row`, `cols`, `cols_mut`, `copy_from`, `splat_in`
+error[E0046]: not all trait items implemented, missing: `Prod`, `sealed`, `read_row`, `write_row`, `cols`, `cols_mut`, `copy_from`, `splat_in`
   --> tests/compile_fail/a_type_of_your_own_cannot_be_projected.rs:14:1
    |
 14 | impl Project for Mine {}
-   | ^^^^^^^^^^^^^^^^^^^^^ missing `Prod`, `read_row`, `write_row`, `cols`, `cols_mut`, `copy_from`, `splat_in` in implementation
+   | ^^^^^^^^^^^^^^^^^^^^^ missing `Prod`, `sealed`, `read_row`, `write_row`, `cols`, `cols_mut`, `copy_from`, `splat_in` in implementation
    |
    = help: implement the missing item: `type Prod<C> = /* Type */ where C: Carrier;`
+   = help: implement the missing item: `fn sealed(_: notko_hlist::project::seal::Token) { todo!() }`
    = help: implement the missing item: `fn read_row<C>(_: &<Self as Project>::Prod<C>, _: usize) -> <Self as Project>::Prod<Val> where C: ByRow { todo!() }`
    = help: implement the missing item: `fn write_row<C>(_: &mut <Self as Project>::Prod<C>, _: usize, _: &<Self as Project>::Prod<Val>) where C: ByRowMut { todo!() }`
    = help: implement the missing item: `fn cols<const N: usize>(_: &<Self as Project>::Prod<Arr<N>>) -> <Self as Project>::Prod<Col<'_>> { todo!() }`

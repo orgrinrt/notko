@@ -141,7 +141,8 @@ macro_rules! has_items {
 /// ```
 ///
 /// The marker is taken by value and forgotten, so a unit marker costs nothing
-/// at the call.
+/// at the call, and a marker with a `Drop` impl does not have it run: a member
+/// is a name, and a name with something to release is not one.
 pub struct Vals<L: Project>(pub L::Prod<Val>);
 
 #[cfg(feature = "const")]
