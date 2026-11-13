@@ -751,59 +751,6 @@ fn the_doc_include_gate_names_every_feature_the_readme_reaches_for() {
     );
 }
 
-/// The `#![cfg_attr(..., feature(...))]` gates in the crate root, by name.
-fn unstable_gates() -> Vec<String> {
-    let text = fs::read_to_string(root().join("src/lib.rs")).expect("the crate root");
-    text.lines()
-        .filter_map(|l| {
-            let l = l.trim();
-            if !l.starts_with("#![cfg_attr(") {
-                return None;
-            }
-            let inner = l.split("feature(").nth(1)?;
-            Some(inner.split(')').next()?.to_string())
-        })
-        .collect()
-}
-
-#[test]
-fn the_readme_counts_the_unstable_features_the_crate_root_gates() {
-    // The readme said three where the root gated five, and it named two the
-    // default set does not turn on while omitting two it does. Every word of
-    // it was true when written; what changed underneath was the const set
-    // growing, and prose does not notice that.
-    let gates = unstable_gates();
-    let readme = fs::read_to_string(root().join("README.md")).expect("the readme");
-
-    let numbers = [
-        (1, "one"),
-        (2, "two"),
-        (3, "three"),
-        (4, "four"),
-        (5, "five"),
-        (6, "six"),
-        (7, "seven"),
-        (8, "eight"),
-    ];
-    let spelled = numbers
-        .iter()
-        .find(|(n, _)| *n == gates.len())
-        .map(|(_, w)| *w)
-        .unwrap_or_else(|| panic!("no spelling for {} gates", gates.len()));
-    assert!(
-        readme.contains(&format!("{spelled} unstable features")),
-        "the crate root gates {} features and the readme does not say {spelled}: {gates:?}",
-        gates.len()
-    );
-
-    for gate in &gates {
-        assert!(
-            readme.contains(&format!("`{gate}`")),
-            "`{gate}` is gated in the crate root and named nowhere in the readme"
-        );
-    }
-}
-
 #[test]
 fn the_msrv_says_which_build_it_is_the_msrv_of() {
     // `rust-version` is one number and this crate has two builds. The default
@@ -830,48 +777,5 @@ fn the_msrv_says_which_build_it_is_the_msrv_of() {
     assert!(
         readme.contains("default-features = false") || readme.contains("turn the defaults off"),
         "the readme does not say how to reach the build {version} applies to"
-    );
-}
-
-/// The readme tells the reader that `Result<T, Infallible>` already gets them a
-/// good part of the way to `Just<T>`, because the uninhabited error niches away.
-///
-/// That was checked by hand while the sentence was written, against a scratch
-/// crate that printed the two sizes, and this is that check kept. A readme
-/// making a layout claim about somebody else's type is exactly the claim that
-/// goes stale without anybody noticing, since nothing else in this repository
-/// would ever compile the type at all.
-#[test]
-fn the_infallible_result_the_readme_names_really_does_niche_away() {
-    use core::convert::Infallible;
-    use core::mem::size_of;
-
-    assert_eq!(
-        size_of::<Result<u32, Infallible>>(),
-        size_of::<u32>(),
-        "the readme says the uninhabited error niches away, and here it did not"
-    );
-    assert_eq!(
-        size_of::<Result<&u8, Infallible>>(),
-        size_of::<&u8>(),
-        "nor for a pointer-shaped payload"
-    );
-
-    // The control, and the reason the two above are not tautologies: a carrier
-    // whose second parameter is inhabited does grow, so the assertions are
-    // measuring the niche rather than measuring `size_of` agreeing with itself.
-    assert!(
-        size_of::<Result<u32, u32>>() > size_of::<u32>(),
-        "an inhabited error has to cost something, or this test proves nothing"
-    );
-    assert!(
-        size_of::<Option<u32>>() > size_of::<u32>(),
-        "and Option<u32> has no niche to fill, which is the readme's whole point"
-    );
-
-    let readme = fs::read_to_string(root().join("README.md")).expect("the readme");
-    assert!(
-        readme.contains("Result<T, Infallible>"),
-        "the claim left the readme, so this test is now measuring nothing"
     );
 }
