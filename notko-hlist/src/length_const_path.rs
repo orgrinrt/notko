@@ -57,10 +57,13 @@ pub trait Length<N>: List {
     }
 }
 
+// Not offered as suggestions: see `at.rs`.
+#[diagnostic::do_not_recommend]
 impl<N: const Cardinal> Length<N> for Empty {
     const LEN: N = N::ZERO;
 }
 
+#[diagnostic::do_not_recommend]
 impl<N: const Cardinal, H, T: Length<N>> Length<N> for Cons<H, T> {
     const LEN: N = <T as Length<N>>::LEN.succ();
 }

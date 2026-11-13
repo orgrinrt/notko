@@ -61,10 +61,13 @@ pub trait Position<N>: Place {
     }
 }
 
+// Not offered as suggestions: see `at.rs`.
+#[diagnostic::do_not_recommend]
 impl<N: const Cardinal> Position<N> for Here {
     const INDEX: N = N::ZERO;
 }
 
+#[diagnostic::do_not_recommend]
 impl<N: const Cardinal, P: Position<N>> Position<N> for There<P> {
     const INDEX: N = <P as Position<N>>::INDEX.succ();
 }

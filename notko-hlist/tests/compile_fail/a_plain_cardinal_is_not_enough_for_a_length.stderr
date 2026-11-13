@@ -1,11 +1,7 @@
-error[E0277]: the trait bound `Count: const Cardinal` is not satisfied
+error[E0277]: `Cons<A, notko_hlist::Empty>` has no length in `Count`
   --> tests/compile_fail/a_plain_cardinal_is_not_enough_for_a_length.rs:26:14
    |
 26 |     let _ = <One as Length<Count>>::len();
-   |              ^^^
+   |              ^^^ the trait `Length<Count>` is not implemented for `Cons<A, notko_hlist::Empty>`
    |
-   = note: required for `Cons<A, notko_hlist::Empty>` to implement `Length<Count>`
-help: make the `impl` of trait `Cardinal` `const`
-   |
-14 | impl const Cardinal for Count {
-   |      +++++
+   = note: A length is defined for lists built from `Empty` and `Cons<H, T>`, and only in a count type implementing `Cardinal`. Check that `Count` implements `Cardinal`, and that the tail of every cell is itself a list rather than a bare type. If the compiler reports `overflow evaluating the requirement` instead, the count is one step per cell and the list is deeper than the default recursion limit, so the crate root wants `#![recursion_limit = "1024"]`.

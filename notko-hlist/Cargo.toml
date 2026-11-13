@@ -6,7 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 homepage.workspace = true
 repository.workspace = true
-description = "A heterogeneous type-level list, and the structural facts about one. Length in a count type of the consumer's own, membership, position, and append, all decided by the compiler."
+description = "A heterogeneous type-level list, and the structural facts about one. Length in a count type of the consumer's own, membership, position, append, and a product of values over the list, all decided by the compiler."
 readme = "README.md"
 categories = ["no-std", "rust-patterns"]
 keywords = ["no_std", "no_alloc", "hlist", "type-level", "notko"]
@@ -36,6 +36,8 @@ include = [
     "tests/append_is_append.rs",
     "tests/a_member_sits_at_a_position.rs",
     "tests/the_list_holds_what_it_holds.rs",
+    "tests/a_product_follows_its_list.rs",
+    "tests/a_product_is_built_at_compile_time.rs",
     "README.md",
     "LICENSE",
 ]
@@ -99,6 +101,15 @@ required-features = ["membership"]
 
 # The fixtures are blessed against the default configuration, so off it they
 # fail for the wrong reason and every blessed diagnostic mismatches.
+[[test]]
+name = "a_product_follows_its_list"
+path = "tests/a_product_follows_its_list.rs"
+
+[[test]]
+name = "a_product_is_built_at_compile_time"
+path = "tests/a_product_is_built_at_compile_time.rs"
+required-features = ["const"]
+
 [[test]]
 name = "the_refusals_hold"
 path = "tests/the_refusals_hold.rs"

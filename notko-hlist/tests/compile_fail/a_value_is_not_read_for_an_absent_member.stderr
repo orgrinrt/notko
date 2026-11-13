@@ -1,0 +1,19 @@
+error[E0277]: `Cons<Pos, Cons<Heat, notko_hlist::Empty>>` has no field for `Absent`
+  --> tests/compile_fail/a_value_is_not_read_for_an_absent_member.rs:26:17
+   |
+26 |     let _ = row.get(Absent);
+   |                 ^^^ the trait `Has<Absent, There<There<_>>>` is not implemented for `Cons<Pos, Cons<Heat, notko_hlist::Empty>>`
+   |
+   = note: A field is found where `PlaceOf` finds the member: `Here` for the head of a `Cons`, `There<P>` when the tail holds it at `P`. The usual cause is a member the list does not hold, and if the compiler reports `type annotations needed` instead, the list holds it at more than one place.
+note: required by a bound in `Vals::<L>::get`
+  --> src/has.rs
+   |
+   |             pub $($c)? fn get<M: Elem, P: Place>(&self, member: M) -> M::Value
+   |                           --- required by a bound in this associated function
+   |             where
+   |                 L: $([$c])? Has<M, P>,
+   |                      ^^^^^^^^^^^^^^^^ required by this bound in `Vals::<L>::get`
+...
+   | has_items!(const);
+   | ----------------- in this macro invocation
+   = note: this error originates in the macro `has_items` (in Nightly builds, run with -Z macro-backtrace for more info)

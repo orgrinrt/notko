@@ -1,0 +1,35 @@
+error[E0046]: not all trait items implemented, missing: `Prod`, `read_row`, `write_row`, `cols`, `cols_mut`, `copy_from`, `splat_in`
+  --> tests/compile_fail/a_type_of_your_own_cannot_be_projected.rs:14:1
+   |
+14 | impl Project for Mine {}
+   | ^^^^^^^^^^^^^^^^^^^^^ missing `Prod`, `read_row`, `write_row`, `cols`, `cols_mut`, `copy_from`, `splat_in` in implementation
+   |
+   = help: implement the missing item: `type Prod<C> = /* Type */ where C: Carrier;`
+   = help: implement the missing item: `fn read_row<C>(_: &<Self as Project>::Prod<C>, _: usize) -> <Self as Project>::Prod<Val> where C: ByRow { todo!() }`
+   = help: implement the missing item: `fn write_row<C>(_: &mut <Self as Project>::Prod<C>, _: usize, _: &<Self as Project>::Prod<Val>) where C: ByRowMut { todo!() }`
+   = help: implement the missing item: `fn cols<const N: usize>(_: &<Self as Project>::Prod<Arr<N>>) -> <Self as Project>::Prod<Col<'_>> { todo!() }`
+   = help: implement the missing item: `fn cols_mut<const N: usize>(_: &mut <Self as Project>::Prod<Arr<N>>) -> <Self as Project>::Prod<ColMut<'_>> { todo!() }`
+   = help: implement the missing item: `fn copy_from<const N: usize>(_: &mut <Self as Project>::Prod<Arr<N>>, _: &<Self as Project>::Prod<Arr<N>>) { todo!() }`
+   = help: implement the missing item: `fn splat_in<const N: usize>(_: &mut MaybeUninit<<Self as Project>::Prod<Arr<N>>>, _: &<Self as Project>::Prod<Val>) { todo!() }`
+
+error[E0277]: `Mine` is not a list
+  --> tests/compile_fail/a_type_of_your_own_cannot_be_projected.rs:14:18
+   |
+14 | impl Project for Mine {}
+   |                  ^^^^ unsatisfied trait bound
+   |
+help: the trait `List` is not implemented for `Mine`
+  --> tests/compile_fail/a_type_of_your_own_cannot_be_projected.rs:9:1
+   |
+ 9 | struct Mine;
+   | ^^^^^^^^^^^
+   = note: A list is `Empty`, or `Cons<H, T>` where `T` is itself a list. A head may be anything, a tail may not, so the usual cause is a cell whose tail is a bare type. The trait is sealed, so a type of your own cannot become one.
+note: required by a bound in `Project`
+  --> src/project.rs
+   |
+   |         pub $($c)? trait Project: List {
+   |                                   ^^^^ required by this bound in `Project`
+...
+   | project_items!(const);
+   | --------------------- in this macro invocation
+   = note: this error originates in the macro `project_items` (in Nightly builds, run with -Z macro-backtrace for more info)

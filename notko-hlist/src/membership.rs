@@ -46,9 +46,17 @@ pub trait Contains<X>: List {}
 // The head match. Coexists with the tail match below only because of
 // `#[marker]`: a list whose head is `X` and whose tail also holds `X`
 // satisfies both.
+//
+// None of the four impls in this file is offered as a suggestion, for the
+// reason `At`'s are not (`at.rs`): the note already says how membership is
+// decided, and the suggestion would print this file's path as a consumer's
+// cargo checkout has it, which makes a downstream compile-fail fixture pass on
+// one machine only.
+#[diagnostic::do_not_recommend]
 impl<H, T: List> Contains<H> for Cons<H, T> {}
 
 // The tail match, which is the recursion.
+#[diagnostic::do_not_recommend]
 impl<H, T, X> Contains<X> for Cons<H, T> where T: Contains<X> + List {}
 
 /// The list holds every member of `L`.
@@ -82,6 +90,8 @@ impl<H, T, X> Contains<X> for Cons<H, T> where T: Contains<X> + List {}
 )]
 pub trait ContainsAll<L>: List {}
 
+#[diagnostic::do_not_recommend]
 impl<S: List> ContainsAll<Empty> for S {}
 
+#[diagnostic::do_not_recommend]
 impl<S, H, T> ContainsAll<Cons<H, T>> for S where S: Contains<H> + ContainsAll<T> + List {}

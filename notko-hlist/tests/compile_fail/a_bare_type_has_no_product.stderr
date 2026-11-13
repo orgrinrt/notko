@@ -1,0 +1,12 @@
+error[E0277]: `u8` has no product
+ --> tests/compile_fail/a_bare_type_has_no_product.rs:8:19
+  |
+8 |     has_product::<u8>();
+  |                   ^^ the trait `Project` is not implemented for `u8`
+  |
+  = note: A product is defined for lists built from `Empty` and `Cons<H, T>` whose every member implements `Elem`, so the usual cause is a member that names no value type, or a tail that is not a list.
+note: required by a bound in `has_product`
+ --> tests/compile_fail/a_bare_type_has_no_product.rs:5:19
+  |
+5 | fn has_product<L: Project>() {}
+  |                   ^^^^^^^ required by this bound in `has_product`
