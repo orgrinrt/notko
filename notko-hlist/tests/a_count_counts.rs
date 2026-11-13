@@ -312,3 +312,19 @@ fn a_cardinal_may_also_be_stepped_at_compile_time() {
     assert_eq!(THREE, Count(3));
     assert_eq!(STOPPED, Saturating(4));
 }
+
+#[test]
+fn the_place_of_a_member_counts_to_its_index() {
+    // `PlaceOf` finds the place from the member and `Position` counts it, which is
+    // the whole road from a member to the slot of a run of values. The same
+    // body is on the plain path.
+    fn index_of<L: notko_hlist::PlaceOf<M, P>, M, P: Position<Count>>() -> Count {
+        // Named in the body too, since the bound on it is what is under test.
+        let _ = core::marker::PhantomData::<L>;
+        <P as Position<Count>>::index()
+    }
+
+    assert_eq!(index_of::<L5, A, _>(), Count(0));
+    assert_eq!(index_of::<L5, C, _>(), Count(2));
+    assert_eq!(index_of::<L5, E, _>(), Count(4));
+}

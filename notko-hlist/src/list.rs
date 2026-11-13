@@ -61,8 +61,15 @@ pub struct Cons<H, T>(core::marker::PhantomData<(H, T)>);
 )]
 pub trait List: sealed::Sealed {}
 
+#[diagnostic::do_not_recommend]
 impl sealed::Sealed for Empty {}
+// Neither impl is offered as a suggestion, for the reason `at.rs` gives: the
+// note says what a list is, and the suggestion would print this file's path as
+// a consumer's cargo checkout has it.
+#[diagnostic::do_not_recommend]
 impl List for Empty {}
 
+#[diagnostic::do_not_recommend]
 impl<H, T: List> sealed::Sealed for Cons<H, T> {}
+#[diagnostic::do_not_recommend]
 impl<H, T: List> List for Cons<H, T> {}

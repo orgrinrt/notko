@@ -10,14 +10,6 @@ help: the trait `List` is not implemented for `Mine`
 13 | struct Mine;
    | ^^^^^^^^^^^
    = note: A list is `Empty`, or `Cons<H, T>` where `T` is itself a list. A head may be anything, a tail may not, so the usual cause is a cell whose tail is a bare type. The trait is sealed, so a type of your own cannot become one.
-help: the following other types implement trait `List`
-  --> src/list.rs
-   |
-   | impl List for Empty {}
-   | ^^^^^^^^^^^^^^^^^^^ `notko_hlist::Empty`
-...
-   | impl<H, T: List> List for Cons<H, T> {}
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Cons<H, T>`
 note: required by a bound in `Length`
   --> src/length_const_path.rs
    |

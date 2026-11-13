@@ -51,12 +51,15 @@ pub trait Position<N>: Place {
     fn index() -> N;
 }
 
+// Not offered as suggestions: see `at.rs`.
+#[diagnostic::do_not_recommend]
 impl<N: Cardinal> Position<N> for Here {
     fn index() -> N {
         N::ZERO
     }
 }
 
+#[diagnostic::do_not_recommend]
 impl<N: Cardinal, P: Position<N>> Position<N> for There<P> {
     fn index() -> N {
         <P as Position<N>>::index().succ()

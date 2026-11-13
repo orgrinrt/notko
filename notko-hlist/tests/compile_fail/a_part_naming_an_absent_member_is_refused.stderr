@@ -1,0 +1,13 @@
+error[E0277]: `Cons<Absent, notko_hlist::Empty>` is not a part of `Cons<A, Cons<B, notko_hlist::Empty>>`
+  --> tests/compile_fail/a_part_naming_an_absent_member_is_refused.rs:24:19
+   |
+24 |     part::<Whole, Cons<Absent, Empty>, _>();
+   |                   ^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+   |
+   = help: the trait `SubOf<Cons<A, Cons<B, notko_hlist::Empty>>, Cons<There<There<_>>, notko_hlist::Empty>>` is not implemented for `Cons<Absent, notko_hlist::Empty>`
+   = note: Each member of `Cons<Absent, notko_hlist::Empty>` is found in `Cons<A, Cons<B, notko_hlist::Empty>>` through `Has`, so the one that failed is not named here. Bound on `PlaceOf<M, _>` for the individual member to find out which, and check that both lists have a product, which takes every member implementing `Elem`.
+note: required by a bound in `part`
+  --> tests/compile_fail/a_part_naming_an_absent_member_is_refused.rs:21:24
+   |
+21 | fn part<S: Project, L: SubOf<S, Ps>, Ps: List>() {}
+   |                        ^^^^^^^^^^^^ required by this bound in `part`

@@ -88,7 +88,43 @@ fn every_refusal_still_refuses() {
              run on the pin, or pass --skip every_refusal_still_refuses."
         );
     }
-    trybuild::TestCases::new().compile_fail("tests/compile_fail/*.rs");
+    let cases = trybuild::TestCases::new();
+    cases.compile_fail("tests/compile_fail/*.rs");
+    cases.pass("tests/compile_pass/*.rs");
+}
+
+#[test]
+fn every_twin_stands_beside_a_refusal() {
+    // A twin is the refusal with its offending part replaced, so it says the
+    // refusal is about that part and not about something else in the file. A
+    // twin with no refusal beside it under the same name says nothing, and is
+    // what renaming one of the two leaves behind.
+    //
+    // The cases older than the twins have none yet, so this runs from the
+    // twins' side only.
+    let fail = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/compile_fail"));
+    let pass = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/compile_pass"));
+    let mut twins = 0usize;
+    let mut alone = Vec::new();
+    for entry in std::fs::read_dir(pass).expect("the twin directory") {
+        let path = entry.expect("a directory entry").path();
+        if path.extension().is_some_and(|e| e == "rs") {
+            twins += 1;
+            let name = path.file_name().expect("a file name");
+            if !fail.join(name).is_file() {
+                alone.push(path.display().to_string());
+            }
+        }
+    }
+    assert!(
+        twins >= 9,
+        "the twin directory holds {twins}, too few to be the set"
+    );
+    assert!(
+        alone.is_empty(),
+        "a twin with no refusal beside it:\n{}",
+        alone.join("\n")
+    );
 }
 
 #[test]
@@ -127,7 +163,7 @@ fn every_case_carries_the_diagnostic_it_must_produce() {
         }
     }
     assert!(
-        cases >= 19,
+        cases >= 29,
         "the fixture directory holds {cases} cases, too few to be the set"
     );
     assert!(
@@ -175,6 +211,11 @@ fn the_blessed_diagnostics_carry_this_crate_s_own_notes() {
         "is not a list",
         "has no member at",
         "has no index in",
+        "has no place for",
+        "has no field for",
+        "is not a part of",
+        "has no product",
+        "names no value type",
         // The sealing is the load-bearing one and rustc words it, not us, so
         // these are the check that a fixture actually reaches a sealed impl
         // rather than failing earlier for some other reason.
