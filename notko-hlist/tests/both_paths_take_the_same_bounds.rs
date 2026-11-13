@@ -20,7 +20,10 @@
 mod lists;
 
 use lists::*;
-use notko_hlist::{At, Cardinal, Concat, Cons, Empty, Length, List, Place, Position};
+use notko_hlist::{
+    Arr, At, ByRow, ByRowMut, Cardinal, Carrier, Concat, Cons, Dup, Elem, Empty, Has, Length, List,
+    PCons, PNil, Place, PlaceOf, Position, Project, Split, SubOf, Val, Vals,
+};
 
 // The count-carrying signatures below are never called. A generic function's
 // body and bounds are checked where it is declared, so declaring one is the
@@ -87,6 +90,63 @@ fn read_at<L: At<P, Member = M>, P: Position<N>, M, N: Cardinal>(values: &[M]) -
     let _ = values;
     let _ = core::marker::PhantomData::<L>;
     <P as Position<N>>::index()
+}
+
+// The product side carries no count, so these are written once and called
+// here. On the const path each trait is a const trait and these bounds are its
+// plain form, which a runtime caller writes on both paths alike.
+
+struct Pos;
+impl Elem for Pos {
+    type Value = i32;
+}
+struct Heat;
+impl Elem for Heat {
+    type Value = u8;
+}
+type Lanes = Cons<Pos, Cons<Heat, Empty>>;
+
+fn row_of<L: Project, C: ByRow>(p: &L::Prod<C>, i: usize) -> L::Prod<Val> {
+    L::read_row::<C>(p, i)
+}
+
+fn row_into<L: Project, C: ByRowMut>(p: &mut L::Prod<C>, i: usize, v: &L::Prod<Val>) {
+    L::write_row::<C>(p, i, v)
+}
+
+fn field_of<L: Has<M, P>, M: Elem, P: Place, C: Carrier>(p: &L::Prod<C>) -> &C::Of<M> {
+    L::pick::<C>(p)
+}
+
+fn place_of<L: PlaceOf<M, P>, M, P: Place>() {
+    let _ = core::marker::PhantomData::<(L, M, P)>;
+}
+
+fn part_of<L: SubOf<S, Ps>, S: Project, Ps: List, C: Dup>(s: &S::Prod<C>) -> L::Prod<C> {
+    L::sub::<C>(s)
+}
+
+fn value_of<L: Has<M, P>, M: Elem, P: Place>(v: &Vals<L>, m: M) -> M::Value {
+    v.get(m)
+}
+
+fn halves<L: Split, const N: usize>(p: &mut L::Prod<Arr<N>>, mid: usize) -> usize {
+    let (a, _) = L::split_mut(L::cols_mut::<N>(p), mid);
+    let _ = a;
+    mid
+}
+
+#[test]
+fn the_product_bounds_compile_in_this_configuration() {
+    let mut cols: <Lanes as Project>::Prod<Arr<2>> = Lanes::made::<2>(&PCons { head: 1, tail: PCons { head: 2, tail: PNil } });
+    row_into::<Lanes, Arr<2>>(&mut cols, 1, &PCons { head: 3, tail: PCons { head: 4, tail: PNil } });
+    assert_eq!(row_of::<Lanes, Arr<2>>(&cols, 1).tail.head, 4);
+    assert_eq!(*field_of::<Lanes, Pos, _, Arr<2>>(&cols), [1, 3]);
+    place_of::<Lanes, Heat, _>();
+    let v = Vals::<Lanes>(row_of::<Lanes, Arr<2>>(&cols, 0));
+    assert_eq!(part_of::<Cons<Heat, Empty>, Lanes, _, Val>(&v.0).head, 2);
+    assert_eq!(value_of(&v, Heat), 2);
+    assert_eq!(halves::<Lanes, 2>(&mut cols, 1), 1);
 }
 
 #[test]

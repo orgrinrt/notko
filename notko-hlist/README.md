@@ -2,13 +2,15 @@
 
 [![Crates.io](https://img.shields.io/crates/v/notko-hlist)](https://crates.io/crates/notko-hlist) [![docs.rs](https://img.shields.io/docsrs/notko-hlist)](https://docs.rs/notko-hlist)
 
-> A heterogeneous type-level list, and the structural facts about one. Length in a count type of the consumer's own, membership, position, and append, all decided by the compiler.
+> A heterogeneous type-level list, and the structural facts about one. Length in a count type of the consumer's own, membership, position, append, and a product of values over the list, all decided by the compiler.
 
-A list here is `Empty`, or `Cons<H, T>` where the tail is itself a list, and neither exists at run time: both are zero-sized markers, and everything the crate says about a list it says through traits the compiler discharges. So `Cons<Db, Cons<Cache, Empty>>` can be a set of things a function is allowed to touch, and a bound like `L: Contains<Db>` is the compiler agreeing before anything runs. `At<P>` goes the other way and says which type sits at a place, written as `Here` or `There<P>` and read back as a number through `Position`.
+A list here is `Empty`, or `Cons<H, T>` where the tail is itself a list, and neither exists at run time: both are zero-sized markers, and everything the crate says about a list it says through traits the compiler discharges. So `Cons<Db, Cons<Cache, Empty>>` can be a set of things a function is allowed to touch, and a bound like `L: Contains<Db>` is the compiler agreeing before anything runs. `At<P>` says which type sits at a place, written as `Here` or `There<P>` and read back as a number through `Position`, and `PlaceOf<M, P>` goes the other way, from a member to its place with the place inferred.
 
-It's small on purpose, with length, membership, position and append and nothing that needs algebra. The count is a parameter of the traits, so the length comes back in whatever type the consumer already counts with. The `List` trait is sealed, so a type of your own can't claim to hold something, and `L: Contains<Db>` really proves `Db` is in there.
+The list itself holds nothing, so `Project` gives it a product: one value per member, or a column, or an array, picked by a carrier, with a member naming its value type through `Elem`. `Has` reaches one member's field of it, `SubOf` cuts a narrower list's product out of a wider one, and the operations on a whole product write in place, so a long list does not cost a stack frame per member holding the rest of it.
 
-It has no dependencies, and it's pre-1.0 so the trait names may still move. The two features, `const` and `membership`, are both on by default and both need nightly. With them off it builds on stable from 1.85, minus `Contains`, `ContainsAll` and the const lengths.
+It stays small otherwise, with nothing that needs algebra. The count is a parameter of the traits, so the length comes back in whatever type the consumer already counts with. The `List` trait is sealed, so a type of your own can't claim to hold something, and `L: Contains<Db>` really proves `Db` is in there.
+
+It has no dependencies, and it's pre-1.0 so the trait names may still move. The two features, `const` and `membership`, are both on by default and both need nightly. With them off it builds on stable from 1.85, minus `Contains`, `ContainsAll` and the const paths, and the product operations are then ordinary calls rather than ones a constant can make.
 
 ## Usage
 

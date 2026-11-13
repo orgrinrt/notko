@@ -44,12 +44,15 @@ pub trait Length<N>: List {
     fn len() -> N;
 }
 
+// Not offered as suggestions: see `at.rs`.
+#[diagnostic::do_not_recommend]
 impl<N: Cardinal> Length<N> for Empty {
     fn len() -> N {
         N::ZERO
     }
 }
 
+#[diagnostic::do_not_recommend]
 impl<N: Cardinal, H, T: Length<N>> Length<N> for Cons<H, T> {
     fn len() -> N {
         <T as Length<N>>::len().succ()

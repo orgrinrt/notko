@@ -9,14 +9,6 @@ help: the trait `notko_hlist::list::sealed::Sealed` is not implemented for `Mine
    |
  8 | struct Mine;
    | ^^^^^^^^^^^
-help: the following other types implement trait `notko_hlist::list::sealed::Sealed`
-  --> src/list.rs
-   |
-   | impl sealed::Sealed for Empty {}
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `notko_hlist::Empty`
-...
-   | impl<H, T: List> sealed::Sealed for Cons<H, T> {}
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Cons<H, T>`
 note: required by a bound in `List`
   --> src/list.rs
    |

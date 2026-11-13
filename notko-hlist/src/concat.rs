@@ -41,10 +41,13 @@ pub trait Concat<L>: List {
     type Out;
 }
 
+// Not offered as suggestions: see `at.rs`.
+#[diagnostic::do_not_recommend]
 impl<L> Concat<L> for Empty {
     type Out = L;
 }
 
+#[diagnostic::do_not_recommend]
 impl<H, T, L> Concat<L> for Cons<H, T>
 where
     T: Concat<L> + List,

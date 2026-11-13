@@ -63,6 +63,8 @@ pub(crate) mod sealed {
 /// as a case.
 pub trait Place: sealed::Sealed {}
 
+// Not offered as a suggestion: see `at.rs`.
+#[diagnostic::do_not_recommend]
 impl<P: sealed::Sealed> Place for P {}
 
 /// The front of the list.
@@ -82,5 +84,7 @@ pub struct Here;
 /// that is where the error arrives.
 pub struct There<P>(core::marker::PhantomData<P>);
 
+#[diagnostic::do_not_recommend]
 impl sealed::Sealed for Here {}
+#[diagnostic::do_not_recommend]
 impl<P> sealed::Sealed for There<P> {}

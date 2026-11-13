@@ -39,6 +39,20 @@
 //! keeps the depth out of the bound; [`At<P>`] says which type is at a place,
 //! and the place is [`Here`] or [`There<P>`], with [`Position<N>`] reading
 //! that place back as a count for a consumer indexing a run of values by it.
+//! [`PlaceOf<M, P>`] is the third, from a member to its place, with the place left
+//! to inference: the list holds `M` at `P`, and `At` agrees at that place.
+//!
+//! # A product over the list
+//!
+//! A list holds no values, and a consumer wanting one per member asks
+//! [`Project`] for the product: [`PCons`] per cell and [`PNil`] at the end,
+//! each cell holding what a [`Carrier`] says is held for that member. The
+//! carriers here are [`Val`] for one value, [`Col`] and [`ColMut`] for a
+//! shared or exclusive slice, and [`Arr`] for an owned array, and a member
+//! names its value type through [`Elem`]. [`Has`] reaches one member's field,
+//! [`Vals`] reads and writes a row of values by member, [`SubOf`] cuts a
+//! narrower list's product out of a wider one, and [`Split`] cuts a product of
+//! exclusive columns in two by rows.
 //!
 //! # Naming the list in your own vocabulary
 //!
@@ -64,7 +78,15 @@
 //! There's no value-level fold, since reducing a list with an identity and an
 //! associative combine needs the algebra, and the algebra sits in numerics
 //! rather than here. The structural folds need none of that, so those are the
-//! ones that ship: length, concatenation, membership and position.
+//! ones that ship: length, concatenation, membership and position, and the
+//! product's own walks, which copy and place values and combine none.
+//!
+//! There's no predicate saying a list holds each member once. Saying that two
+//! types differ needs negative reasoning the trait solver does not have without
+//! `specialization`, which this crate does not take. A list naming a member
+//! twice is still refused where it matters, by [`PlaceOf`] and [`Has`] finding two
+//! places and asking which, and a consumer wanting distinctness as a value folds
+//! each member's [`Position`] into a mask of its own.
 //!
 //! # Features
 //!
@@ -74,15 +96,18 @@
 //!
 //! | Feature | What it adds | Why it is not stable |
 //! |---|---|---|
-//! | `const` | [`Cardinal`] becomes a const trait, [`Length`] gains `LEN` and [`Position`] gains `INDEX`, both compile-time constants | `const_trait_impl` |
+//! | `const` | [`Cardinal`] becomes a const trait, [`Length`] gains `LEN` and [`Position`] gains `INDEX`, both compile-time constants, and [`Project`], [`Has`], [`SubOf`], [`Vals`] and the carrier capabilities become callable in a constant | `const_trait_impl` |
 //! | `membership` | [`Contains`] and [`ContainsAll`] | `marker_trait_attr` |
 //!
 //! Without `const` the count and the index are still there and still correct,
 //! as [`Length::len`] and [`Position::index`], computed rather than named.
 //! Without `membership` there is no way to ask whether a list holds a type,
-//! because the two impls that answer it overlap by construction. [`At`] is in
-//! both configurations: its two impls do not overlap, since a position is
-//! either the front or further along and never both.
+//! because the two impls that answer it overlap by construction. [`At`] and
+//! [`PlaceOf`] are in both configurations: their two impls do not overlap, since a
+//! position is either the front or further along and never both. So is the
+//! product, which needs neither feature, only the const path to be callable in
+//! a constant. [`Split`] is plain on both paths: it hands a product's fields on
+//! by value, and a const fn cannot yet do that with a generic one.
 
 // The README's `rust` block is compiled as a doctest, because the example a
 // reader is most likely to copy is otherwise the one part of the crate nothing
@@ -95,18 +120,28 @@ pub struct Readme;
 
 mod at;
 mod cardinal;
+mod carrier;
 mod concat;
+mod has;
 mod length;
 mod list;
 #[cfg(feature = "membership")]
 mod membership;
+mod place_of;
 mod position;
+mod project;
+mod sub;
 
 pub use at::At;
 pub use cardinal::Cardinal;
+pub use carrier::{Arr, ByRow, ByRowMut, Carrier, Col, ColMut, Dup, Elem, Val};
 pub use concat::Concat;
+pub use has::{Has, Vals};
 pub use length::Length;
 pub use list::{Cons, Empty, List};
 #[cfg(feature = "membership")]
 pub use membership::{Contains, ContainsAll};
+pub use place_of::PlaceOf;
 pub use position::{Here, Place, Position, There};
+pub use project::{PCons, PNil, Project, Split};
+pub use sub::SubOf;

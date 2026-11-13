@@ -46,7 +46,7 @@ use crate::position::{Here, Place, There};
 /// consumer that read the count alone would index wherever it was told.
 #[diagnostic::on_unimplemented(
     message = "`{Self}` has no index in `{N}`",
-    note = "A position is `Here`, or `There<P>` where `P` is itself a position, and the count `{N}` has to implement `Cardinal`. The trait is sealed through `Place`, so a marker of your own cannot become one. If the compiler reports `overflow evaluating the requirement` instead, the count is one step per cell and the position is further along than the default recursion limit, so the crate root wants `#![recursion_limit = \"1024\"]`."
+    note = "A position is `Here`, or `There<P>` where `P` is itself a position, and the count `{N}` has to implement `const Cardinal`: a plain `impl Cardinal` is not enough here, since the index is a constant. The trait is sealed through `Place`, so a marker of your own cannot become one. If the compiler reports `overflow evaluating the requirement` instead, the count is one step per cell and the position is further along than the default recursion limit, so the crate root wants `#![recursion_limit = \"1024\"]`."
 )]
 pub trait Position<N>: Place {
     /// How many cells in, resolved by the compiler.
@@ -61,10 +61,13 @@ pub trait Position<N>: Place {
     }
 }
 
+// Not offered as suggestions: see `at.rs`.
+#[diagnostic::do_not_recommend]
 impl<N: const Cardinal> Position<N> for Here {
     const INDEX: N = N::ZERO;
 }
 
+#[diagnostic::do_not_recommend]
 impl<N: const Cardinal, P: Position<N>> Position<N> for There<P> {
     const INDEX: N = <P as Position<N>>::INDEX.succ();
 }

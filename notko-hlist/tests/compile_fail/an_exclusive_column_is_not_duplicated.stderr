@@ -1,0 +1,16 @@
+error[E0277]: `ColMut<'_>` cannot be duplicated
+  --> tests/compile_fail/an_exclusive_column_is_not_duplicated.rs:16:13
+   |
+16 |     let _ = <Lanes as SubOf<Lanes, _>>::sub(&Lanes::cols_mut::<2>(&mut a));
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Dup` is not implemented for `ColMut<'_>`
+   |
+   = note: The carriers duplicated are `Val` and `Col`. A `ColMut` duplicated would be two exclusive borrows of one column, and an `Arr<N>` would be a copy of the whole storage, so a part of either is cut through `Project::cols` first.
+note: required by a bound in `notko_hlist::SubOf::sub`
+  --> src/sub.rs
+   |
+   |             fn sub<C: $([$c])? Dup>(s: &S::Prod<C>) -> Self::Prod<C>;
+   |                         ^^^^^^^^^^ required by this bound in `SubOf::sub`
+...
+   | sub_items!(const);
+   | ----------------- in this macro invocation
+   = note: this error originates in the macro `sub_items` (in Nightly builds, run with -Z macro-backtrace for more info)

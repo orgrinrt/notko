@@ -1,0 +1,16 @@
+error[E0283]: type annotations needed
+  --> tests/compile_fail/a_member_held_twice_has_no_one_place.rs:15:5
+   |
+15 |     place::<Two, A, _>();
+   |     ^^^^^^^^^^^^^^^^^^ cannot infer type of the type parameter `P` declared on the function `place`
+   |
+   = note: multiple `impl`s satisfying `Cons<A, Cons<A, notko_hlist::Empty>>: PlaceOf<A, _>` found in the `notko_hlist` crate:
+           - impl<H, M, P, T> PlaceOf<M, There<P>> for Cons<H, T>
+             where P: Place, T: PlaceOf<M, P>;
+           - impl<M, T> PlaceOf<M, Here> for Cons<M, T>
+             where T: List;
+note: required by a bound in `place`
+  --> tests/compile_fail/a_member_held_twice_has_no_one_place.rs:12:13
+   |
+12 | fn place<L: PlaceOf<M, P>, M, P: Place>() {}
+   |             ^^^^^^^^^^^^^ required by this bound in `place`

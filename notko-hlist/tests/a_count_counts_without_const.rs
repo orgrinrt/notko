@@ -250,3 +250,17 @@ fn the_two_halves_of_a_position_mean_the_same_cell() {
     agree::<L32, P7, C>(&thirty_two);
     agree::<L32, P31, C>(&thirty_two);
 }
+
+#[test]
+fn the_place_of_a_member_counts_to_its_index() {
+    // The same body as the const path's.
+    fn index_of<L: notko_hlist::PlaceOf<M, P>, M, P: Position<Count>>() -> Count {
+        // Named in the body too, since the bound on it is what is under test.
+        let _ = core::marker::PhantomData::<L>;
+        <P as Position<Count>>::index()
+    }
+
+    assert_eq!(index_of::<L5, A, _>(), Count(0));
+    assert_eq!(index_of::<L5, C, _>(), Count(2));
+    assert_eq!(index_of::<L5, E, _>(), Count(4));
+}

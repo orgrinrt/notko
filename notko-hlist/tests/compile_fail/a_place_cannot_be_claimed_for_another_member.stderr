@@ -1,0 +1,12 @@
+error[E0277]: `Cons<A, Cons<B, notko_hlist::Empty>>` has no place for `B`
+  --> tests/compile_fail/a_place_cannot_be_claimed_for_another_member.rs:15:16
+   |
+15 |     at_place::<Two, B, Here>();
+   |                ^^^ the trait `PlaceOf<B, Here>` is not implemented for `Cons<A, Cons<B, notko_hlist::Empty>>`
+   |
+   = note: A member is at `Here` when it is the head of a `Cons`, and at `There<P>` when the tail holds it at `P`. The usual cause is a member the list does not hold. If the compiler reports `type annotations needed` instead, the list holds the member at more than one place. If it reports `overflow evaluating the requirement`, the walk is one step per cell and the list is deeper than the default recursion limit, so the crate root wants `#![recursion_limit = "1024"]`.
+note: required by a bound in `at_place`
+  --> tests/compile_fail/a_place_cannot_be_claimed_for_another_member.rs:12:16
+   |
+12 | fn at_place<L: PlaceOf<M, P>, M, P: Place>() {}
+   |                ^^^^^^^^^^^^^ required by this bound in `at_place`
