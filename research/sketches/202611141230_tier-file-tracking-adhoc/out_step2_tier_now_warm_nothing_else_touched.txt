@@ -1,0 +1,9 @@
+       Fresh unicode-ident v1.0.27
+       Fresh proc-macro2 v1.0.107
+       Fresh quote v1.0.47
+       Fresh syn v2.0.119
+       Fresh notko-macros-core v0.0.1 (/home/user/.worktrees/side-audit-notko/notko-macros-core)
+       Fresh notko-macros v0.0.1 (/home/user/.worktrees/side-audit-notko/notko-macros)
+       Fresh notko v0.0.1 (/home/user/.worktrees/side-audit-notko)
+       Fresh tier-file-tracking-adhoc v0.0.0 (/home/user/.worktrees/side-audit-notko/research/sketches/202611141230_tier-file-tracking-adhoc)
+    Finished `dev` profile [unoptimized] target(s) in 0.01s

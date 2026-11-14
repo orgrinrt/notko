@@ -1,0 +1,17 @@
+# An ad-hoc spike written for the stack audit of 14 November 2026
+# (research/202611140845_stack-audit/). Not a bench, not a crate of this
+# repository, never published. Its own workspace so the repository's does not
+# adopt it.
+[workspace]
+
+[package]
+name = "tier-file-tracking-adhoc"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+notko = { path = "../../..", features = ["macros", "try_trait_v2"] }
+
+[features]
+internal = []

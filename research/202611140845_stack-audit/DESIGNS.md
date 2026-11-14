@@ -2,7 +2,7 @@
 
 Part of the notko stack audit of 14 November 2026. `AUDIT.md` is the entry and
 carries the summary. Paths are relative to the notko root unless they begin
-with another repository's name. "Ad-hoc spike" always means one of the two
+with another repository's name. "Ad-hoc spike" always means one of the three
 directories under `research/sketches/` written for this audit; their numbers
 are not measurements on record.
 
@@ -163,18 +163,20 @@ wide error, where the narrower return could be worth up to about half a
 nanosecond per call or nothing; its figures cannot say which
 (`FINDINGS.md` of the spike, last section). Against the one op statement
 seen, the arm currently gives something up (a recoverable error becomes a
-process abort) and has no proven gain to show for it.
+panic) and has no proven gain to show for it.
 
 3d. The word. `Hot`, `Warm` and `Cold` here are fallibility tiers. arvo uses
-`Hot`, `Warm`, `Cold` and `Precise` for arithmetic strategy. The two meet in
-the same signatures in any crate that uses both.
+`Hot`, `Warm`, `Cold` and `Precise` for arithmetic strategy
+(`/home/user/.claude/skills/use-the-stack/SKILL.md:42`). The two meet in the
+same signatures in any crate that uses both.
 
 3e. For a daemon the release arm is a liability by construction: an error that
 depends on input, tagged hot by mistake, is a clean error in every test build
 and a panic in production.
 
 Mark: going wrong. The intent, a tier in which a proven-unreachable failure
-costs nothing, is defensible and is op's. The mechanism is what fails it.
+costs nothing, is the design's own (`src/just.rs:14-16`) and is defensible.
+The mechanism is what fails it.
 Right would require all of: one return type in both arms, or the two residual
 impls of section 2 plus a sealed common surface so that no caller can write
 code one arm rejects; a gain measured on a committed bench before the arm
@@ -198,8 +200,10 @@ silently does nothing on a `Result<T>` alias, will each be met by someone who
 did not read that paragraph. A hard error for an unrecognised return type
 would cost one line of diagnostics.
 
-The ad-hoc spike shows `Cold` and `Warm` cost what a call costs (they are not
-inlined, `notko-macros-core/src/tiers.rs:69`, `:77`), which is the intent.
+The ad-hoc spike shows `Cold` and `Warm` cost what a call costs. They carry
+no `#[inline]` (`notko-macros-core/src/tiers.rs:69`, `:77`), and the spike
+calls them from another crate without link-time optimisation, so they were
+not inlined there. Inside one crate the compiler may still inline them.
 
 Custom tiers. A tier beyond the three is a file,
 `notko-optimisers/<Name>.rs`, whose module comment carries `based_on`,
@@ -213,11 +217,14 @@ can only re-parameterise one of the three built-in strategies, so the
 mechanism is a file format, a build script, a `links` key and an environment
 variable in service of two settings. And the file the macro reads is not
 declared to cargo as an input: the path is kept on the tier
-(`discover.rs:274`) and nothing emits it into the expansion, so by cargo's
-rules an edit to a crate-local tier file does not rebuild the crate that uses
-it. That second point is reasoning from how cargo tracks inputs and was not
-run. No use of a custom tier was found anywhere, and the consumers could not
-be searched.
+(`discover.rs:274`) and nothing emits it into the expansion, so an edit to a
+crate-local tier file does not rebuild the crate that uses it. The ad-hoc
+spike `research/sketches/202611141230_tier-file-tracking-adhoc/` shows it: a
+tier changed from `Cold` to `Warm`, cargo reports the crate fresh and the
+build stays green, and the type errors appear only once a source file is
+touched (`out_step2_*`, `out_step3_*`). The route through `notko-build` was
+not tried. No use of a custom tier was found anywhere, and the consumers
+could not be searched.
 
 Mark: easy to get wrong but can be right. Right requires an error where the
 rewrite cannot apply, `Warm` refusing an error expression that is not plainly

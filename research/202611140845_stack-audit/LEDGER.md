@@ -104,6 +104,7 @@ Each is here because it bounded what could be read or run.
 | running a script file (`sh ./run.sh`) | the spike's own runner. Its commands were run one by one |
 | `cargo clean -p hlist-scaling-adhoc` | freeing the shared target directory after the disk filled |
 | starting work while more than three compilers ran on the machine | several runs waited. No run was dropped for it |
+| a `Co-Authored-By` trailer on the commits | the repository's commit hook refused it, so the commits carry none, though the work was done with no person in the loop |
 | a second sub-agent | refused once for load. The one that ran had no search tool and returned manifests only. Nothing was judged by a sub-agent |
 
 The sub-agent was read-only and was not given a worktree of its own, against

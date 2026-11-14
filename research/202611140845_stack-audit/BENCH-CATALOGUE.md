@@ -10,7 +10,7 @@ right home is the consumer's call. Each entry gives the scenario, the arms,
 the sizes and what the result could decide. They are ordered by how much a
 decision waits on them.
 
-The two ad-hoc spikes of this audit are first drafts of entries 1, 2, 5 and 6
+The two timing spikes of this audit are first drafts of entries 1, 2, 5 and 6
 and should be replaced by them, not cited.
 
 ## 1. Does a hot arm pay

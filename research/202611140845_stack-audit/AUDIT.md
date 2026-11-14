@@ -2,7 +2,7 @@
 
 State judged: notko `dev` at `8a74dbc`, with arvo `dev` and hilavitkutin `dev`
 as their clones stood on the morning of 14 November. Nothing in notko was
-changed. The files written are this report and two ad-hoc spikes under
+changed. The files written are this report and three ad-hoc spikes under
 `research/sketches/`.
 
 ## Summary
@@ -120,9 +120,10 @@ goal as to measurement, and the evidence is section 1.1 of `NUMBERS.md`.
   findings tested against the state now.
 - `LEDGER.md`: what was read to what depth, what was not, and what the
   harness refused.
-- `../sketches/202611140945_profile-arms-adhoc/` and
-  `../sketches/202611140950_hlist-scaling-adhoc/`: the two ad-hoc spikes, each
-  with its `FINDINGS.md`.
+- `../sketches/202611140945_profile-arms-adhoc/`,
+  `../sketches/202611140950_hlist-scaling-adhoc/` and
+  `../sketches/202611141230_tier-file-tracking-adhoc/`: the three ad-hoc
+  spikes, each with its `FINDINGS.md`.
 
 ## What each pass changed
 
@@ -133,9 +134,9 @@ and contract crate. During it one prediction was overturned by its own spike
 not) and one spike table was found to measure cached re-checks and was
 replaced by a cold run.
 
-Pass 2. Every citation into another repository was read again at its line,
-and the passages the three main findings rest on were re-read in the source.
-Four things changed.
+Pass 2. The citations into hilavitkutin's contract crate and kaski's manifest
+were read again at their lines, and the passages the three main findings rest
+on were re-read in the source. Four things changed.
 
 - The first finding was overstated. Pass 1 said the crate's claim "is not
   what the code delivers". The source states a classification
@@ -154,9 +155,26 @@ Four things changed.
   now recorded (`NUMBERS.md` 1.5).
 - The custom-tier mechanism, which pass 1 had not read, was read and judged:
   heavy for two settings, and its tier file is not a build input cargo knows
-  about, by reasoning and not by test (`DESIGNS.md` 4).
+  about, at that point by reasoning (`DESIGNS.md` 4).
 
 Smaller: the compile-time figures are now called a worst case in the summary;
 the `'static` bound on the product is quoted with its own justification; the
 absence of consumer benches is now supported for hilavitkutin by its audit's
 bench record, read whole.
+
+Pass 3. The remaining citations into arvo, hilavitkutin and the workspace
+catalogue were read again at their lines; all held. One claim that pass 2
+had made by reasoning was put to a test and held: a third ad-hoc spike shows
+a custom tier file can change while cargo reports the crate fresh and builds
+the old tier (`../sketches/202611141230_tier-file-tracking-adhoc/`). The
+central sections of `DESIGNS.md` were read through once more and three
+wordings were corrected: a panic had been called a process abort, the hot
+tier's intent had been attributed to op where the evidence is the design's
+own text, and the reason `Cold` and `Warm` were not inlined in the spike was
+misstated. No mark moved and no finding was added or withdrawn, so the passes
+stop here.
+
+What a further pass could still change, were the means there: a search of the
+consumers for uses of `#[profile]`, `Slot` and the lending types; op's capture
+files and the registries; and the benches of `BENCH-CATALOGUE.md`, the first
+of which would settle whether the hot tier's mark is too kind or too harsh.
