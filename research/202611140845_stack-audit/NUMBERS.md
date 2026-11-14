@@ -17,8 +17,15 @@ There are none. notko has no `benches` directory, no bench target in any of
 its five manifests, and no committed timing anywhere in the repository. The
 roadmap's position is that "a bench of a notko form runs in the consumer's
 harness" (channel `briefs/fixup/roadmap.md:382`). No such bench was found in
-a consumer, and the consumers could not be searched, so the honest statement
-is: none on record that this audit could find.
+a consumer. For hilavitkutin that rests on its own audit's record, which
+describes its 29 harness families and its other four bodies of measurement
+and names none that times a carrier, a writer, a `Fill` or the list
+(`hilavitkutin/mock/research/202611131215_stack-audit/BENCH-RECORD.md:9-19`).
+The panel names a bench `contract-compile-cost` to be run before and after
+the list crate was adopted (channel `briefs/fixup/panel-consolidation-1.md`,
+fault H15); whether it exists or was run was not found. arvo's record was not
+read. The consumers could not be searched, so the honest statement is: none
+on record that this audit could find.
 
 What follows from it. Every sentence in notko about cost is unmeasured. That
 covers "differ by what a branch costs" (`README.md:7`), the cost column of
@@ -116,9 +123,18 @@ bench repeats them.
 
 ### 1.5 The earlier audits' numbers
 
-`arvo/mock/research/202611131215_stack-audit/NUMBERS.md` and
-hilavitkutin's `BENCH-RECORD.md` and `ESTIMATES.md` were not read
-(`LEDGER.md`). No number of theirs is used here.
+hilavitkutin's `BENCH-RECORD.md` was read whole in the second pass. None of
+its numbers is of a notko form and none is used here. One of its findings
+bears on this report's advice: hilavitkutin's founding design bans the
+`likely` hint and prefetch on two measurements from one Apple Silicon machine,
+about 1.4 and 2 times slower, which that audit calls microarchitecture
+results generalised into a rule (`BENCH-RECORD.md:71`). Op has since said
+branch hints belong in notko (`op-answers-34.md`). The two positions are in
+tension inside the stack and no committed bench settles it; entry 1 of
+`BENCH-CATALOGUE.md` would.
+
+`arvo/mock/research/202611131215_stack-audit/NUMBERS.md` and hilavitkutin's
+`ESTIMATES.md` were not read (`LEDGER.md`).
 
 ## Part 2. Estimates: the designs built to intent, against four yardsticks
 
@@ -174,6 +190,9 @@ Against existing means. `core::hint::cold_path`, `#[cold]` on the error
 constructor, and `likely`-style hints keep one return type. Estimate: they
 recover the layout benefit (the failure path out of line) and none of the
 vectorisation benefit, the same as the tier as built, at no cost to callers.
+This estimate is the least certain in the file: hilavitkutin has on record a
+hint that made a loop slower on one machine (1.5 above), and a hint is the
+kind of thing whose sign depends on the target.
 
 ### 2.3 `Slot`, `MaybeNull`
 

@@ -20,8 +20,10 @@ known; not read means exactly that.
 | `notko-macros/README.md`, `Cargo.toml`, `src/lib.rs` | whole |
 | `notko-macros/tests/consumer_cfg.rs` | outlined |
 | `notko-macros-core/README.md`, `src/lib.rs`, `src/tiers.rs`, `src/rewrite/mod.rs`, `src/rewrite/hot.rs`, `src/rewrite/maybe.rs` | whole |
-| `notko-macros-core/src/discover.rs`, `parse.rs`, `helpers.rs`, `rewrite/outcome.rs` | not read |
-| `notko-build/README.md`, `src/lib.rs` | outlined |
+| `notko-macros-core/src/discover.rs`, `rewrite/outcome.rs` | whole (second pass) |
+| `notko-macros-core/src/parse.rs`, `rewrite/helpers.rs` | not read |
+| `notko-build/README.md` | outlined |
+| `notko-build/src/lib.rs` | lines 1 to 330 of 608 (second pass); the rest is its tests |
 | `research/202608251000_consttry-copy-bound/FINDINGS.md` | whole |
 | `research/202608251000_consttry-copy-bound/SECOND_READ.md` | headings and verdict |
 | `research/202608251000_consttry-copy-bound/p01` to `p08` | not read |
@@ -83,7 +85,8 @@ is therefore not known, and the report says unknown wherever that matters.
 | the same, `DESIGNS.md`, `NUMBERS.md`, `BENCH-CATALOGUE.md` | not read |
 | `hilavitkutin/mock/research/202611131215_stack-audit/AUDIT.md` | lines 1 to 120 |
 | the same, `LEDGER.md` | whole |
-| the same, `DESIGNS.md`, `BENCH-RECORD.md`, `ESTIMATES.md`, `DOWNSTREAM.md`, `BENCH-CATALOGUE.md` | not read |
+| the same, `BENCH-RECORD.md` | whole (second pass) |
+| the same, `DESIGNS.md`, `ESTIMATES.md`, `DOWNSTREAM.md`, `BENCH-CATALOGUE.md` | not read |
 
 The pull requests of the night (arvo #169 to #175, hilavitkutin #32 to #38)
 could not be listed. What they changed is known only where a file read above

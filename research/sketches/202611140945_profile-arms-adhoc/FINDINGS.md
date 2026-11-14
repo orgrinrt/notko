@@ -94,7 +94,10 @@ The probes, committed as `out_probe_*` and `out_recover_*`:
 
 It does not show that a `Just` arm can never pay. Where the hot function is
 not inlined and returns a wide error, the `Just` arm returns a narrower value
-and row 4 suggests a gain of a few tenths of a nanosecond per call would be
-plausible. That case was not built here (the macro makes a hot function
-`#[inline]`, so the case arises only when the inliner declines). It says
+and the rows already here bracket what that could be worth: a `Just` with a
+panic behind a call measured 1.23 and 1.80 in its two builds, an `Outcome`
+with a wide error behind a call 1.85 and 2.06. So a gain of up to about half
+a nanosecond per call is possible and a gain of nothing is equally consistent
+with these figures. The case was not built through the macro (it makes a hot
+function `#[inline]`, so the case arises only when the inliner declines). It says
 nothing about aarch64, about wasm, or about a kernel heavier than one add.

@@ -39,8 +39,9 @@ It needs, from the bottom crate:
   in the shipped build on an input the debug build handled is the worst
   outcome a tier can produce. Not answered: section 3, going wrong. Whether
   kaski uses `#[profile]` at all is unknown; kaski takes notko with default
-  features, and `macros` is not among them (`Cargo.toml:127`, `:131`), so
-  unless its manifest adds the feature it does not.
+  features, and `macros` is not among them (`Cargo.toml:127`, `:131`;
+  `kaski/mock/Cargo.toml:535` names no feature), so it does not unless a
+  member crate adds the feature in its own manifest, and those were not read.
 - Columns of plain values read in place and written by mutation, which is
   op's ruling for the rewrite (`/home/user/.shared/state/kaski.md:45-51`).
   The product is the right shape for the write side. The read side needs

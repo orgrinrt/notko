@@ -42,19 +42,21 @@ in notko, none in its concept, and named `lend.rs` "the standard the rest of
 the stack should be held to" (channel `briefs/fixup/panel-consolidation-1.md`,
 section 7.2).
 
-What does not hold as written. The sentence the crate is built around, that
-the carriers differ by what a branch costs, is not what the code delivers.
-`Outcome` is `Result` and `Maybe` is `Option` in cost: the ad-hoc spike
+What holds less well than it reads. The sentence the crate is built around is
+that the carriers put "the hot, warm and cold split at the control-flow
+level, so what a branch costs is picked where the call is written"
+(`src/lib.rs:46-48`). As a classification that is true. As a choice among
+three costs it is thinner than it sounds, because two of the three were
+already in core at the same price: `Outcome` is `Result` and `Maybe` is
+`Option` in cost. The ad-hoc spike
 `research/sketches/202611140945_profile-arms-adhoc/` could not tell them
-apart, inlined or behind a call
-(`out_tiers_release_debug_arm.txt`). That is the right result for a
-vocabulary and it is not a difference in branch cost. The one carrier that
-does differ is `Just`, and it differs because it cannot fail, which is a
-statement about the type and not about a branch that was made cheaper. So the
-value of the three is that a signature says which of the three situations a
-function is in, and that the stack has one spelling for each. The README
-should claim that. As it stands a reader is told to expect speed from a
-renaming.
+apart, inlined or behind a call (`out_tiers_release_debug_arm.txt`), which is
+the right result for a vocabulary. The only new cost point is `Just`, and the
+only means of moving a function between the points is the attribute of
+section 3. So the whole of the cost promise rests on `Just` and on
+`#[profile(Hot)]`, and what the rest of the carriers give is a shared
+spelling. Both are worth having. The README and the table should say which is
+which, and no cost in them is measured (`NUMBERS.md`, 1.1).
 
 There is a second gap between the words and the tree. Op's intents for notko
 (bit flags as something "notko could take naturally", byte casting it "just
@@ -132,15 +134,22 @@ one arm and a panic in the other. All three are in the ad-hoc spike
 (`research/sketches/202611140945_profile-arms-adhoc/out_probe_*`,
 `out_recover_*`). The sentence at `src/just.rs:342-345`, that the divergence
 "surfaces on the consumer's release build and nowhere earlier", describes the
-defect that file fixed and still describes these.
+defect that file fixed and still describes these. The crate's own standard is
+in the name of its test: a construct "builds in both arms or neither"
+(`consumer_cfg.rs:161`). By that standard these are defects and not a matter
+of taste. How far they bite depends on the consumer. One that builds both
+configurations in its checks meets the two compile failures there, early. No
+build shows the third, where the same call returns in one arm and panics in
+the other.
 
-3b. The return type of a public function depends on a cargo feature. Features
-are unified across a dependency graph, which the crate's own research record
+3b. The return type of a function depends on a cargo feature. Features are
+unified across a dependency graph, which the crate's own research record
 establishes for notko's features
 (`research/202608251000_consttry-copy-bound/FINDINGS.md:42`). The same holds
 for a consumer's `internal`: one dependent turning it on changes the signature
-of every hot function in that crate for every other dependent. A feature that
-changes a public type is not additive, and cargo assumes features are.
+of every public hot function in that crate for every other dependent. A
+feature that changes a public type is not additive, and cargo assumes
+features are. For a hot function private to its crate this reduces to 3a.
 
 3c. Nothing on record shows a gain. notko has no bench. The ad-hoc spike found
 the `Just` arm no faster than the `Outcome` arm (0.657 against 0.621 ns per
@@ -148,7 +157,11 @@ element, inside the noise of the host), and the mechanism is plain in the
 rewrite: the check is kept and its failure is turned into a panic, so the loop
 carries the same compare and branch. The table at `src/lib.rs:52` says "None:
 no branch. `?` compiles away", which is true of `?` on a `Just` and not of
-the hot function, whose body still branches. Against the one op statement
+the hot function, whose body still branches. The one place the same spike
+leaves room for a gain is a hot function that is not inlined and returns a
+wide error, where the narrower return could be worth up to about half a
+nanosecond per call or nothing; its figures cannot say which
+(`FINDINGS.md` of the spike, last section). Against the one op statement
 seen, the arm currently gives something up (a recoverable error becomes a
 process abort) and has no proven gain to show for it.
 
@@ -169,8 +182,10 @@ exists at all; and the failure removed rather than moved, which means the
 caller validates once and the hot function takes a type that cannot hold the
 bad value (the shape `Boundable` and `NonZeroable` already point at). Where
 only the cost of a rare branch is at stake, a cold-path hint keeps one type
-and delivers what the README's sentence promises; op has already said branch
-hints belong in notko (`op-answers-34.md`).
+and is the nearer fit to "what a branch costs"; op has said branch hints
+belong in notko (`op-answers-34.md`). That last suggestion is this audit's
+and is unproven: hilavitkutin's design bans the `likely` hint on a measurement
+of its own (`NUMBERS.md`, 1.5), so it is a bench to run and not a conclusion.
 
 ## 4. `Warm`, `Cold` and the rewrite in general
 
@@ -186,12 +201,28 @@ would cost one line of diagnostics.
 The ad-hoc spike shows `Cold` and `Warm` cost what a call costs (they are not
 inlined, `notko-macros-core/src/tiers.rs:69`, `:77`), which is the intent.
 
-`notko-build` and the custom tiers read from `notko-optimisers/<Name>.rs` were
-outlined only and are not judged.
+Custom tiers. A tier beyond the three is a file,
+`notko-optimisers/<Name>.rs`, whose module comment carries `based_on`,
+`inline` and `panic_fmt`; the macro reads it from the consumer's manifest
+directory while expanding (`notko-macros-core/src/discover.rs:86-90`,
+`:160-167`), and `notko-build` copies such files across crate boundaries from
+a build script (`notko-build/src/lib.rs:6-22`). The code is careful about its
+own past mistakes and says so in place (`discover.rs:284-288`,
+`notko-build/src/lib.rs:142-147`). Two things about the design. A custom tier
+can only re-parameterise one of the three built-in strategies, so the
+mechanism is a file format, a build script, a `links` key and an environment
+variable in service of two settings. And the file the macro reads is not
+declared to cargo as an input: the path is kept on the tier
+(`discover.rs:274`) and nothing emits it into the expansion, so by cargo's
+rules an edit to a crate-local tier file does not rebuild the crate that uses
+it. That second point is reasoning from how cargo tracks inputs and was not
+run. No use of a custom tier was found anywhere, and the consumers could not
+be searched.
 
 Mark: easy to get wrong but can be right. Right requires an error where the
-rewrite cannot apply, and `Warm` refusing an error expression that is not
-plainly free of effects.
+rewrite cannot apply, `Warm` refusing an error expression that is not plainly
+free of effects, and for custom tiers either a consumer that needs them or
+their removal until one does.
 
 ## 5. `Maybe`, `MaybeNull`, `Slot`, `NicheFilled`, `NonZeroable`
 
@@ -316,7 +347,10 @@ columns through `read_row` and `write_row` ran at the speed of zipped slices,
 sizes, and the compiler vectorised it (ad-hoc spike, `out_rows.txt`). That is
 one branch-free kernel and no more. The design fault is in the member trait:
 `Elem: 'static` with `Value: Copy + 'static`
-(`notko-hlist/src/carrier.rs:50-52`). Within a day the first consumer wrote
+(`notko-hlist/src/carrier.rs:50-52`). The bound is a decision and is argued:
+"A value that borrows would tie every product holding it to that borrow, and
+none of the carriers here wants that" (`carrier.rs:42-45`). Within a day the
+first consumer wanted exactly that and wrote
 its own read product because "a value read may borrow" and "the shared crate's
 product holds `'static` values only", with a note to move it back "once its
 product can hold a borrowed value"

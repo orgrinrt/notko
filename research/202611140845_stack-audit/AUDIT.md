@@ -16,19 +16,24 @@ the structural half of the type-level list. Those are good as they are.
 
 Three things are not.
 
-First, the crate's headline claim is not what it delivers. It says its
-carriers "differ by what a branch costs". `Outcome` costs what `Result` costs
-and `Maybe` what `Option` costs, which is correct for a vocabulary and is not
-a difference in cost. There is no bench of any notko form on record, in notko
-or, as far as could be found, in a consumer. Every cost sentence in the crate
-is unmeasured.
+First, the crate's headline is about cost and nothing in it is measured. It
+says its carriers "differ by what a branch costs". As a classification that
+is true, and two of the three points were already in core at the same price:
+`Outcome` costs what `Result` costs and `Maybe` what `Option` costs, which is
+correct for a vocabulary. The whole of the cost promise therefore rests on
+`Just` and on the attribute that switches a function to it. There is no bench
+of any notko form on record, in notko or, as far as could be found, in a
+consumer.
 
 Second, `#[profile(Hot)]` is going wrong. It gives one public function two
 return types depending on a cargo feature. A caller that builds and passes
 its tests against the debug arm can fail to compile, or panic where it used to
 recover, against the release arm; an ad-hoc spike written for this audit shows
-all three cases. The arm keeps its check and turns the failure into a panic,
-so in the kernel tried it bought no speed. The one statement of op's intent
+all three cases, and the crate's own test holds it to the standard that a
+construct builds in both arms or neither. The arm keeps its check and turns
+the failure into a panic, so in the kernel tried it bought no speed, and the
+most the spike leaves room for elsewhere is about half a nanosecond per call
+that is not inlined. The one statement of op's intent
 for a tier called Hot that this audit saw says it may give something up only
 for a proven, meaningful gain. None is proven. The intent can be met, by a
 type that cannot hold the bad value and by cold-path hints, with one return
@@ -40,8 +45,10 @@ wrote its own read product the day it landed, and it also keeps its own copies
 of notko's writer traits. At run time the product is free in the one kernel
 tried. At compile time a question asked of every member of a list grows
 between quadratically and cubically: about a fifth of a second at 64 members
-and four to fourteen seconds at 256, per use, in an ad-hoc spike. That is
-affordable for small lists and is the thing most likely to hurt an engine.
+and four to fourteen seconds at 256, per use, in an ad-hoc spike. That is a
+worst case, a whole list asked against itself. A kernel asking for a few
+columns out of many asks far less, and whether an engine's real questions
+come near the worst case is a bench nobody has written.
 
 Around these: the stack is in practice nightly-only through notko, which is a
 position op has not been seen to reject and which the README presents as
@@ -125,3 +132,31 @@ and contract crate. During it one prediction was overturned by its own spike
 (the product's bounds checks were expected to block vectorisation and did
 not) and one spike table was found to measure cached re-checks and was
 replaced by a cold run.
+
+Pass 2. Every citation into another repository was read again at its line,
+and the passages the three main findings rest on were re-read in the source.
+Four things changed.
+
+- The first finding was overstated. Pass 1 said the crate's claim "is not
+  what the code delivers". The source states a classification
+  (`src/lib.rs:46-48`), which is true. The finding is now that the cost
+  promise rests wholly on `Just` and the attribute, and that none of it is
+  measured (`DESIGNS.md` 1).
+- The hot tier finding was narrowed and sharpened. Narrowed: a consumer that
+  builds both configurations meets the two compile failures early, a private
+  hot function is not subject to feature unification, and the spike leaves
+  room for a small gain behind a call with a wide error. Sharpened: the
+  crate's own test names the standard the three probes fail
+  (`DESIGNS.md` 3a to 3c). The mark did not move.
+- The advice to use cold-path hints was demoted from a remedy to a bench to
+  run, because hilavitkutin's design bans the `likely` hint on a measurement
+  of its own while op has asked for branch hints in notko. That tension is
+  now recorded (`NUMBERS.md` 1.5).
+- The custom-tier mechanism, which pass 1 had not read, was read and judged:
+  heavy for two settings, and its tier file is not a build input cargo knows
+  about, by reasoning and not by test (`DESIGNS.md` 4).
+
+Smaller: the compile-time figures are now called a worst case in the summary;
+the `'static` bound on the product is quoted with its own justification; the
+absence of consumer benches is now supported for hilavitkutin by its audit's
+bench record, read whole.
