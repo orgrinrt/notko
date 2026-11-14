@@ -1,0 +1,43 @@
+profile arm this binary was built in: release arm (feature internal on, debug assertions off)
+elements 4096, passes per sample 2048, samples 15; nanoseconds per element
+
+| arm | loop | min | median | max |
+|---|---|---|---|---|
+| raw, no check, inlined | sum | 0.150 | 0.164 | 0.193 |
+| raw, no check, inlined | chain | 1.553 | 1.661 | 1.930 |
+| raw, no check, call | sum | 1.309 | 1.345 | 1.390 |
+| raw, no check, call | chain | 1.562 | 1.676 | 1.796 |
+| core Result, inlined | sum | 0.639 | 0.682 | 0.708 |
+| core Result, inlined | chain | 1.694 | 1.738 | 1.785 |
+| core Result, call | sum | 1.345 | 1.383 | 1.537 |
+| core Result, call | chain | 1.918 | 1.971 | 2.055 |
+| notko Outcome, inlined | sum | 0.659 | 0.682 | 0.694 |
+| notko Outcome, inlined | chain | 1.694 | 1.748 | 1.922 |
+| notko Outcome, call | sum | 1.373 | 1.396 | 1.437 |
+| notko Outcome, call | chain | 1.954 | 2.057 | 2.220 |
+| core Option, inlined | sum | 0.682 | 0.704 | 0.774 |
+| core Option, inlined | chain | 1.730 | 1.779 | 2.103 |
+| core Option, call | sum | 1.365 | 1.397 | 1.500 |
+| core Option, call | chain | 1.720 | 1.851 | 1.951 |
+| notko Maybe, inlined | sum | 0.683 | 0.762 | 0.871 |
+| notko Maybe, inlined | chain | 1.702 | 1.758 | 1.796 |
+| notko Maybe, call | sum | 1.729 | 1.819 | 2.307 |
+| notko Maybe, call | chain | 1.650 | 1.887 | 1.972 |
+| notko Just with panic, inlined | sum | 0.678 | 0.694 | 0.808 |
+| notko Just with panic, inlined | chain | 1.640 | 1.758 | 2.247 |
+| notko Just with panic, call | sum | 1.796 | 1.867 | 2.157 |
+| notko Just with panic, call | chain | 1.671 | 1.764 | 1.936 |
+| core Result, wide error, inlined | sum | 0.690 | 0.737 | 0.811 |
+| core Result, wide error, inlined | chain | 1.649 | 1.701 | 1.783 |
+| core Result, wide error, call | sum | 2.347 | 2.456 | 3.236 |
+| core Result, wide error, call | chain | 2.337 | 2.477 | 2.799 |
+| notko Outcome, wide error, inlined | sum | 0.665 | 0.691 | 0.775 |
+| notko Outcome, wide error, inlined | chain | 1.691 | 1.743 | 1.910 |
+| notko Outcome, wide error, call | sum | 2.062 | 2.163 | 2.352 |
+| notko Outcome, wide error, call | chain | 1.878 | 2.107 | 2.395 |
+| #[profile(Hot)] | sum | 0.657 | 0.682 | 0.743 |
+| #[profile(Hot)] | chain | 1.638 | 1.676 | 1.733 |
+| #[profile(Cold)] | sum | 1.336 | 1.385 | 1.457 |
+| #[profile(Cold)] | chain | 1.897 | 1.937 | 2.039 |
+| #[profile(Warm)] | sum | 1.244 | 1.395 | 1.722 |
+| #[profile(Warm)] | chain | 1.585 | 1.761 | 1.970 |

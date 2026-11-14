@@ -1,0 +1,4 @@
+sub_rev at 256: Dirty hlist-scaling-adhoc v0.0.0 (/home/user/.worktrees/side-audit-notko/research/sketches/202611140950_hlist-scaling-adhoc): file size changed (3953 
+sub_rev at 256: Fresh notko-hlist v0.0.1 (/home/user/.worktrees/side-audit-notko/notko-hlist)
+sub_rev at 256: Finished `dev` profile [unoptimized] target(s) in 11.80s
+control at 256: refused, as it must be: error[E0277]: `Cons<M0, Cons<M1, Cons<M2, Cons<M3, Cons<M4, Cons<M5, ...>>>>>>` does not hold `Absent`

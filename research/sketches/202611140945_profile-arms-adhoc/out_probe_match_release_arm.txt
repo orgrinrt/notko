@@ -1,0 +1,26 @@
+   Compiling profile-arms-adhoc v0.0.0 (/home/user/.worktrees/side-audit-notko/research/sketches/202611140945_profile-arms-adhoc)
+error[E0308]: mismatched types
+   --> src/lib.rs:130:9
+    |
+129 |     match macro_hot(x, lim) {
+    |           ----------------- this expression has type `Just<u32>`
+130 |         Outcome::Ok(v) => v,
+    |         ^^^^^^^^^^^^^^ expected `Just<u32>`, found `Outcome<_, _>`
+    |
+    = note: expected struct `Just<u32>`
+                 found enum `Outcome<_, _>`
+
+error[E0308]: mismatched types
+   --> src/lib.rs:131:9
+    |
+129 |     match macro_hot(x, lim) {
+    |           ----------------- this expression has type `Just<u32>`
+130 |         Outcome::Ok(v) => v,
+131 |         Outcome::Err(_) => 0,
+    |         ^^^^^^^^^^^^^^^ expected `Just<u32>`, found `Outcome<_, _>`
+    |
+    = note: expected struct `Just<u32>`
+                 found enum `Outcome<_, _>`
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `profile-arms-adhoc` (lib) due to 2 previous errors

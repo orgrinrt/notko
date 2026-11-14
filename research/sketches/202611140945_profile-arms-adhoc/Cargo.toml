@@ -1,0 +1,29 @@
+# An ad-hoc spike written for the stack audit of 14 November 2026
+# (research/202611140845_stack-audit/). Not a bench, not a crate of this
+# repository, never published. Its own workspace so the repository's does not
+# adopt it.
+[workspace]
+
+[package]
+name = "profile-arms-adhoc"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+notko = { path = "../../..", features = ["macros", "try_trait_v2"] }
+
+[features]
+# The gate `#[profile(Hot)]` reads in the crate it expands into.
+internal = []
+# Two callers of a hot function, each written the way a caller of a
+# `Result`-shaped function is ordinarily written. Off by default so the timing
+# binary builds in both arms.
+probe_question_mark = []
+probe_match = []
+probe_is_err = []
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+debug = false
