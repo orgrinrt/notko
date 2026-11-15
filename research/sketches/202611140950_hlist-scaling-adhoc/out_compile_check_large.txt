@@ -1,0 +1,36 @@
+cargo check --lib, wall milliseconds, least and middle of 3
+
+| query | n | least | middle |
+|---|---|---|---|
+| base | 64 | 79 | 84 |
+| base | 256 | 127 | 132 |
+| base | 512 | 192 | 220 |
+| base | 1024 | fails | error: rustc interrupted by SIGSEGV, printing backtrace |
+| length | 64 | 101 | 108 |
+| length | 256 | 108 | 120 |
+| length | 512 | 170 | 193 |
+| length | 1024 | fails | error: rustc interrupted by SIGSEGV, printing backtrace |
+| contains_last | 64 | 73 | 80 |
+| contains_last | 256 | 108 | 159 |
+| contains_last | 512 | 189 | 221 |
+| contains_last | 1024 | fails | error: rustc interrupted by SIGSEGV, printing backtrace |
+| contains_all | 64 | 64 | 78 |
+| contains_all | 256 | 137 | 138 |
+| contains_all | 512 | 272 | 298 |
+| contains_all | 1024 | fails | error: rustc interrupted by SIGSEGV, printing backtrace |
+| pick_last | 64 | 74 | 81 |
+| pick_last | 256 | 100 | 114 |
+| pick_last | 512 | 171 | 173 |
+| pick_last | 1024 | fails | error: rustc interrupted by SIGSEGV, printing backtrace |
+| pick_all | 64 | 83 | 85 |
+| pick_all | 256 | 171 | 201 |
+| pick_all | 512 | 523 | 551 |
+| pick_all | 1024 | fails | error: rustc interrupted by SIGSEGV, printing backtrace |
+| sub_rev | 64 | 82 | 85 |
+| sub_rev | 256 | 222 | 236 |
+| sub_rev | 512 | 318 | 347 |
+| sub_rev | 1024 | fails | error: rustc interrupted by SIGSEGV, printing backtrace |
+| project | 64 | 70 | 72 |
+| project | 256 | 108 | 117 |
+| project | 512 | 156 | 166 |
+| project | 1024 | fails | error: rustc interrupted by SIGSEGV, printing backtrace |

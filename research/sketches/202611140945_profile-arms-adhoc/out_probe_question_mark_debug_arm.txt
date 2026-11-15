@@ -1,0 +1,5 @@
+   Compiling notko-macros-core v0.0.1 (/home/user/.worktrees/side-audit-notko/notko-macros-core)
+   Compiling notko-macros v0.0.1 (/home/user/.worktrees/side-audit-notko/notko-macros)
+   Compiling notko v0.0.1 (/home/user/.worktrees/side-audit-notko)
+   Compiling profile-arms-adhoc v0.0.0 (/home/user/.worktrees/side-audit-notko/research/sketches/202611140945_profile-arms-adhoc)
+    Finished `dev` profile [unoptimized] target(s) in 0.79s

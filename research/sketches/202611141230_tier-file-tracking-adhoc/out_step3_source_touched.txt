@@ -1,0 +1,38 @@
+       Fresh unicode-ident v1.0.27
+       Fresh proc-macro2 v1.0.107
+       Fresh quote v1.0.47
+       Fresh syn v2.0.119
+       Fresh notko-macros-core v0.0.1 (/home/user/.worktrees/side-audit-notko/notko-macros-core)
+       Fresh notko-macros v0.0.1 (/home/user/.worktrees/side-audit-notko/notko-macros)
+       Fresh notko v0.0.1 (/home/user/.worktrees/side-audit-notko)
+       Dirty tier-file-tracking-adhoc v0.0.0 (/home/user/.worktrees/side-audit-notko/research/sketches/202611141230_tier-file-tracking-adhoc): file size changed (683 != 739) for `src/lib.rs`
+    Checking tier-file-tracking-adhoc v0.0.0 (/home/user/.worktrees/side-audit-notko/research/sketches/202611141230_tier-file-tracking-adhoc)
+     Running `/root/.rustup/toolchains/nightly-2026-05-28-x86_64-unknown-linux-gnu/bin/rustc --crate-name tier_file_tracking_adhoc --edition=2024 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata -C embed-bitcode=no --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("internal"))' -C metadata=1c36dbb764220085 -C extra-filename=-b057dbf21d09cc43 --out-dir /home/user/target/debug/deps -C incremental=/home/user/target/debug/incremental -C strip=debuginfo -L dependency=/home/user/target/debug/deps --extern notko=/home/user/target/debug/deps/libnotko-6afe1d2c0ef23640.rmeta -Z checksum-hash-algorithm=blake3 --verbose`
+error[E0308]: mismatched types
+  --> src/lib.rs:24:9
+   |
+23 |     match traced(x) {
+   |           --------- this expression has type `Maybe<u32>`
+24 |         notko::Outcome::Ok(v) => v,
+   |         ^^^^^^^^^^^^^^^^^^^^^ expected `Maybe<u32>`, found `Outcome<_, _>`
+   |
+   = note: expected enum `Maybe<u32>`
+              found enum `Outcome<_, _>`
+
+error[E0308]: mismatched types
+  --> src/lib.rs:25:9
+   |
+23 |     match traced(x) {
+   |           --------- this expression has type `Maybe<u32>`
+24 |         notko::Outcome::Ok(v) => v,
+25 |         notko::Outcome::Err(_) => 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ expected `Maybe<u32>`, found `Outcome<_, _>`
+   |
+   = note: expected enum `Maybe<u32>`
+              found enum `Outcome<_, _>`
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `tier-file-tracking-adhoc` (lib) due to 2 previous errors
+
+Caused by:
+  process didn't exit successfully: `/root/.rustup/toolchains/nightly-2026-05-28-x86_64-unknown-linux-gnu/bin/rustc --crate-name tier_file_tracking_adhoc --edition=2024 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata -C embed-bitcode=no --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("internal"))' -C metadata=1c36dbb764220085 -C extra-filename=-b057dbf21d09cc43 --out-dir /home/user/target/debug/deps -C incremental=/home/user/target/debug/incremental -C strip=debuginfo -L dependency=/home/user/target/debug/deps --extern notko=/home/user/target/debug/deps/libnotko-6afe1d2c0ef23640.rmeta -Z checksum-hash-algorithm=blake3 --verbose` (exit status: 1)

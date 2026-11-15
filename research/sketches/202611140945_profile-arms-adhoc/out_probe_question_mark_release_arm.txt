@@ -1,0 +1,19 @@
+   Compiling profile-arms-adhoc v0.0.0 (/home/user/.worktrees/side-audit-notko/research/sketches/202611140945_profile-arms-adhoc)
+error[E0277]: the `?` operator can only be used in a function that returns `Result` or `Option` (or another type that implements `FromResidual`)
+   --> src/lib.rs:122:30
+    |
+121 | pub fn caller_question_mark(x: u32, lim: u32) -> Outcome<u32, Small> {
+    | -------------------------------------------------------------------- this function should return `Result` or `Option` to accept `?`
+122 |     let v = macro_hot(x, lim)?;
+    |                              ^ cannot use the `?` operator in a function that returns `Outcome<u32, Small>`
+    |
+help: the trait `FromResidual<JustResidual>` is not implemented for `Outcome<u32, Small>`
+      but trait `FromResidual<Outcome<Infallible, Small>>` is implemented for it
+   --> /home/user/.worktrees/side-audit-notko/src/outcome.rs:344:5
+    |
+344 |     impl<T, E, F: From<E>> FromResidual<Outcome<Infallible, E>> for Outcome<T, F> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for that trait implementation, expected `Outcome<Infallible, Small>`, found `JustResidual`
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `profile-arms-adhoc` (lib) due to 1 previous error

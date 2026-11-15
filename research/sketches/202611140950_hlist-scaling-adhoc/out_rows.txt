@@ -1,0 +1,23 @@
+map over rows, c = a * 3 + b, three u32 columns; nanoseconds per row, 11 samples
+
+| arm | rows | min | median | max |
+|---|---|---|---|---|
+| slices, zip | 1024 | 0.117 | 0.127 | 0.135 |
+| slices, indexed, lengths asserted | 1024 | 0.120 | 0.128 | 0.135 |
+| slices, unchecked | 1024 | 0.118 | 0.120 | 0.152 |
+| product, read_row and write_row | 1024 | 0.126 | 0.131 | 0.178 |
+| product, read_row and put_row of one member | 1024 | 0.127 | 0.130 | 0.136 |
+| product, destructured by hand, zip | 1024 | 0.129 | 0.136 | 0.143 |
+| slices, zip | 65536 | 0.139 | 0.141 | 0.153 |
+| slices, indexed, lengths asserted | 65536 | 0.136 | 0.141 | 0.149 |
+| slices, unchecked | 65536 | 0.140 | 0.145 | 0.149 |
+| product, read_row and write_row | 65536 | 0.136 | 0.143 | 0.146 |
+| product, read_row and put_row of one member | 65536 | 0.140 | 0.146 | 0.163 |
+| product, destructured by hand, zip | 65536 | 0.137 | 0.139 | 0.142 |
+| slices, zip | 4194304 | 0.425 | 0.432 | 0.552 |
+| slices, indexed, lengths asserted | 4194304 | 0.427 | 0.434 | 0.529 |
+| slices, unchecked | 4194304 | 0.411 | 0.432 | 0.440 |
+| product, read_row and write_row | 4194304 | 0.412 | 0.433 | 0.438 |
+| product, read_row and put_row of one member | 4194304 | 0.433 | 0.442 | 0.512 |
+| product, destructured by hand, zip | 4194304 | 0.448 | 0.460 | 0.498 |
+| product over Arr<N>, read_row and write_row | 1024 | 0.130 | 0.137 | 0.152 |

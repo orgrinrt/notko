@@ -1,0 +1,28 @@
+cargo build --lib, wall milliseconds, least and middle of 2
+
+| query | n | least | middle |
+|---|---|---|---|
+| base | 64 | 64 | 159 |
+| base | 256 | 91 | 306 |
+| base | 512 | 159 | 942 |
+| length | 64 | 74 | 121 |
+| length | 256 | 101 | 444 |
+| length | 512 | 128 | 1074 |
+| contains_last | 64 | 80 | 119 |
+| contains_last | 256 | 86 | 310 |
+| contains_last | 512 | 145 | 1028 |
+| contains_all | 64 | 77 | 211 |
+| contains_all | 256 | 138 | 4498 |
+| contains_all | 512 | 218 | 35443 |
+| pick_last | 64 | 98 | 213 |
+| pick_last | 256 | 126 | 2051 |
+| pick_last | 512 | 264 | 11754 |
+| pick_all | 64 | 104 | 679 |
+| pick_all | 256 | 1252 | 24241 |
+| pick_all | 512 | fails | error: failed to build archive at `/home/user/target/debug/deps/libhlist_scaling_adhoc-87c970fb65b88ef4.rlib`: No space left on device (os e |
+| sub_rev | 64 | 730 | 2596 |
+| sub_rev | 256 | 996 | 27246 |
+| sub_rev | 512 | fails | error: failed to build archive at `/home/user/target/debug/deps/libhlist_scaling_adhoc-87c970fb65b88ef4.rlib`: No space left on device (os e |
+| project | 64 | 579 | 1238 |
+| project | 256 | 159 | 3727 |
+| project | 512 | 367 | 24705 |

@@ -1,0 +1,2 @@
+debug arm: calling a hot function with an input its check refuses, from a caller that tests is_err()
+debug arm: the caller recovered and returned 0
