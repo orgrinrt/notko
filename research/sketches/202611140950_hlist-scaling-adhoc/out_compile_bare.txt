@@ -1,0 +1,4 @@
+bare at 1024: checks in 406 ms
+bare at 768: checks in 171 ms
+base at 768: checks in 1581 ms
+bare at 2048: checks in 336 ms

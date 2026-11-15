@@ -1,0 +1,36 @@
+cargo cold-check --lib, wall milliseconds, least and middle of 2
+
+| query | n | least | middle |
+|---|---|---|---|
+| base | 32 | 91 | 240 |
+| base | 64 | 97 | 106 |
+| base | 128 | 124 | 130 |
+| base | 256 | 255 | 300 |
+| length | 32 | 86 | 91 |
+| length | 64 | 89 | 95 |
+| length | 128 | 165 | 168 |
+| length | 256 | 288 | 339 |
+| contains_last | 32 | 86 | 99 |
+| contains_last | 64 | 94 | 113 |
+| contains_last | 128 | 146 | 159 |
+| contains_last | 256 | 278 | 347 |
+| contains_all | 32 | 83 | 94 |
+| contains_all | 64 | 167 | 170 |
+| contains_all | 128 | 686 | 783 |
+| contains_all | 256 | 4482 | 4556 |
+| pick_last | 32 | 82 | 86 |
+| pick_last | 64 | 103 | 120 |
+| pick_last | 128 | 162 | 182 |
+| pick_last | 256 | 390 | 459 |
+| pick_all | 32 | 114 | 115 |
+| pick_all | 64 | 301 | 380 |
+| pick_all | 128 | 1351 | 1459 |
+| pick_all | 256 | 11162 | 11759 |
+| sub_rev | 32 | 124 | 136 |
+| sub_rev | 64 | 313 | 332 |
+| sub_rev | 128 | 1933 | 2072 |
+| sub_rev | 256 | 13691 | 13801 |
+| project | 32 | 90 | 93 |
+| project | 64 | 105 | 122 |
+| project | 128 | 221 | 225 |
+| project | 256 | 544 | 551 |

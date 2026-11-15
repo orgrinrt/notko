@@ -1,0 +1,44 @@
+cargo check --lib, wall milliseconds, least and middle of 3
+
+| query | n | least | middle |
+|---|---|---|---|
+| base | 16 | 64 | 67 |
+| base | 32 | 65 | 74 |
+| base | 64 | 64 | 94 |
+| base | 128 | 64 | 66 |
+| base | 256 | 101 | 118 |
+| length | 16 | 70 | 73 |
+| length | 32 | 66 | 75 |
+| length | 64 | 77 | 90 |
+| length | 128 | 67 | 69 |
+| length | 256 | 107 | 118 |
+| contains_last | 16 | 72 | 75 |
+| contains_last | 32 | 54 | 61 |
+| contains_last | 64 | 64 | 68 |
+| contains_last | 128 | 69 | 103 |
+| contains_last | 256 | 94 | 115 |
+| contains_all | 16 | 54 | 56 |
+| contains_all | 32 | 57 | 79 |
+| contains_all | 64 | 61 | 65 |
+| contains_all | 128 | 85 | 118 |
+| contains_all | 256 | 106 | 157 |
+| pick_last | 16 | 56 | 57 |
+| pick_last | 32 | 60 | 65 |
+| pick_last | 64 | 75 | 78 |
+| pick_last | 128 | 84 | 89 |
+| pick_last | 256 | 126 | 149 |
+| pick_all | 16 | 55 | 91 |
+| pick_all | 32 | 66 | 73 |
+| pick_all | 64 | 68 | 116 |
+| pick_all | 128 | 126 | 151 |
+| pick_all | 256 | 160 | 177 |
+| sub_rev | 16 | 78 | 84 |
+| sub_rev | 32 | 61 | 72 |
+| sub_rev | 64 | 66 | 139 |
+| sub_rev | 128 | 80 | 114 |
+| sub_rev | 256 | 136 | 162 |
+| project | 16 | 55 | 92 |
+| project | 32 | 63 | 66 |
+| project | 64 | 60 | 63 |
+| project | 128 | 72 | 72 |
+| project | 256 | 100 | 119 |

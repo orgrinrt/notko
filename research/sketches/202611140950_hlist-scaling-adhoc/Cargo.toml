@@ -1,0 +1,22 @@
+# An ad-hoc spike written for the stack audit of 14 November 2026
+# (research/202611140845_stack-audit/). Not a bench, not a crate of this
+# repository, never published. Its own workspace so the repository's does not
+# adopt it.
+[workspace]
+
+[package]
+name = "hlist-scaling-adhoc"
+version = "0.0.0"
+edition = "2024"
+publish = false
+build = "build.rs"
+
+[dependencies]
+# The default set, const and membership both on, which is what hilavitkutin's
+# manifest takes.
+notko-hlist = { path = "../../../notko-hlist" }
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+debug = false
