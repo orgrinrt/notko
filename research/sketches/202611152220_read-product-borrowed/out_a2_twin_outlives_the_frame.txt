@@ -1,0 +1,31 @@
+error[E0597]: `pos` does not live long enough
+  --> src/bin/a2_twin_outlives_the_frame.rs:32:19
+   |
+29 |         let pos = [1, 2, 3];
+   |             --- binding `pos` declared here
+...
+32 |             head: &pos,
+   |                   ^^^^ borrowed value does not live long enough
+...
+38 |     }
+   |     - `pos` dropped here while still borrowed
+39 |     println!("{:?}", kept.tail.head);
+   |                      -------------- borrow later used here
+
+error[E0597]: `table` does not live long enough
+  --> src/bin/a2_twin_outlives_the_frame.rs:34:23
+   |
+30 |         let table = [10, 20, 30, 40];
+   |             ----- binding `table` declared here
+...
+34 |                 head: &table,
+   |                       ^^^^^^ borrowed value does not live long enough
+...
+38 |     }
+   |     - `table` dropped here while still borrowed
+39 |     println!("{:?}", kept.tail.head);
+   |                      -------------- borrow later used here
+
+For more information about this error, try `rustc --explain E0597`.
+error: could not compile `read-product-borrowed` (bin "a2_twin_outlives_the_frame") due to 2 previous errors
+exit status: 101

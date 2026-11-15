@@ -1,0 +1,43 @@
+error[E0309]: the associated type `<E as Elem>::Value` may not live long enough
+  --> no_static/notko-hlist/src/carrier.rs:92:5
+   |
+91 | impl<'a> Carrier for Col<'a> {
+   |      -- the associated type `<E as Elem>::Value` must be valid for the lifetime `'a` as defined here...
+92 |     type Of<E: Elem> = &'a [E::Value];
+   |     ^^^^^^^^^^^^^^^^ ...so that the reference type `&'a [<E as Elem>::Value]` does not outlive the data it points at
+   |
+help: consider adding an explicit lifetime bound
+   |
+92 |     type Of<E: Elem> = &'a [E::Value] where <E as Elem>::Value: 'a;
+   |                                       ++++++++++++++++++++++++++++
+
+error[E0309]: the associated type `<E as Elem>::Value` may not live long enough
+  --> no_static/notko-hlist/src/carrier.rs:97:5
+   |
+96 | impl<'a> Carrier for ColMut<'a> {
+   |      -- the associated type `<E as Elem>::Value` must be valid for the lifetime `'a` as defined here...
+97 |     type Of<E: Elem> = &'a mut [E::Value];
+   |     ^^^^^^^^^^^^^^^^ ...so that the reference type `&'a mut [<E as Elem>::Value]` does not outlive the data it points at
+   |
+help: consider adding an explicit lifetime bound
+   |
+97 |     type Of<E: Elem> = &'a mut [E::Value] where <E as Elem>::Value: 'a;
+   |                                           ++++++++++++++++++++++++++++
+
+error[E0309]: the associated type `<H as Elem>::Value` may not live long enough
+   --> no_static/notko-hlist/src/project.rs:339:22
+    |
+331 |     fn split_mut<'a>(
+    |                  -- the associated type `<H as Elem>::Value` must be valid for the lifetime `'a` as defined here...
+...
+339 |         let (a, b) = head.split_at_mut(mid);
+    |                      ^^^^^^^^^^^^^^^^^^^^^^ ...so that the type `<H as Elem>::Value` will meet its required lifetime bounds
+    |
+help: consider adding an explicit lifetime bound
+    |
+334 |     ) -> (Self::Prod<ColMut<'a>>, Self::Prod<ColMut<'a>>) where <H as Elem>::Value: 'a {
+    |                                                           ++++++++++++++++++++++++++++
+
+For more information about this error, try `rustc --explain E0309`.
+error: could not compile `notko-hlist-no-static` (lib) due to 3 previous errors
+exit status: 101
