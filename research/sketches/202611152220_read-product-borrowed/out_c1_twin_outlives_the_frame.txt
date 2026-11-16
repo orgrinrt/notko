@@ -1,0 +1,31 @@
+error[E0597]: `column` does not live long enough
+  --> src/bin/c1_twin_outlives_the_frame.rs:19:29
+   |
+10 |         let column = [4, 5, 6, 7];
+   |             ------ binding `column` declared here
+...
+19 |                     column: &column,
+   |                             ^^^^^^^ borrowed value does not live long enough
+...
+28 |     }
+   |     - `column` dropped here while still borrowed
+29 |     let s = <Reads as HasBy<Read<'_>, Store, _>>::pick(&kept);
+   |                                                        ----- borrow later used here
+
+error[E0597]: `seq` does not live long enough
+  --> src/bin/c1_twin_outlives_the_frame.rs:23:27
+   |
+11 |         let seq = Seq {
+   |             --- binding `seq` declared here
+...
+23 |                     head: &seq,
+   |                           ^^^^ borrowed value does not live long enough
+...
+28 |     }
+   |     - `seq` dropped here while still borrowed
+29 |     let s = <Reads as HasBy<Read<'_>, Store, _>>::pick(&kept);
+   |                                                        ----- borrow later used here
+
+For more information about this error, try `rustc --explain E0597`.
+error: could not compile `read-product-borrowed` (bin "c1_twin_outlives_the_frame") due to 2 previous errors
+exit status: 101

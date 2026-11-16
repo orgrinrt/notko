@@ -1,0 +1,19 @@
+# A copy of this repository's notko-hlist source, held inside sketch N2 with
+# one change: the two `'static` bounds on `Elem` are struck (src/carrier.rs).
+# Not the shipped crate, never published. It is attempt 4 of the sketch and is
+# expected to be built on its own, since whether it builds is the question.
+[package]
+name = "notko-hlist-no-static"
+version = "0.0.0"
+edition = "2024"
+publish = false
+autotests = false
+
+[lib]
+name = "notko_hlist"
+path = "src/lib.rs"
+
+[features]
+default = ["const", "membership"]
+const = []
+membership = []

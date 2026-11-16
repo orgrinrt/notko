@@ -1,0 +1,12 @@
+feature internal: true, debug assertions: false, arm emitted: Just
+admit(3, 5) returned the value 3
+
+thread 'main' (28502) panicked at src/lib.rs:18:1:
+hot path invariant violated: OverLimit { value: 9, limit: 5 }
+stack backtrace:
+   0: __rustc::rust_begin_unwind
+   1: core::panicking::panic_fmt
+   2: refuse::main
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+Aborted
+exit status: 134

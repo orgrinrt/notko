@@ -1,0 +1,5 @@
+feature internal: true, debug assertions: true, arm emitted: Outcome
+admit(3, 5) returned the value 3
+admit(9, 5) returned the refusal OverLimit { value: 9, limit: 5 }
+the process reached its end
+exit status: 0
