@@ -131,7 +131,7 @@ This is the shape hilavitkutin's own read product has in code (`hilavitkutin-api
 Holds for: toolchain `nightly-2026-05-28`; notko at `f5d8f56`; notko-hlist features `const` and `membership` on for attempts 1, 2, 3 and 5, both on and both off for attempt 4; dev profile; x86-64 Linux.
 
 - A product through a consumer carrier holds a borrow of a frame lifetime: holds where every member is held as the same form over its `Elem::Value`, and the value type is `Copy + 'static`.
-- A member's value that is itself a borrow: does not hold on the shipped crate, and does not hold with the two `'static` bounds struck.
+- A member's value that is itself a borrow: does not hold on the shipped crate. With the two `'static` bounds struck it was not reached: the copy itself does not build (attempt 4), so no member was tried.
 - A form per member on the shipped `Carrier`: does not hold.
 - A form per member where the carrier is a trait parameter: holds in the model, for a list of three members.
 

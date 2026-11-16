@@ -67,7 +67,7 @@ The divergence is not between debug and release. It is between the one cell wher
 
 Holds for: toolchain `nightly-2026-05-28`; notko at `f5d8f56`, features `macros` and `try_trait_v2`; x86-64 Linux; a hot function whose source returns `Err` on an input-dependent check, written with `return Err(..)`.
 
-- Same refusal as the debug build: holds where the consumer's `internal` feature is off, at any profile; and where it is on with debug assertions on.
+- Same refusal as the debug build: holds where the consumer's `internal` feature is off, in the dev and the release profile; and where it is on with debug assertions on.
 - Panic in place of the refusal: holds where `internal` is on and debug assertions are off. It unwinds under the default panic strategy and aborts under `panic = "abort"`.
 
 Not checked: `?` inside the hot body, a `match` on a callee's result, other targets, other error types, and whether any consumer turns on `macros` or declares `internal`.
