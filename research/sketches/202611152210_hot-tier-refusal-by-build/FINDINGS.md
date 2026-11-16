@@ -61,7 +61,7 @@ The control line `admit(3, 5) returned the value 3` is in all six, so the panic 
 
 ## What it shows
 
-The divergence is not between debug and release. It is between the one cell where the feature is on and debug assertions are off, and every other cell, which is the gate as the code has it (`notko-macros-core/src/rewrite/hot.rs:52`, `:55`). The crate's suite builds a consumer in both arms and never runs one (`notko-macros/tests/consumer_cfg.rs`), so no test pins this behaviour either way. The code's own comment describes it as intended (`src/just.rs:22-26`); that is a statement about code, and notko declares no canon to check it against.
+The divergence is not between debug and release. It is between the one cell where the feature is on and debug assertions are off, and every other cell, which is the gate as the code has it (`notko-macros-core/src/rewrite/hot.rs:52`, `:55`). An earlier version of this file said no test pins this behaviour. That was wrong, found by a second read on 16 November: `notko-macros/tests/smoke.rs:73-79` (`hot_panics_on_the_error_arm`, under `should_panic`) pins the panic, and `notko-macros/README.md` documents it. `notko-macros/tests/consumer_cfg.rs` builds a consumer in both arms and runs neither. The code's own comment describes it as intended (`src/just.rs:22-26`); that is a statement about code, and notko declares no canon to check it against.
 
 ## Predicate
 
