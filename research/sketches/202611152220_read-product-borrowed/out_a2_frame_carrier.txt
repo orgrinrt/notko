@@ -1,0 +1,5 @@
+table read by member through the borrowed product: [10, 20, 30, 40]
+heat read by field: 40
+a narrower product cut from it: table [10, 20, 30, 40], pos [1, 2, 3]
+the frame ended and the product with it
+exit status: 0

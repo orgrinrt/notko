@@ -1,0 +1,32 @@
+error[E0277]: the trait bound `E: Readable` is not satisfied
+  --> src/bin/a3_form_per_member.rs:26:24
+   |
+26 |     type Of<E: Elem> = <E as Readable>::Rd<'a>;
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^ the trait `Readable` is not implemented for `E`
+   |
+help: consider further restricting type parameter `E` with trait `Readable`
+   |
+26 |     type Of<E: Elem + Readable> = <E as Readable>::Rd<'a>;
+   |                     ++++++++++
+
+error[E0276]: impl has stricter requirements than trait
+  --> src/bin/a3_form_per_member.rs:36:12
+   |
+36 |         E: Readable;
+   |            ^^^^^^^^ impl has extra requirement `E: Readable`
+
+error[E0277]: the trait bound `<E as Elem>::Value: Form` is not satisfied
+  --> src/bin/a3_form_per_member.rs:43:24
+   |
+43 |     type Of<E: Elem> = <E::Value as Form>::At<'a>;
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Form` is not implemented for `<E as Elem>::Value`
+   |
+help: consider further restricting the associated type
+   |
+42 | impl<'a> Carrier for ByValue<'a> where <E as Elem>::Value: Form {
+   |                                  ++++++++++++++++++++++++++++++
+
+Some errors have detailed explanations: E0276, E0277.
+For more information about an error, try `rustc --explain E0276`.
+error: could not compile `read-product-borrowed` (bin "a3_form_per_member") due to 3 previous errors
+exit status: 101

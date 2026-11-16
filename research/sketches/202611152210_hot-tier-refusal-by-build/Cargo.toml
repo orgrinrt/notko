@@ -1,0 +1,28 @@
+# A feasibility sketch, step N3 of the stack path roadmap. Not a bench, not a
+# crate of this repository, never published. Its own workspace so the
+# repository's does not adopt it.
+[workspace]
+
+[package]
+name = "hot-tier-refusal-by-build"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+notko = { path = "../../..", features = ["macros", "try_trait_v2"] }
+
+[features]
+# The gate `#[profile(Hot)]` reads in the crate it expands into.
+internal = []
+
+# A release build that keeps debug assertions, so the two conditions of the
+# gate can be told apart: the feature on, the assertions on.
+[profile.release-checked]
+inherits = "release"
+debug-assertions = true
+
+# A release build whose panics abort, which is what "abort" means literally.
+[profile.release-abort]
+inherits = "release"
+panic = "abort"

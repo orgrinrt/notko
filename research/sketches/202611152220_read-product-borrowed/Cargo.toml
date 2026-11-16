@@ -1,0 +1,18 @@
+# A feasibility sketch, step N2 of the stack path roadmap. Not a bench, not a
+# crate of this repository, never published. Its own workspace so the
+# repository's does not adopt it.
+[workspace]
+members = [".", "no_static/notko-hlist"]
+resolver = "2"
+
+[package]
+name = "read-product-borrowed"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+# The shipped list crate, as the worktree has it. The copy under `no_static`
+# is a member of this workspace and deliberately not a dependency: it is
+# built alone, and it does not build.
+notko-hlist = { path = "../../../notko-hlist" }

@@ -1,0 +1,6 @@
+resource read by member: [5, 6, 7] of 3
+window read by member: centre 2 is 6
+value read by member: 9
+the write side through the same model: 11
+the frame ended and the read product with it
+exit status: 0
