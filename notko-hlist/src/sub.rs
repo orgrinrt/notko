@@ -17,7 +17,7 @@
 //! A const twin and a plain twin, both written once in `sub_items!`. See
 //! `carrier.rs` for why.
 
-use crate::carrier::{ByRowMut, Dup, Elem, Uniform, Val};
+use crate::carrier::{ByRowMut, Dup, Elem, Shape, Uniform, Val};
 use crate::has::Has;
 use crate::list::{Cons, Empty, List};
 use crate::position::Place;
@@ -74,7 +74,7 @@ macro_rules! sub_items {
         }
 
         #[diagnostic::do_not_recommend]
-        $($c)? impl<C, S: Project<C>> SubOf<C, S, Empty> for Empty {
+        $($c)? impl<C: Shape, S: Project<C>> SubOf<C, S, Empty> for Empty {
             fn sealed(_: Token) {}
 
             fn sub(_: &<S as Project<C>>::Prod) -> PNil {

@@ -153,8 +153,6 @@ mod sub;
 
 pub use at::At;
 pub use cardinal::Cardinal;
-#[doc(hidden)]
-pub use carrier::Route;
 pub use carrier::{
     Arr,
     ByRow,
@@ -164,6 +162,7 @@ pub use carrier::{
     ColMut,
     Dup,
     DupAll,
+    DupForm,
     Elem,
     Form,
     PerMember,
@@ -172,6 +171,8 @@ pub use carrier::{
     Uniformly,
     Val,
 };
+#[doc(hidden)]
+pub use carrier::{DupRoute, Route};
 pub use concat::Concat;
 pub use has::{Has, Vals};
 pub use length::Length;

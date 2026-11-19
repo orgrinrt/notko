@@ -19,9 +19,10 @@ keywords = ["no_std", "no_alloc", "hlist", "type-level", "notko"]
 autotests = false
 
 # Named rather than excluded, so a file added later has to be asked for
-# rather than shipping by accident. Every test target but one checks the
-# crate, so those ship; `the_refusals_hold` reads a fixture tree and the
-# toolchain pin, neither of which a package carries.
+# rather than shipping by accident. The test targets that check the crate
+# alone ship; `the_refusals_hold` reads a fixture tree and the toolchain pin,
+# and `a_carrier_of_another_crate_takes_your_members` builds a fixture crate,
+# none of which a package carries.
 #
 # It stays declared anyway, because a declared target is what makes it run at
 # all here, and it is the only thing pinning the compile-fail cases. The cost
@@ -116,6 +117,12 @@ required-features = ["const"]
 name = "a_carrier_holds_a_form_per_member"
 path = "tests/a_carrier_holds_a_form_per_member.rs"
 
+# The same across two crates, through the fixture crate. Not shipped, since the
+# fixture is a path dependency the package does not carry.
+[[test]]
+name = "a_carrier_of_another_crate_takes_your_members"
+path = "tests/a_carrier_of_another_crate_takes_your_members.rs"
+
 [[test]]
 name = "the_refusals_hold"
 path = "tests/the_refusals_hold.rs"
@@ -126,13 +133,17 @@ required-features = ["const", "membership"]
 # deleted by accident: loosen a bound later and every remaining test still
 # passes, because none of them names the illegal state.
 trybuild = "1"
+# A crate owning a per-member carrier, so a test can put carrier and members
+# in two crates the way a consumer does. Not published, and stripped from the
+# package since it has no version.
+notko-hlist-fixture-carrier-owner = { path = "tests/carrier_owner" }
 
 [features]
 default = ["const", "membership"]
 # `Cardinal` is declared `const trait`, `Length` gains `LEN` and `Position`
-# gains `INDEX`, compile-time constants rather than calls, and `Project`, `Has`,
-# `SubOf`, `Vals` and the carrier capabilities `ByRow`, `ByRowMut` and `Dup`
-# become callable in a constant. Requires nightly (`const_trait_impl`).
+# gains `INDEX`, compile-time constants rather than calls, and the walks `Rows`
+# and `Arrays`, with `Has`, `SubOf`, `PutRow`, `PutVals`, `Vals` and the
+# carrier capabilities, become callable in a constant. Requires nightly (`const_trait_impl`).
 # Default-on; consumers on stable Rust opt out via `default-features = false`
 # and keep `Length::len`.
 const = []

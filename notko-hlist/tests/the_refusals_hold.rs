@@ -239,7 +239,7 @@ fn every_test_file_is_a_declared_target() {
     // added under `tests/` and not named there builds nowhere and fails
     // nothing, which reads exactly like a file whose tests pass. This is the
     // check that each one is asked for, and that each one ships through
-    // `include` unless it is this file, which reads the repository.
+    // `include` unless it is one of the two that read the repository.
     let manifest = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"))
         .expect("the crate's manifest");
     let dir = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/tests"));
@@ -255,7 +255,10 @@ fn every_test_file_is_a_declared_target() {
             if !manifest.contains(&format!("path = {spelled}")) {
                 undeclared.push(name.to_string());
             }
-            if name != "the_refusals_hold.rs" && manifest.matches(spelled.as_str()).count() < 2 {
+            if !["the_refusals_hold.rs", "a_carrier_of_another_crate_takes_your_members.rs"]
+                .contains(&name.as_ref())
+                && manifest.matches(spelled.as_str()).count() < 2
+            {
                 unshipped.push(name.to_string());
             }
         }

@@ -307,20 +307,75 @@ macro_rules! carrier_items {
             fn set<E: Elem>(c: &mut Self::Of<E>, i: usize, v: E::Value);
         }
 
-        /// A carrier whose item for member `M` can be duplicated.
+        /// A carrier whose item for member `M` can be duplicated: what a cut
+        /// through [`SubOf`](crate::SubOf) reads.
         ///
         /// A value is copied and a shared column is borrowed again, so a
         /// product over either can be taken apart into a smaller one while the
         /// original stays usable. An exclusive column cannot be, and has no impl.
-        /// Per member, because a per-member carrier knows for each of its forms
-        /// whether that form can be duplicated.
+        /// Implemented by this crate alone and routed by the carrier's
+        /// [`Shape`], the way [`Carrier`] is: a uniform carrier duplicates every
+        /// member through [`DupAll`] or none, and a per-member carrier states
+        /// [`DupForm<M>`] for each form it can duplicate. Sealed.
         #[diagnostic::on_unimplemented(
             message = "`{Self}` cannot duplicate what it holds for `{M}`",
-            note = "Of the uniform carriers, `Val` and `Col` duplicate every member. A `ColMut` duplicated would be two exclusive borrows of one column, and an `Arr<N>` would be a copy of the whole storage, so a part of either is cut through `Arrays::cols` first. A carrier of your own states `Dup` per member."
+            note = "Of the uniform carriers, `Val` and `Col` duplicate every member. A `ColMut` duplicated would be two exclusive borrows of one column, and an `Arr<N>` would be a copy of the whole storage, so a part of either is cut through `Arrays::cols` first. A per-member carrier states `DupForm<{M}>`."
         )]
         pub $($c)? trait Dup<M>: Carrier<M> {
+            /// The seal. Never needs calling.
+            #[doc(hidden)]
+            fn sealed(_: Token);
+
             /// Another of what `c` is, for the same member.
             fn dup(c: &<Self as Carrier<M>>::Of) -> <Self as Carrier<M>>::Of;
+        }
+
+        /// A per-member carrier that duplicates the form it holds for `M`.
+        #[diagnostic::on_unimplemented(
+            message = "`{Self}` states no duplication for `{M}`",
+            note = "A per-member carrier states `DupForm<{M}>` for each form it can duplicate. A uniform carrier states none: it duplicates every member through `DupAll`, or none."
+        )]
+        pub $($c)? trait DupForm<M>: Form<M> {
+            /// Another of what `c` is, for the same member.
+            fn dup_form(c: &<Self as Form<M>>::Of) -> <Self as Form<M>>::Of;
+        }
+
+        /// The route [`Dup`] takes for a carrier of shape `K`. Sealed.
+        #[doc(hidden)]
+        pub $($c)? trait DupRoute<M, K>: Route<M, K> {
+            /// The seal. Never needs calling.
+            #[doc(hidden)]
+            fn sealed(_: Token);
+
+            /// Another of what `c` is, for the same member.
+            fn dup_routed(c: &<Self as Route<M, K>>::Of) -> <Self as Route<M, K>>::Of;
+        }
+
+        #[diagnostic::do_not_recommend]
+        $($c)? impl<C: $([$c])? DupAll, E: Elem> DupRoute<E, Uniformly> for C {
+            fn sealed(_: Token) {}
+
+            fn dup_routed(c: &C::Of<E>) -> C::Of<E> {
+                C::dup_all::<E>(c)
+            }
+        }
+
+        #[diagnostic::do_not_recommend]
+        $($c)? impl<C: $([$c])? DupForm<M>, M> DupRoute<M, PerMember> for C {
+            fn sealed(_: Token) {}
+
+            fn dup_routed(c: &<C as Form<M>>::Of) -> <C as Form<M>>::Of {
+                C::dup_form(c)
+            }
+        }
+
+        #[diagnostic::do_not_recommend]
+        $($c)? impl<C: Shape + $([$c])? DupRoute<M, <C as Shape>::Is>, M> Dup<M> for C {
+            fn sealed(_: Token) {}
+
+            fn dup(c: &<Self as Carrier<M>>::Of) -> <Self as Carrier<M>>::Of {
+                <C as DupRoute<M, <C as Shape>::Is>>::dup_routed(c)
+            }
         }
 
         #[diagnostic::do_not_recommend]
@@ -360,20 +415,13 @@ macro_rules! carrier_items {
 
         /// A uniform carrier that duplicates what it holds for every member.
         ///
-        /// No member parameter, so no crate but this one can say it of a
-        /// carrier it does not own, and through the blanket impl below no crate
-        /// can state `Dup` for a single member of a uniform carrier either: that
-        /// impl conflicts with the blanket one. `Val` and `Col` are the two.
+        /// No member parameter, so no crate but the carrier's own can say it,
+        /// and since [`Dup`] is sealed and routed by the shape, a uniform
+        /// carrier duplicates every member through this or none. `Val` and
+        /// `Col` are the two in this crate.
         pub $($c)? trait DupAll: Uniform {
             /// Another of what `c` is, for the same member.
             fn dup_all<E: Elem>(c: &Self::Of<E>) -> Self::Of<E>;
-        }
-
-        #[diagnostic::do_not_recommend]
-        $($c)? impl<C: $([$c])? DupAll, E: Elem> Dup<E> for C {
-            fn dup(c: &<Self as Carrier<E>>::Of) -> <Self as Carrier<E>>::Of {
-                C::dup_all::<E>(c)
-            }
         }
 
         #[diagnostic::do_not_recommend]

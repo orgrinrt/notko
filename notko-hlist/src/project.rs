@@ -42,7 +42,7 @@
 //! in `project_items!`, which takes the constness as its argument. See
 //! `carrier.rs` for why.
 
-use crate::carrier::{Arr, ByRow, ByRowMut, Carrier, Col, ColMut, Elem, Uniform, Val};
+use crate::carrier::{Arr, ByRow, ByRowMut, Carrier, Col, ColMut, Elem, Shape, Uniform, Val};
 use crate::list::{Cons, Empty, List};
 use crate::seal;
 
@@ -144,7 +144,7 @@ pub trait Project<C>: List {
 }
 
 #[diagnostic::do_not_recommend]
-impl<C> Project<C> for Empty {
+impl<C: Shape> Project<C> for Empty {
     type Prod = PNil;
 
     fn sealed(_: seal::Token) {}

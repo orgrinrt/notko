@@ -15,7 +15,7 @@ use core::marker::PhantomData;
 
 use notko_hlist::{
     Cons,
-    Dup,
+    DupForm,
     Elem,
     Empty,
     Form,
@@ -70,18 +70,18 @@ impl<'f> Form<Store> for Read<'f> {
     type Of = &'f Seq;
 }
 
-impl<'f> Dup<Pos> for Read<'f> {
-    fn dup(c: &i32) -> i32 {
+impl<'f> DupForm<Pos> for Read<'f> {
+    fn dup_form(c: &i32) -> i32 {
         *c
     }
 }
-impl<'f> Dup<Near> for Read<'f> {
-    fn dup(c: &Window<'f>) -> Window<'f> {
+impl<'f> DupForm<Near> for Read<'f> {
+    fn dup_form(c: &Window<'f>) -> Window<'f> {
         *c
     }
 }
-impl<'f> Dup<Store> for Read<'f> {
-    fn dup(c: &&'f Seq) -> &'f Seq {
+impl<'f> DupForm<Store> for Read<'f> {
+    fn dup_form(c: &&'f Seq) -> &'f Seq {
         c
     }
 }

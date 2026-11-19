@@ -5,6 +5,6 @@ error[E0119]: conflicting implementations of trait `Dup<Pos>` for type `Arr<_>`
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
    = note: conflicting implementation in crate `notko_hlist`:
-           - impl<C, E> Dup<E> for C
-             where C: DupAll, E: Elem;
-   = note: upstream crates may add a new impl of trait `notko_hlist::DupAll` for type `notko_hlist::Arr<_>` in future versions
+           - impl<C, M> Dup<M> for C
+             where C: Shape, C: notko_hlist::DupRoute<M, <C as Shape>::Is>;
+   = note: downstream crates may implement trait `notko_hlist::DupRoute<Pos, _>` for type `notko_hlist::Arr<_>`

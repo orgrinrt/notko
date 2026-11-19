@@ -32,7 +32,7 @@ A member is any type. `Elem` is what a uniform carrier asks of a member, since i
 
 `Vals<L>` is the product of values at one row, through `Val`, read and written by naming the member, as before.
 
-`SubOf<C, S, Ps>` cuts the product of a narrower list out of the product of a wider one through the same carrier, each field duplicated. Duplication is per member, `Dup<M>`, since a per-member carrier knows for each form whether it can be duplicated, and a read carrier states its own. A uniform carrier duplicates every member or none, through `DupAll`, which has no member parameter: `Val` and `Col` duplicate every `Elem` member, `ColMut` and `Arr` none. A blanket impl makes a `DupAll` carrier a `Dup<E>` for every `Elem` member, and the same blanket refuses a `Dup` stated from outside for one member of a uniform carrier, so no crate can make `Arr` duplicate its member.
+`SubOf<C, S, Ps>` cuts the product of a narrower list out of the product of a wider one through the same carrier, each field duplicated. Duplication is `Dup<M>`, what the cut reads, and it is routed by the carrier's shape the way `Carrier<M>` is and sealed the same way. A uniform carrier duplicates every member or none, through `DupAll`, which has no member parameter: `Val` and `Col` duplicate every `Elem` member, `ColMut` and `Arr` none. A per-member carrier states `DupForm<M>` for each form it can duplicate, which requires the per-member shape, and that holds where the carrier and the member live in two crates, the arrangement a scheduler's read carrier and a consumer's members have. No crate can make `Arr` duplicate a member, and no uniform carrier can duplicate one member and not the rest.
 
 ## Walks between two carriers
 
