@@ -3,17 +3,17 @@
   "flavour": "",
   "member": "notko-macros",
   "green": {
-    "full": "5b8aa626429fe7c264c8d90b1c81ba593de814034c5d4fab21465557a13454a8",
+    "full": "edd0925e888ac3824899f0fe7b9759f99a0828b304e03b1e8e0d3808be1402e3",
     "own": {
       "notko": "f2d3f46f8c3d2b7bde3b7056c23e31c43c84d16c37bbd6b7e9869e8cd09266cf",
-      "notko-macros": "4f558dafe57b74abdc06e075c34f39d51349ea998ce8abffb429d019121c3acd",
+      "notko-macros": "9ada05a39627267d2b064733b974714ef69666cb558c40ac8cdd6a976e3890eb",
       "notko-macros-core": "e2e729eed242e32bcebb44e550073d6fe32fbdff037e61c9cc6a941115af8ddd"
     }
   },
   "tests": {},
   "bins": {
     "notko-macros": "4a9c372f892d6b121708ebbdbb870f14b21a5d5ba5b82a2feca25308fc35be45",
-    "notko-macros::consumer_cfg": "248b69c067d52ad4bec1e8d4b9575271e1aace81643e649fd1ccba4899f73959",
+    "notko-macros::consumer_cfg": "8f85bb5b9f5b3e20f77f7537a2aea0436b74fa4a077c265149d76145987a8e59",
     "notko-macros::smoke": "344effb813a40dfba8c7e17d4fe67629e40489e234ab13c12cd876bb357005c7"
   }
 }
