@@ -1,0 +1,11 @@
+# A feasibility sketch for the notko-hlist product round: the carrier as a
+# parameter of the product trait. Not a bench, not a crate of this repository,
+# never published. Its own workspace so the repository's does not adopt it.
+#
+# `model` stands where notko-hlist's product would, over the shipped list.
+# `consumer` is a second crate, because the question of whether a consumer's
+# own carrier can stand beside the model's blanket impl is a question of
+# coherence across crates and cannot be asked inside one.
+[workspace]
+members = ["model", "consumer"]
+resolver = "2"

@@ -1,0 +1,13 @@
+error[E0119]: conflicting implementations of trait `Carrier<Pos>` for type `Mine`
+  --> consumer/src/bin/r2_a_uniform_carrier_overridden.rs:11:1
+   |
+11 | impl Carrier<Pos> for Mine {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: conflicting implementation in crate `model`:
+           - impl<C, E> Carrier<E> for C
+             where C: Uniform, E: Elem;
+
+For more information about this error, try `rustc --explain E0119`.
+error: could not compile `consumer` (bin "r2_a_uniform_carrier_overridden") due to 1 previous error
+exit status: 101

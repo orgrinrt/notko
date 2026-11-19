@@ -1,0 +1,17 @@
+error[E0597]: `seq` does not live long enough
+  --> consumer/src/bin/r6_twin_outlives_the_frame.rs:17:19
+   |
+12 |         let seq = Seq {
+   |             --- binding `seq` declared here
+...
+17 |             head: &seq,
+   |                   ^^^^ borrowed value does not live long enough
+...
+20 |     }
+   |     - `seq` dropped here while still borrowed
+21 |     let s = <Res as Has<Read<'_>, Store, _>>::pick(&kept);
+   |                                                    ----- borrow later used here
+
+For more information about this error, try `rustc --explain E0597`.
+error: could not compile `consumer` (bin "r6_twin_outlives_the_frame") due to 1 previous error
+exit status: 101
