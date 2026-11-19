@@ -2,7 +2,6 @@ error[E0277]: `Cons<Pos, notko_hlist::Empty>` is not a part of `Cons<Pos, notko_
   --> tests/compile_fail/an_exclusive_column_is_not_duplicated.rs:16:14
    |
 16 |     let _ = <Lanes as SubOf<ColMut<'_>, Lanes, _>>::sub(&<Lanes as Arrays<2>>::cols_mut(&mut a));
-   |              ^^^^^ unsatisfied trait bound
+   |              ^^^^^ the trait `SubOf<ColMut<'_>, Cons<Pos, notko_hlist::Empty>, _>` is not implemented for `Cons<Pos, notko_hlist::Empty>`
    |
-   = help: the trait `SubOf<ColMut<'_>, Cons<Pos, notko_hlist::Empty>, Cons<Here, notko_hlist::Empty>>` is not implemented for `Cons<Pos, notko_hlist::Empty>`
    = note: Each member of `Cons<Pos, notko_hlist::Empty>` is found in `Cons<Pos, notko_hlist::Empty>` through `Has` and duplicated through `Dup<M>`, so the one that failed is not named here. Bound on `PlaceOf<M, _>` for the individual member to find out which, and check that the carrier duplicates what it holds for each.

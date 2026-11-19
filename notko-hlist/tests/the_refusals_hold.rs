@@ -187,10 +187,11 @@ fn the_blessed_diagnostics_carry_this_crate_s_own_notes() {
     // Two seals, worded differently by rustc, so both are named. `List` is
     // sealed on itself and gets the "sealed trait" phrasing; `Place` is a
     // public marker over a private supertrait, which is what lets a consumer
-    // spell the bound, and rustc reports that as a requirement rather than as
-    // a seal. Both `At` and `Position` reach it, so the fragment says a seal
-    // was reached and the case count above is what keeps each of the two
-    // cases from being deleted unnoticed.
+    // spell the bound, and rustc reports that as an unmet `Place` bound rather
+    // than as a seal (older compilers named the private supertrait and added a
+    // "required for ... to implement `Place`" note). Both `At` and `Position`
+    // reach it, so the fragment says a seal was reached and the case count
+    // above is what keeps each of the two cases from being deleted unnoticed.
     let dir = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/compile_fail"));
     let mut blessed = String::new();
     for entry in std::fs::read_dir(dir).expect("the fixture directory") {
@@ -223,7 +224,7 @@ fn the_blessed_diagnostics_carry_this_crate_s_own_notes() {
         // these are the check that a fixture actually reaches a sealed impl
         // rather than failing earlier for some other reason.
         "is a \"sealed trait\"",
-        "to implement `Place`",
+        "the trait `Place` is not implemented for",
     ] {
         assert!(
             blessed.contains(fragment),

@@ -8,5 +8,7 @@ error[E0277]: `u8` names no value type
 note: required by a bound in `notko_hlist::Uniform::Of`
  --> src/carrier.rs
   |
+  | pub trait Uniform: Shape<Is = Uniformly> {
+  |     /// What is held for member `E`.
   |     type Of<E: Elem>;
   |                ^^^^ required by this bound in `Uniform::Of`
