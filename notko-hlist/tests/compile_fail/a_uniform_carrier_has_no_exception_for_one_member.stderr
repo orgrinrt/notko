@@ -1,0 +1,9 @@
+error[E0119]: conflicting implementations of trait `Carrier<Pos>` for type `Mine`
+  --> tests/compile_fail/a_uniform_carrier_has_no_exception_for_one_member.rs:16:1
+   |
+16 | impl Carrier<Pos> for Mine {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: conflicting implementation in crate `notko_hlist`:
+           - impl<C, E> Carrier<E> for C
+             where C: Uniform, E: Elem;

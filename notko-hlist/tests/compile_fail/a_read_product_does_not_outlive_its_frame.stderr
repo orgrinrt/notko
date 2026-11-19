@@ -1,0 +1,13 @@
+error[E0597]: `seq` does not live long enough
+  --> tests/compile_fail/a_read_product_does_not_outlive_its_frame.rs:27:19
+   |
+23 |         let seq = Seq {
+   |             --- binding `seq` declared here
+...
+27 |             head: &seq,
+   |                   ^^^^ borrowed value does not live long enough
+...
+30 |     }
+   |     - `seq` dropped here while still borrowed
+31 |     let s = <Res as Has<Read<'_>, Store, _>>::pick(&kept);
+   |                                                    ----- borrow later used here

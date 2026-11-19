@@ -1,0 +1,33 @@
+// The frame is on the carrier, so a product of borrows through it ends when
+// the borrowed values do, and one kept past them is refused.
+
+use core::marker::PhantomData;
+
+use notko_hlist::{Carrier, Cons, Empty, Has, PCons, PNil, Project};
+
+struct Seq {
+    len: usize,
+}
+struct Store;
+
+struct Read<'f>(PhantomData<&'f ()>);
+impl<'f> Carrier<Store> for Read<'f> {
+    type Of = &'f Seq;
+}
+
+type Res = Cons<Store, Empty>;
+
+fn main() {
+    let kept: <Res as Project<Read<'_>>>::Prod;
+    {
+        let seq = Seq {
+            len: 4,
+        };
+        kept = PCons {
+            head: &seq,
+            tail: PNil,
+        };
+    }
+    let s = <Res as Has<Read<'_>, Store, _>>::pick(&kept);
+    let _ = s.len;
+}
