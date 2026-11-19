@@ -20,17 +20,21 @@ use crate::list::Cons;
 use crate::place_of::PlaceOf;
 use crate::position::{Here, Place, There};
 use crate::project::Project;
+use crate::seal::Token;
 
 macro_rules! has_items {
     ($($c:ident)?) => {
-        /// The field of member `M` in a product of `Self`, at the place `P`.
+        /// The field of member `M` in a product of `Self` through carrier `C`, at
+        /// the place `P`.
         ///
         /// `P` is the place [`PlaceOf`] answers, inferred the same way, and with the
         /// same refusals: no place when the member is absent, and an ambiguous
-        /// one when it is present twice.
+        /// one when it is present twice. The carrier is a parameter of the trait
+        /// rather than of the method, so that the step to the tail knows the
+        /// tail has a product through the same carrier.
         ///
         /// ```
-        /// use notko_hlist::{Cons, Elem, Empty, PCons, PNil, Has, Project, Val};
+        /// use notko_hlist::{Cons, Elem, Empty, PCons, PNil, Has, Place, Project, Val};
         ///
         /// struct Pos;
         /// impl Elem for Pos {
@@ -42,70 +46,82 @@ macro_rules! has_items {
         /// }
         /// type Lanes = Cons<Pos, Cons<Heat, Empty>>;
         ///
-        /// fn heat<L: Has<Heat, P>, P: notko_hlist::Place>(row: &L::Prod<Val>) -> u8 {
-        ///     *L::pick::<Val>(row)
+        /// fn heat<L: Has<Val, Heat, P>, P: Place>(row: &<L as Project<Val>>::Prod) -> u8 {
+        ///     *L::pick(row)
         /// }
         ///
-        /// let row: <Lanes as Project>::Prod<Val> = PCons { head: 7, tail: PCons { head: 3, tail: PNil } };
+        /// let row: <Lanes as Project<Val>>::Prod = PCons { head: 7, tail: PCons { head: 3, tail: PNil } };
         /// assert_eq!(heat::<Lanes, _>(&row), 3);
         /// ```
         ///
-        /// Closed the way `PlaceOf` is: an impl from outside has to name a place
-        /// where `PlaceOf` already holds, and the impls below cover every one.
+        /// Sealed the way [`Project`] is.
         #[diagnostic::on_unimplemented(
-            message = "`{Self}` has no field for `{M}`",
+            message = "`{Self}` has no field for `{M}` through `{C}`",
             note = "A field is found where `PlaceOf` finds the member: `Here` for the head of a `Cons`, `There<P>` when the tail holds it at `P`. The usual cause is a member the list does not hold, and if the compiler reports `type annotations needed` instead, the list holds it at more than one place."
         )]
-        pub $($c)? trait Has<M: Elem, P: Place>: PlaceOf<M, P> + Project {
+        pub $($c)? trait Has<C: Carrier<M>, M, P: Place>: PlaceOf<M, P> + Project<C> {
+            /// The seal. Never needs calling.
+            #[doc(hidden)]
+            fn sealed(_: Token);
+
             /// The field of `M` in `p`.
-            fn pick<C: Carrier>(p: &Self::Prod<C>) -> &C::Of<M>;
+            fn pick(p: &Self::Prod) -> &<C as Carrier<M>>::Of;
 
             /// The field of `M` in `p`, to write.
-            fn pick_mut<C: Carrier>(p: &mut Self::Prod<C>) -> &mut C::Of<M>;
+            fn pick_mut(p: &mut Self::Prod) -> &mut <C as Carrier<M>>::Of;
         }
 
         #[diagnostic::do_not_recommend]
-        $($c)? impl<M: Elem, T: $([$c])? Project> Has<M, Here> for Cons<M, T> {
-            fn pick<C: Carrier>(p: &Self::Prod<C>) -> &C::Of<M> {
+        $($c)? impl<C: Carrier<M>, M, T: Project<C>> Has<C, M, Here> for Cons<M, T> {
+            fn sealed(_: Token) {}
+
+            fn pick(p: &Self::Prod) -> &<C as Carrier<M>>::Of {
                 &p.head
             }
 
-            fn pick_mut<C: Carrier>(p: &mut Self::Prod<C>) -> &mut C::Of<M> {
+            fn pick_mut(p: &mut Self::Prod) -> &mut <C as Carrier<M>>::Of {
                 &mut p.head
             }
         }
 
         #[diagnostic::do_not_recommend]
-        $($c)? impl<H: Elem, M: Elem, P: Place, T: $([$c])? Has<M, P>> Has<M, There<P>> for Cons<H, T> {
-            fn pick<C: Carrier>(p: &Self::Prod<C>) -> &C::Of<M> {
-                T::pick::<C>(&p.tail)
+        $($c)? impl<C, H, M, P, T> Has<C, M, There<P>> for Cons<H, T>
+        where
+            C: Carrier<H> + Carrier<M>,
+            P: Place,
+            T: $([$c])? Has<C, M, P>,
+        {
+            fn sealed(_: Token) {}
+
+            fn pick(p: &Self::Prod) -> &<C as Carrier<M>>::Of {
+                T::pick(&p.tail)
             }
 
-            fn pick_mut<C: Carrier>(p: &mut Self::Prod<C>) -> &mut C::Of<M> {
-                T::pick_mut::<C>(&mut p.tail)
+            fn pick_mut(p: &mut Self::Prod) -> &mut <C as Carrier<M>>::Of {
+                T::pick_mut(&mut p.tail)
             }
         }
 
-        impl<L: Project> Vals<L> {
+        impl<L: Project<Val>> Vals<L> {
             /// The value of `member`.
             pub $($c)? fn get<M: Elem, P: Place>(&self, member: M) -> M::Value
             where
-                L: $([$c])? Has<M, P>,
+                L: $([$c])? Has<Val, M, P>,
             {
                 // The marker says which member and nothing else. Forgotten
                 // rather than dropped, since dropping a generic value is not
                 // something a const fn may do, and a marker has nothing to drop.
                 core::mem::forget(member);
-                *L::pick::<Val>(&self.0)
+                *L::pick(&self.0)
             }
 
             /// Writes `v` as the value of `member`.
             pub $($c)? fn set<M: Elem, P: Place>(&mut self, member: M, v: M::Value)
             where
-                L: $([$c])? Has<M, P>,
+                L: $([$c])? Has<Val, M, P>,
             {
                 core::mem::forget(member);
-                *L::pick_mut::<Val>(&mut self.0) = v;
+                *L::pick_mut(&mut self.0) = v;
             }
         }
     };
@@ -143,7 +159,7 @@ macro_rules! has_items {
 /// The marker is taken by value and forgotten, so a unit marker costs nothing
 /// at the call, and a marker with a `Drop` impl does not have it run: a member
 /// is a name, and a name with something to release is not one.
-pub struct Vals<L: Project>(pub L::Prod<Val>);
+pub struct Vals<L: Project<Val>>(pub <L as Project<Val>>::Prod);
 
 #[cfg(feature = "const")]
 has_items!(const);

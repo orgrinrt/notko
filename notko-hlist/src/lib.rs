@@ -45,14 +45,23 @@
 //! # A product over the list
 //!
 //! A list holds no values, and a consumer wanting one per member asks
-//! [`Project`] for the product: [`PCons`] per cell and [`PNil`] at the end,
-//! each cell holding what a [`Carrier`] says is held for that member. The
-//! carriers here are [`Val`] for one value, [`Col`] and [`ColMut`] for a
-//! shared or exclusive slice, and [`Arr`] for an owned array, and a member
-//! names its value type through [`Elem`]. [`Has`] reaches one member's field,
-//! [`Vals`] reads and writes a row of values by member, [`SubOf`] cuts a
-//! narrower list's product out of a wider one, and [`Split`] cuts a product of
-//! exclusive columns in two by rows.
+//! [`Project<C>`] for the product through a carrier `C`: [`PCons`] per cell and
+//! [`PNil`] at the end, each cell holding what the carrier states for that
+//! member through [`Carrier<M>`], one form per member. The carriers here are
+//! [`Uniform`], holding every member the same way over the value it names
+//! through [`Elem`]: [`Val`] for one value, [`Col`] and [`ColMut`] for a shared
+//! or exclusive slice, and [`Arr`] for an owned array. A consumer's own carrier
+//! may instead state a form per member, a value for one and a borrow of a frame
+//! for the next, and its list names no lifetime. The carrier is a typestate: the
+//! product's type names it and every member, so it is never inferred from what
+//! the fields hold.
+//!
+//! [`Has`] reaches one member's field, [`Vals`] reads and writes a row of values
+//! by member, [`SubOf`] cuts a narrower list's product out of a wider one and
+//! [`PutRow`] and [`PutVals`] write one back, and [`Split`] cuts a product of
+//! exclusive columns in two by rows. The walks between two carriers' products
+//! are traits naming both, [`Rows<C>`] for rows of values and [`Arrays<N>`] for
+//! a product of arrays.
 //!
 //! # Naming the list in your own vocabulary
 //!
@@ -96,7 +105,7 @@
 //!
 //! | Feature | What it adds | Why it is not stable |
 //! |---|---|---|
-//! | `const` | [`Cardinal`] becomes a const trait, [`Length`] gains `LEN` and [`Position`] gains `INDEX`, both compile-time constants, and [`Project`], [`Has`], [`SubOf`], [`Vals`] and the carrier capabilities become callable in a constant | `const_trait_impl` |
+//! | `const` | [`Cardinal`] becomes a const trait, [`Length`] gains `LEN` and [`Position`] gains `INDEX`, both compile-time constants, and the walks [`Rows`] and [`Arrays`], with [`Has`], [`SubOf`], [`PutRow`], [`PutVals`], [`Vals`] and the carrier capabilities, become callable in a constant | `const_trait_impl` |
 //! | `membership` | [`Contains`] and [`ContainsAll`] | `marker_trait_attr` |
 //!
 //! Without `const` the count and the index are still there and still correct,
@@ -118,6 +127,15 @@
 #[doc = include_str!("../README.md")]
 pub struct Readme;
 
+/// The seal on the product's traits: a token only this crate can name.
+mod seal {
+    /// Passed to the `sealed` methods of [`Project`](crate::Project), the
+    /// walks, [`Has`](crate::Has) and [`SubOf`](crate::SubOf). Public in a
+    /// private module, so a signature can carry it and nothing outside can
+    /// write one, and an impl outside this crate cannot supply the method.
+    pub struct Token;
+}
+
 mod at;
 mod cardinal;
 mod carrier;
@@ -134,7 +152,7 @@ mod sub;
 
 pub use at::At;
 pub use cardinal::Cardinal;
-pub use carrier::{Arr, ByRow, ByRowMut, Carrier, Col, ColMut, Dup, Elem, Val};
+pub use carrier::{Arr, ByRow, ByRowMut, Carrier, Col, ColMut, Dup, Elem, Uniform, Val};
 pub use concat::Concat;
 pub use has::{Has, Vals};
 pub use length::Length;
@@ -143,5 +161,5 @@ pub use list::{Cons, Empty, List};
 pub use membership::{Contains, ContainsAll};
 pub use place_of::PlaceOf;
 pub use position::{Here, Place, Position, There};
-pub use project::{PCons, PNil, Project, Split};
-pub use sub::SubOf;
+pub use project::{Arrays, PCons, PNil, Project, Rows, Split};
+pub use sub::{PutRow, PutVals, SubOf};

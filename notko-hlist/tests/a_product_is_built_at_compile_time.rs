@@ -10,7 +10,7 @@
 
 #![feature(const_trait_impl)]
 
-use notko_hlist::{Arr, Cons, Elem, Empty, Has, PCons, PNil, Project, SubOf, Val, Vals};
+use notko_hlist::{Arr, Arrays, Cons, Elem, Empty, Has, PCons, PNil, Project, PutVals, Rows, SubOf, Val, Vals};
 
 struct Pos;
 impl Elem for Pos {
@@ -25,7 +25,7 @@ impl Elem for Heat {
 type Lanes = Cons<Pos, Cons<Heat, Empty>>;
 type Back = Cons<Heat, Cons<Pos, Empty>>;
 
-const ROW: <Lanes as Project>::Prod<Val> = PCons {
+const ROW: <Lanes as Project<Val>>::Prod = PCons {
     head: 7,
     tail: PCons {
         head: 3,
@@ -34,29 +34,29 @@ const ROW: <Lanes as Project>::Prod<Val> = PCons {
 };
 
 /// Storage made, written at one row, copied and read back, all in a constant.
-const COLS: <Lanes as Project>::Prod<Arr<3>> = {
-    let mut cols = Lanes::made::<3>(&ROW);
-    Lanes::write_row::<Arr<3>>(&mut cols, 1, &PCons {
+const COLS: <Lanes as Project<Arr<3>>>::Prod = {
+    let mut cols = <Lanes as Arrays<3>>::made(&ROW);
+    <Lanes as Rows<Arr<3>>>::write_row(&mut cols, 1, &PCons {
         head: -1,
         tail: PCons {
             head: 9,
             tail: PNil,
         },
     });
-    let mut copy = Lanes::made::<3>(&ROW);
-    Lanes::copy_from::<3>(&mut copy, &cols);
+    let mut copy = <Lanes as Arrays<3>>::made(&ROW);
+    <Lanes as Arrays<3>>::copy_from(&mut copy, &cols);
     copy
 };
 
-const READ: <Lanes as Project>::Prod<Val> = Lanes::read_row::<Arr<3>>(&COLS, 1);
+const READ: <Lanes as Project<Val>>::Prod = <Lanes as Rows<Arr<3>>>::read_row(&COLS, 1);
 
-const HEAT: [u8; 3] = *<Lanes as Has<Heat, _>>::pick::<Arr<3>>(&COLS);
+const HEAT: [u8; 3] = *<Lanes as Has<Arr<3>, Heat, _>>::pick(&COLS);
 
-const BACK: <Back as Project>::Prod<Val> = <Back as SubOf<Lanes, _>>::sub::<Val>(&ROW);
+const BACK: <Back as Project<Val>>::Prod = <Back as SubOf<Val, Lanes, _>>::sub(&ROW);
 
-const PUT: <Lanes as Project>::Prod<Val> = {
+const PUT: <Lanes as Project<Val>>::Prod = {
     let mut v = ROW;
-    <Back as SubOf<Lanes, _>>::put_vals(&mut v, &PCons {
+    <Back as PutVals<Lanes, _>>::put_vals(&mut v, &PCons {
         head: 1,
         tail: PCons {
             head: 2,

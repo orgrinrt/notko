@@ -216,6 +216,7 @@ fn the_blessed_diagnostics_carry_this_crate_s_own_notes() {
         "is not a part of",
         "has no product",
         "names no value type",
+        "holds no form for",
         // The sealing is the load-bearing one and rustc words it, not us, so
         // these are the check that a fixture actually reaches a sealed impl
         // rather than failing earlier for some other reason.
