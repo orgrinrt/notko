@@ -1,0 +1,70 @@
+error[E0277]: the trait bound `consumer::Read<'static>: Carrier<Heat>` is not satisfied
+  --> consumer/src/bin/r3_no_form_for_a_member.rs:13:13
+   |
+13 |     let _p: <Cons<Pos, Cons<Heat, Empty>> as Project<Read<'static>>>::Prod = PCons {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Uniform` is not implemented for `consumer::Read<'static>`
+   |
+help: the following other types implement trait `Uniform`
+  --> model/src/lib.rs:38:1
+   |
+38 | impl Uniform for Val {
+   | ^^^^^^^^^^^^^^^^^^^^ `Val`
+...
+41 | impl<'a> Uniform for Col<'a> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Col<'a>`
+...
+44 | impl<const N: usize> Uniform for Arr<N> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Arr<N>`
+   = note: required for `consumer::Read<'static>` to implement `Carrier<Heat>`
+   = note: required for `Cons<Heat, model::Empty>` to implement `Project<consumer::Read<'static>>`
+
+error[E0277]: the trait bound `consumer::Read<'static>: Uniform` is not satisfied
+  --> consumer/src/bin/r3_no_form_for_a_member.rs:15:15
+   |
+15 |           tail: PCons {
+   |  _______________^
+16 | |             head: 2,
+17 | |             tail: PNil,
+18 | |         },
+   | |_________^ the trait `Uniform` is not implemented for `consumer::Read<'static>`
+   |
+help: the following other types implement trait `Uniform`
+  --> model/src/lib.rs:38:1
+   |
+38 | impl Uniform for Val {
+   | ^^^^^^^^^^^^^^^^^^^^ `Val`
+...
+41 | impl<'a> Uniform for Col<'a> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Col<'a>`
+...
+44 | impl<const N: usize> Uniform for Arr<N> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Arr<N>`
+   = note: required for `consumer::Read<'static>` to implement `Carrier<Heat>`
+note: required by a bound in `PCons`
+  --> model/src/lib.rs:63:21
+   |
+63 | pub struct PCons<C: Carrier<H>, H, T> {
+   |                     ^^^^^^^^^^ required by this bound in `PCons`
+
+error[E0277]: the trait bound `consumer::Read<'static>: Uniform` is not satisfied
+  --> consumer/src/bin/r3_no_form_for_a_member.rs:16:13
+   |
+16 |             head: 2,
+   |             ^^^^^^^ the trait `Uniform` is not implemented for `consumer::Read<'static>`
+   |
+help: the following other types implement trait `Uniform`
+  --> model/src/lib.rs:38:1
+   |
+38 | impl Uniform for Val {
+   | ^^^^^^^^^^^^^^^^^^^^ `Val`
+...
+41 | impl<'a> Uniform for Col<'a> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Col<'a>`
+...
+44 | impl<const N: usize> Uniform for Arr<N> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Arr<N>`
+   = note: required for `consumer::Read<'static>` to implement `Carrier<Heat>`
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `consumer` (bin "r3_no_form_for_a_member") due to 3 previous errors
+exit status: 101

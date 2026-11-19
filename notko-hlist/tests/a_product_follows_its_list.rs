@@ -15,6 +15,7 @@ use core::marker::PhantomData;
 
 use notko_hlist::{
     Arr,
+    Arrays,
     At,
     Col,
     ColMut,
@@ -28,6 +29,9 @@ use notko_hlist::{
     Place,
     PlaceOf,
     Project,
+    PutRow,
+    PutVals,
+    Rows,
     Split,
     SubOf,
     There,
@@ -52,7 +56,7 @@ impl Elem for Lag {
 
 type Lanes = Cons<Pos, Cons<Heat, Cons<Lag, Empty>>>;
 
-fn row(pos: i32, heat: u8, lag: i64) -> <Lanes as Project>::Prod<Val> {
+fn row(pos: i32, heat: u8, lag: i64) -> <Lanes as Project<Val>>::Prod {
     PCons {
         head: pos,
         tail: PCons {
@@ -106,17 +110,17 @@ fn a_member_is_found_whatever_else_the_list_holds() {
 
 #[test]
 fn a_row_written_reads_back_and_leaves_the_others() {
-    let mut cols: <Lanes as Project>::Prod<Arr<4>> = Lanes::made::<4>(&row(1, 2, 3));
-    Lanes::write_row::<Arr<4>>(&mut cols, 2, &row(-5, 9, 40));
-    assert_eq!(Lanes::read_row::<Arr<4>>(&cols, 2), row(-5, 9, 40));
+    let mut cols: <Lanes as Project<Arr<4>>>::Prod = <Lanes as Arrays<4>>::made(&row(1, 2, 3));
+    <Lanes as Rows<Arr<4>>>::write_row(&mut cols, 2, &row(-5, 9, 40));
+    assert_eq!(<Lanes as Rows<Arr<4>>>::read_row(&cols, 2), row(-5, 9, 40));
     for i in [0, 1, 3] {
-        assert_eq!(Lanes::read_row::<Arr<4>>(&cols, i), row(1, 2, 3));
+        assert_eq!(<Lanes as Rows<Arr<4>>>::read_row(&cols, i), row(1, 2, 3));
     }
 }
 
 #[test]
 fn made_fills_every_row_of_every_member() {
-    let cols: <Lanes as Project>::Prod<Arr<3>> = Lanes::made::<3>(&row(7, 8, 9));
+    let cols: <Lanes as Project<Arr<3>>>::Prod = <Lanes as Arrays<3>>::made(&row(7, 8, 9));
     assert_eq!(cols.head, [7; 3]);
     assert_eq!(cols.tail.head, [8; 3]);
     assert_eq!(cols.tail.tail.head, [9; 3]);
@@ -124,35 +128,38 @@ fn made_fills_every_row_of_every_member() {
 
 #[test]
 fn columns_read_and_write_the_arrays_under_them() {
-    let mut cols: <Lanes as Project>::Prod<Arr<3>> = Lanes::made::<3>(&row(0, 0, 0));
+    let mut cols: <Lanes as Project<Arr<3>>>::Prod = <Lanes as Arrays<3>>::made(&row(0, 0, 0));
     {
-        let mut excl = Lanes::cols_mut::<3>(&mut cols);
-        Lanes::write_row::<ColMut<'_>>(&mut excl, 1, &row(4, 5, 6));
-        assert_eq!(Lanes::read_row::<ColMut<'_>>(&excl, 1), row(4, 5, 6));
+        let mut excl = <Lanes as Arrays<3>>::cols_mut(&mut cols);
+        <Lanes as Rows<ColMut<'_>>>::write_row(&mut excl, 1, &row(4, 5, 6));
+        assert_eq!(
+            <Lanes as Rows<ColMut<'_>>>::read_row(&excl, 1),
+            row(4, 5, 6)
+        );
     }
-    let shared = Lanes::cols::<3>(&cols);
-    assert_eq!(Lanes::read_row::<Col<'_>>(&shared, 1), row(4, 5, 6));
-    assert_eq!(Lanes::read_row::<Col<'_>>(&shared, 0), row(0, 0, 0));
+    let shared = <Lanes as Arrays<3>>::cols(&cols);
+    assert_eq!(<Lanes as Rows<Col<'_>>>::read_row(&shared, 1), row(4, 5, 6));
+    assert_eq!(<Lanes as Rows<Col<'_>>>::read_row(&shared, 0), row(0, 0, 0));
 }
 
 #[test]
 fn copy_from_copies_every_member() {
-    let src: <Lanes as Project>::Prod<Arr<2>> = Lanes::made::<2>(&row(3, 4, 5));
-    let mut dst: <Lanes as Project>::Prod<Arr<2>> = Lanes::made::<2>(&row(0, 0, 0));
-    Lanes::copy_from::<2>(&mut dst, &src);
+    let src: <Lanes as Project<Arr<2>>>::Prod = <Lanes as Arrays<2>>::made(&row(3, 4, 5));
+    let mut dst: <Lanes as Project<Arr<2>>>::Prod = <Lanes as Arrays<2>>::made(&row(0, 0, 0));
+    <Lanes as Arrays<2>>::copy_from(&mut dst, &src);
     assert_eq!(dst, src);
 }
 
 #[test]
 fn a_split_cuts_every_column_at_the_same_row() {
-    let mut cols: <Lanes as Project>::Prod<Arr<4>> = Lanes::made::<4>(&row(0, 0, 0));
-    let (mut front, mut back) = Lanes::split_mut(Lanes::cols_mut::<4>(&mut cols), 1);
+    let mut cols: <Lanes as Project<Arr<4>>>::Prod = <Lanes as Arrays<4>>::made(&row(0, 0, 0));
+    let (mut front, mut back) = Lanes::split_mut(<Lanes as Arrays<4>>::cols_mut(&mut cols), 1);
     assert_eq!((front.head.len(), back.tail.tail.head.len()), (1, 3));
-    Lanes::write_row::<ColMut<'_>>(&mut front, 0, &row(1, 1, 1));
-    Lanes::write_row::<ColMut<'_>>(&mut back, 0, &row(2, 2, 2));
-    assert_eq!(Lanes::read_row::<Arr<4>>(&cols, 0), row(1, 1, 1));
-    assert_eq!(Lanes::read_row::<Arr<4>>(&cols, 1), row(2, 2, 2));
-    assert_eq!(Lanes::read_row::<Arr<4>>(&cols, 2), row(0, 0, 0));
+    <Lanes as Rows<ColMut<'_>>>::write_row(&mut front, 0, &row(1, 1, 1));
+    <Lanes as Rows<ColMut<'_>>>::write_row(&mut back, 0, &row(2, 2, 2));
+    assert_eq!(<Lanes as Rows<Arr<4>>>::read_row(&cols, 0), row(1, 1, 1));
+    assert_eq!(<Lanes as Rows<Arr<4>>>::read_row(&cols, 1), row(2, 2, 2));
+    assert_eq!(<Lanes as Rows<Arr<4>>>::read_row(&cols, 2), row(0, 0, 0));
 }
 
 // The contract on a row past the end is the slice's: a panic, the same as
@@ -160,39 +167,38 @@ fn a_split_cuts_every_column_at_the_same_row() {
 #[test]
 #[should_panic]
 fn a_row_past_the_end_panics_rather_than_reading() {
-    let cols: <Lanes as Project>::Prod<Arr<4>> = Lanes::made::<4>(&row(0, 0, 0));
-    let _ = Lanes::read_row::<Arr<4>>(&cols, 4);
+    let cols: <Lanes as Project<Arr<4>>>::Prod = <Lanes as Arrays<4>>::made(&row(0, 0, 0));
+    let _ = <Lanes as Rows<Arr<4>>>::read_row(&cols, 4);
 }
 
 #[test]
 #[should_panic]
 fn a_split_past_the_end_panics_rather_than_cutting() {
-    let mut cols: <Lanes as Project>::Prod<Arr<4>> = Lanes::made::<4>(&row(0, 0, 0));
-    let _ = Lanes::split_mut(Lanes::cols_mut::<4>(&mut cols), 5);
+    let mut cols: <Lanes as Project<Arr<4>>>::Prod = <Lanes as Arrays<4>>::made(&row(0, 0, 0));
+    let _ = Lanes::split_mut(<Lanes as Arrays<4>>::cols_mut(&mut cols), 5);
 }
 
 #[test]
 fn a_split_at_the_end_leaves_the_back_empty() {
-    let mut cols: <Lanes as Project>::Prod<Arr<4>> = Lanes::made::<4>(&row(0, 0, 0));
-    let (front, back) = Lanes::split_mut(Lanes::cols_mut::<4>(&mut cols), 4);
+    let mut cols: <Lanes as Project<Arr<4>>>::Prod = <Lanes as Arrays<4>>::made(&row(0, 0, 0));
+    let (front, back) = Lanes::split_mut(<Lanes as Arrays<4>>::cols_mut(&mut cols), 4);
     assert_eq!((front.head.len(), back.tail.tail.head.len()), (4, 0));
 }
 
-fn heat<L: Has<Heat, P>, P: Place>(cols: &mut L::Prod<Arr<2>>) -> &mut [u8; 2] {
-    L::pick_mut::<Arr<2>>(cols)
+fn heat<L: Has<Arr<2>, Heat, P>, P: Place>(
+    cols: &mut <L as Project<Arr<2>>>::Prod,
+) -> &mut [u8; 2] {
+    L::pick_mut(cols)
 }
 
 #[test]
 fn pick_reaches_the_member_s_field_through_any_carrier() {
-    let mut cols: <Lanes as Project>::Prod<Arr<2>> = Lanes::made::<2>(&row(1, 2, 3));
+    let mut cols: <Lanes as Project<Arr<2>>>::Prod = <Lanes as Arrays<2>>::made(&row(1, 2, 3));
     heat::<Lanes, _>(&mut cols)[1] = 77;
     assert_eq!(cols.tail.head, [2, 77]);
-    let shared = Lanes::cols::<2>(&cols);
-    assert_eq!(
-        *<Lanes as Has<Lag, _>>::pick::<Col<'_>>(&shared),
-        &[3, 3][..]
-    );
-    assert_eq!(*<Lanes as Has<Pos, _>>::pick::<Val>(&row(9, 0, 0)), 9);
+    let shared = <Lanes as Arrays<2>>::cols(&cols);
+    assert_eq!(*<Lanes as Has<Col<'_>, Lag, _>>::pick(&shared), &[3, 3][..]);
+    assert_eq!(*<Lanes as Has<Val, Pos, _>>::pick(&row(9, 0, 0)), 9);
 }
 
 #[test]
@@ -206,37 +212,37 @@ type Narrow = Cons<Lag, Cons<Pos, Empty>>;
 
 #[test]
 fn a_part_comes_out_in_its_own_order() {
-    let part = <Narrow as SubOf<Lanes, _>>::sub::<Val>(&row(1, 2, 3));
+    let part = <Narrow as SubOf<Val, Lanes, _>>::sub(&row(1, 2, 3));
     assert_eq!((part.head, part.tail.head), (3, 1));
 
-    let cols: <Lanes as Project>::Prod<Arr<2>> = Lanes::made::<2>(&row(4, 5, 6));
-    let shared = Lanes::cols::<2>(&cols);
-    let part = <Narrow as SubOf<Lanes, _>>::sub::<Col<'_>>(&shared);
+    let cols: <Lanes as Project<Arr<2>>>::Prod = <Lanes as Arrays<2>>::made(&row(4, 5, 6));
+    let shared = <Lanes as Arrays<2>>::cols(&cols);
+    let part = <Narrow as SubOf<Col<'_>, Lanes, _>>::sub(&shared);
     assert_eq!((part.head, part.tail.head), (&[6, 6][..], &[4, 4][..]));
 }
 
 #[test]
 fn a_part_is_written_back_at_its_members() {
-    let mut cols: <Lanes as Project>::Prod<Arr<2>> = Lanes::made::<2>(&row(0, 0, 0));
-    let part: <Narrow as Project>::Prod<Val> = PCons {
+    let mut cols: <Lanes as Project<Arr<2>>>::Prod = <Lanes as Arrays<2>>::made(&row(0, 0, 0));
+    let part: <Narrow as Project<Val>>::Prod = PCons {
         head: 30,
         tail: PCons {
             head: 10,
             tail: PNil,
         },
     };
-    <Narrow as SubOf<Lanes, _>>::put_row::<Arr<2>>(&mut cols, 1, &part);
-    assert_eq!(Lanes::read_row::<Arr<2>>(&cols, 1), row(10, 0, 30));
-    assert_eq!(Lanes::read_row::<Arr<2>>(&cols, 0), row(0, 0, 0));
+    <Narrow as PutRow<Arr<2>, Lanes, _>>::put_row(&mut cols, 1, &part);
+    assert_eq!(<Lanes as Rows<Arr<2>>>::read_row(&cols, 1), row(10, 0, 30));
+    assert_eq!(<Lanes as Rows<Arr<2>>>::read_row(&cols, 0), row(0, 0, 0));
 
     let mut vals = row(0, 7, 0);
-    <Narrow as SubOf<Lanes, _>>::put_vals(&mut vals, &part);
+    <Narrow as PutVals<Lanes, _>>::put_vals(&mut vals, &part);
     assert_eq!(vals, row(10, 7, 30));
 }
 
 #[test]
 fn the_empty_list_is_a_part_of_every_list() {
-    let _: PNil = <Empty as SubOf<Lanes, _>>::sub::<Val>(&row(1, 2, 3));
+    let _: PNil = <Empty as SubOf<Val, Lanes, _>>::sub(&row(1, 2, 3));
 }
 
 /// A member per index, so a long list is written as a count rather than as
@@ -266,25 +272,19 @@ fn a_deep_product_is_built_and_copied_on_a_default_stack() {
     std::thread::Builder::new()
         .stack_size(2 * 1024 * 1024)
         .spawn(|| {
-            let zero: <Deep as Project>::Prod<Val> = Default::default();
+            let zero: <Deep as Project<Val>>::Prod = Default::default();
             let mut row = zero;
-            *<Deep as Has<Lane<63>, _>>::pick_mut::<Val>(&mut row) = 1;
-            *<Deep as Has<Lane<40>, _>>::pick_mut::<Val>(&mut row) = 2;
+            *<Deep as Has<Val, Lane<63>, _>>::pick_mut(&mut row) = 1;
+            *<Deep as Has<Val, Lane<40>, _>>::pick_mut(&mut row) = 2;
 
-            let src: <Deep as Project>::Prod<Arr<256>> = Deep::made::<256>(&row);
-            let mut dst: <Deep as Project>::Prod<Arr<256>> = Deep::made::<256>(&zero);
-            Deep::copy_from::<256>(&mut dst, &src);
+            let src: <Deep as Project<Arr<256>>>::Prod = <Deep as Arrays<256>>::made(&row);
+            let mut dst: <Deep as Project<Arr<256>>>::Prod = <Deep as Arrays<256>>::made(&zero);
+            <Deep as Arrays<256>>::copy_from(&mut dst, &src);
 
-            assert_eq!(
-                *<Deep as Has<Lane<63>, _>>::pick::<Arr<256>>(&dst),
-                [1; 256]
-            );
-            assert_eq!(
-                *<Deep as Has<Lane<40>, _>>::pick::<Arr<256>>(&dst),
-                [2; 256]
-            );
-            assert_eq!(*<Deep as Has<Lane<0>, _>>::pick::<Arr<256>>(&dst), [0; 256]);
-            assert_eq!(Deep::read_row::<Arr<256>>(&dst, 255), row);
+            assert_eq!(*<Deep as Has<Arr<256>, Lane<63>, _>>::pick(&dst), [1; 256]);
+            assert_eq!(*<Deep as Has<Arr<256>, Lane<40>, _>>::pick(&dst), [2; 256]);
+            assert_eq!(*<Deep as Has<Arr<256>, Lane<0>, _>>::pick(&dst), [0; 256]);
+            assert_eq!(<Deep as Rows<Arr<256>>>::read_row(&dst, 255), row);
         })
         .expect("a thread")
         .join()

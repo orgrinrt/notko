@@ -216,6 +216,9 @@ fn the_blessed_diagnostics_carry_this_crate_s_own_notes() {
         "is not a part of",
         "has no product",
         "names no value type",
+        "holds no form for",
+        "states no form for",
+        "declares no shape",
         // The sealing is the load-bearing one and rustc words it, not us, so
         // these are the check that a fixture actually reaches a sealed impl
         // rather than failing earlier for some other reason.
@@ -228,4 +231,50 @@ fn the_blessed_diagnostics_carry_this_crate_s_own_notes() {
              so that note's wording is unchecked"
         );
     }
+}
+
+#[test]
+fn every_test_file_is_a_declared_target() {
+    // The manifest sets `autotests = false` and names each target, so a file
+    // added under `tests/` and not named there builds nowhere and fails
+    // nothing, which reads exactly like a file whose tests pass. This is the
+    // check that each one is asked for, and that each one ships through
+    // `include` unless it is one of the two that read the repository.
+    let manifest = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"))
+        .expect("the crate's manifest");
+    let dir = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/tests"));
+    let mut files = 0usize;
+    let mut undeclared = Vec::new();
+    let mut unshipped = Vec::new();
+    for entry in std::fs::read_dir(dir).expect("the test directory") {
+        let path = entry.expect("a directory entry").path();
+        if path.extension().is_some_and(|e| e == "rs") {
+            files += 1;
+            let name = path.file_name().expect("a file name").to_string_lossy();
+            let spelled = format!("\"tests/{name}\"");
+            if !manifest.contains(&format!("path = {spelled}")) {
+                undeclared.push(name.to_string());
+            }
+            if !["the_refusals_hold.rs", "a_carrier_of_another_crate_takes_your_members.rs"]
+                .contains(&name.as_ref())
+                && manifest.matches(spelled.as_str()).count() < 2
+            {
+                unshipped.push(name.to_string());
+            }
+        }
+    }
+    assert!(
+        files >= 10,
+        "the test directory holds {files} files, too few to be the set"
+    );
+    assert!(
+        undeclared.is_empty(),
+        "a test file no target names:\n{}",
+        undeclared.join("\n")
+    );
+    assert!(
+        unshipped.is_empty(),
+        "a test target `include` leaves out:\n{}",
+        unshipped.join("\n")
+    );
 }

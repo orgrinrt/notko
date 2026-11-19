@@ -21,7 +21,8 @@ use core::fmt;
 ///
 /// `?` on a [`crate::Outcome`] or a [`crate::Maybe`] inside a function
 /// returning one panics on the failing arm, which is what the proof of
-/// unreachability being wrong looks like at runtime. A narrowed function has
+/// unreachability being wrong looks like at runtime, and it aborts where the
+/// build sets `panic = "abort"`. A narrowed function has
 /// nowhere to propagate to, so the alternative to panicking is not compiling,
 /// and not compiling is what it used to do in release only.
 #[repr(transparent)]
@@ -336,13 +337,16 @@ mod try_impl {
     /// `?` on a fallible value, inside a function that has been narrowed to
     /// [`Just`].
     ///
-    /// This is what `#[profile(Hot)]` needs to hold its own claim. The
-    /// attribute emits the function twice, once returning [`Outcome`] and once
-    /// returning `Just`, and the whole point of the pair is that the two arms
-    /// mean the same program. Without this impl they do not: `let v = f()?;`
-    /// compiles in the arm that is tested and does not compile in the arm that
-    /// ships, so the divergence surfaces on the consumer's release build and
-    /// nowhere earlier.
+    /// This is what `#[profile(Hot)]` needs to compile the same source in both
+    /// of its arms. The attribute emits the function twice, once returning
+    /// [`Outcome`] and once returning `Just`. Hot is for code that does not
+    /// branch and does not fail, and on that code the two arms compute the
+    /// same values. On an error they do not mean the same program, and are not
+    /// meant to: the `Outcome` arm hands the error back, the `Just` arm panics,
+    /// and under `panic = "abort"` the process aborts. Without this impl even
+    /// the source would not carry over: `let v = f()?;` compiles in the arm
+    /// that is tested and does not compile in the arm that ships, so the
+    /// mismatch surfaces on the consumer's release build and nowhere earlier.
     ///
     /// The semantics are the ones the rest of the release arm already has.
     /// `Err(e)` written out is rewritten to a panic there, so a `?` that would

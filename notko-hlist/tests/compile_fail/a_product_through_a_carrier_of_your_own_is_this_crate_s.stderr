@@ -1,0 +1,7 @@
+error[E0046]: not all trait items implemented, missing: `sealed`
+  --> tests/compile_fail/a_product_through_a_carrier_of_your_own_is_this_crate_s.rs:12:1
+   |
+12 | impl Project<Read> for Cons<Mine, Empty> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `sealed` in implementation
+   |
+   = help: implement the missing item: `fn sealed(_: notko_hlist::seal::Token) { todo!() }`

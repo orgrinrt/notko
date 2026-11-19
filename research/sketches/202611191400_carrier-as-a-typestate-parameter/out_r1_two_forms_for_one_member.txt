@@ -1,0 +1,12 @@
+error[E0119]: conflicting implementations of trait `Carrier<Pos>` for type `Two`
+  --> consumer/src/bin/r1_two_forms_for_one_member.rs:10:1
+   |
+ 7 | impl Carrier<Pos> for Two {
+   | ------------------------- first implementation here
+...
+10 | impl Carrier<Pos> for Two {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^ conflicting implementation for `Two`
+
+For more information about this error, try `rustc --explain E0119`.
+error: could not compile `consumer` (bin "r1_two_forms_for_one_member") due to 1 previous error
+exit status: 101

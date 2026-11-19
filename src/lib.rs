@@ -60,6 +60,14 @@
 //! internal-release builds where invariants are proven by construction. The
 //! primitives work on their own, so the macro is optional.
 //!
+//! Hot is for code that does not branch and does not fail, and takes that as
+//! an extra optimisation where it is true. It panics on an error, and aborts
+//! under `panic = "abort"`: in an internal-release build an `Err` or a failing
+//! `?` in a hot body is a panic, never a value handed back. The `Outcome` arm
+//! of the other builds returns the error, so a test sees it, but code that
+//! has an error to report is not hot code, and no caller should rely on
+//! getting it back.
+//!
 //! # ABI stability
 //!
 //! [`Maybe<T>`] takes part in the compiler's niche filling, so where the payload
