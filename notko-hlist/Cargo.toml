@@ -19,7 +19,7 @@ keywords = ["no_std", "no_alloc", "hlist", "type-level", "notko"]
 autotests = false
 
 # Named rather than excluded, so a file added later has to be asked for
-# rather than shipping by accident. Five of the six test targets check the
+# rather than shipping by accident. Every test target but one checks the
 # crate, so those ship; `the_refusals_hold` reads a fixture tree and the
 # toolchain pin, neither of which a package carries.
 #
@@ -38,6 +38,7 @@ include = [
     "tests/the_list_holds_what_it_holds.rs",
     "tests/a_product_follows_its_list.rs",
     "tests/a_product_is_built_at_compile_time.rs",
+    "tests/a_carrier_holds_a_form_per_member.rs",
     "README.md",
     "LICENSE",
 ]
@@ -109,6 +110,11 @@ path = "tests/a_product_follows_its_list.rs"
 name = "a_product_is_built_at_compile_time"
 path = "tests/a_product_is_built_at_compile_time.rs"
 required-features = ["const"]
+
+# A carrier of the consumer's own, a form per member. Needs neither feature.
+[[test]]
+name = "a_carrier_holds_a_form_per_member"
+path = "tests/a_carrier_holds_a_form_per_member.rs"
 
 [[test]]
 name = "the_refusals_hold"
