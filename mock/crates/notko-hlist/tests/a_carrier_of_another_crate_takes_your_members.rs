@@ -11,8 +11,8 @@
 //! builds when carrier and member share a crate fails here and nowhere in
 //! `a_carrier_holds_a_form_per_member`.
 
+use carrier_owner::Read;
 use notko_hlist::{Cons, DupForm, Elem, Empty, Form, Has, PCons, PNil, Project, SubOf};
-use notko_hlist_fixture_carrier_owner::Read;
 
 /// An `Elem` member, which is what a blanket over uniform carriers could
 /// collide with.

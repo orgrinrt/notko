@@ -470,7 +470,15 @@ fn a_shipped_test_does_not_reach_for_the_repository() {
     // The control. Without it the loop passes on any needle nothing contains,
     // including a typo, and this file is the proof the needles are findable in
     // a real test body.
-    let own = fs::read_to_string(file!()).expect("this file is not readable");
+    // `file!()` is relative to the workspace, and a test runs in its crate.
+    let own = fs::read_to_string(
+        crate_dir().join("tests").join(
+            Path::new(file!())
+                .file_name()
+                .expect("this file has a name"),
+        ),
+    )
+    .expect("this file is not readable");
     for needle in ABSENT {
         assert!(
             own.contains(needle),
@@ -791,7 +799,8 @@ fn the_msrv_says_which_build_it_is_the_msrv_of() {
 #[test]
 fn the_repository_readme_is_this_crate_s_readme() {
     let ours = fs::read_to_string(crate_dir().join("README.md")).expect("the crate readme");
-    let repository = fs::read_to_string(root().join("../README.md")).expect("the repository readme");
+    let repository =
+        fs::read_to_string(root().join("../README.md")).expect("the repository readme");
     assert!(
         ours == repository,
         "README.md at the repository root and the one in crates/notko have drifted apart"

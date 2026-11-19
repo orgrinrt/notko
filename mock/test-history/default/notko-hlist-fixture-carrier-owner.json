@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "flavour": "",
+  "member": "notko-hlist-fixture-carrier-owner",
+  "green": {
+    "full": "bc0cdf09e228416516e17b58a910414d8217d81794e8f4678793f5061a3a3d5f",
+    "own": {
+      "notko-hlist": "03d693ed28f0434102df8571fd3ca2dcf723a289fb5ab5699218e9b595d26993",
+      "notko-hlist-fixture-carrier-owner": "decb4ef3fe5de0eb227aad139f5dfb593f572b4af696521ec67e46c57b203454"
+    }
+  },
+  "tests": {},
+  "bins": {
+    "notko-hlist-fixture-carrier-owner": "4939b086f8d053ff354dfb31da3fba02239b0e6d9c79176036d253441ae1b553"
+  }
+}

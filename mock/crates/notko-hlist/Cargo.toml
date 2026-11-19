@@ -136,7 +136,12 @@ trybuild = "1"
 # A crate owning a per-member carrier, so a test can put carrier and members
 # in two crates the way a consumer does. Not published, and stripped from the
 # package since it has no version.
-notko-hlist-fixture-carrier-owner = { path = "tests/carrier_owner" }
+#
+# FIXME(cargo_mock_panics_in_generate_dot_on_a_prefixed_dependency_t): named under a key without
+# the `notko` prefix, because mockspace reads every prefixed dependency as a workspace member and
+# panics drawing the graph when this fixture, which is no member, is one. Back to its own name once
+# mockspace skips a dependency that is not a member.
+carrier-owner = { package = "notko-hlist-fixture-carrier-owner", path = "tests/carrier_owner" }
 
 [features]
 default = ["const", "membership"]

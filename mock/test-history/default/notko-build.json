@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "flavour": "",
+  "member": "notko-build",
+  "green": {
+    "full": "594b99bcf1488e5089243bf8203ed088516aa868a22505dba3a2679c38dad8d7",
+    "own": {
+      "notko-build": "27bf07d22d589246c7689378beb61250d596a294b81c304921cd74939fb9936b"
+    }
+  },
+  "tests": {},
+  "bins": {
+    "notko-build": "4e14bd3ad5c90c3ea25c82de7dbeae82b97465387871a507aedd9ace3ba8642e"
+  }
+}

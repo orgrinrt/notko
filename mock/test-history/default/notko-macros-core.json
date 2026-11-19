@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "flavour": "",
+  "member": "notko-macros-core",
+  "green": {
+    "full": "5563bcbad771aa3773ba098cf2a1cdf3cb9a4c55758cd56e8e72020809f6fe69",
+    "own": {
+      "notko-macros-core": "fb794abf31e001c5434122e5a743afe212047514d4ef342de14155d2c36958e9"
+    }
+  },
+  "tests": {},
+  "bins": {
+    "notko-macros-core": "225a6f4f36629893d7fbb8b7d6e6e0393f0d581873128af443ad8d38f6bf5ede",
+    "notko-macros-core::a_third_party_macro_names_its_own_crate": "8fd8dbe8cd7456fc45d3d9b62ac20e09d3404b3feb1741183ac9ea15403f5bfd",
+    "notko-macros-core::extension": "5320857a031de1ab9d2e0c02cf22a288327a0de01b8d30b88ddf73c4916030a9",
+    "notko-macros-core::hot_rewrite_shapes": "040014137a08e30ac494dbc422f97500c9e1af897075ea6eaccd56a79b065298",
+    "notko-macros-core::the_readme_examples_are_the_api": "4a641d5db5e845888ae7962fb0ec9417d9bfae342326f21ef5c64a2500a68ad0"
+  }
+}
