@@ -8,6 +8,7 @@ name = "notko-profile-consumer-fixture"
 version = "0.0.0"
 edition = "2021"
 publish = false
+license = "MPL-2.0"
 
 [dependencies]
 # `try_trait_v2` because one of the checks writes `?` in a profiled body, and
