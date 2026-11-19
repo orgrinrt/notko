@@ -30,10 +30,7 @@ pub struct LookupErr;
 
 #[profile(Hot)]
 pub fn lookup(id: u32) -> Result<u32, LookupErr> {
-    if id > 1000 {
-        return Err(LookupErr);
-    }
-    Ok(id * 2)
+    Ok(id.wrapping_mul(2))
 }
 
 #[derive(Debug)]

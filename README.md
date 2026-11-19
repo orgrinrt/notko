@@ -63,7 +63,7 @@ use notko::profile;
 #[derive(Debug)]
 struct Oops;
 
-// returns Outcome<u32, Oops> after expansion
+// returns Outcome<u32, Oops> after expansion, and Just<u32> in an internal-release build
 #[profile(Hot)]
 fn compute(x: u32) -> Result<u32, Oops> {
     Ok(x + 1)
