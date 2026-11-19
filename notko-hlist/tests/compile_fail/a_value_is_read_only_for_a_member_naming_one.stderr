@@ -1,0 +1,12 @@
+error[E0277]: `u8` names no value type
+ --> tests/compile_fail/a_value_is_read_only_for_a_member_naming_one.rs:7:33
+  |
+7 |     let _: <Val as Uniform>::Of<u8> = 1;
+  |                                 ^^ the trait `Elem` is not implemented for `u8`
+  |
+  = note: A member of a product is a marker implementing `Elem`, whose `Value` is what the product carries for it. A bare value type is not a member: wrap it in a marker of its own, so that two members carrying the same type stay two members.
+note: required by a bound in `notko_hlist::Uniform::Of`
+ --> src/carrier.rs
+  |
+  |     type Of<E: Elem>;
+  |                ^^^^ required by this bound in `Uniform::Of`

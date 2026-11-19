@@ -54,8 +54,10 @@ pub trait Tier {
     const INLINE: bool;
 }
 
-/// Hot tier. Minimum-overhead happy path. In release + `internal` feature:
-/// rewrites to `Just<T>` with Err mapped to panic. Otherwise: `Outcome<T, E>`.
+/// Hot tier, for code that does not branch and does not fail. In release with
+/// the `internal` feature on it rewrites to `Just<T>`, and an error panics, or
+/// aborts under `panic = "abort"`. Otherwise it is `Outcome<T, E>`, which
+/// hands the error back so a test sees it.
 pub struct Hot;
 impl Tier for Hot {
     const INLINE: bool = true;
@@ -86,8 +88,8 @@ pub enum Strategy {
     Passthrough,
     /// Warm: wrap in `Maybe<T>` always, discarding the error.
     Warm,
-    /// Hot: in debug/standalone, wrap in `Outcome`; in release/internal,
-    /// strip to `Just<T>` + panic-on-Err.
+    /// Hot: in debug or standalone, wrap in `Outcome`; in release with
+    /// `internal`, strip to `Just<T>` and panic, or abort, on an error.
     Hot,
     /// Cold: wrap in `Outcome` always.
     Cold,

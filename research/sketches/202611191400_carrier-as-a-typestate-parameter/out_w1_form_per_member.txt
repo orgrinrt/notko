@@ -1,0 +1,7 @@
+resource read by member: [5, 6, 7] of 3
+window read by member: centre 2 is 6
+value read by member: 9
+row read at compile time: 2 8
+row through the column walk: 20 2
+the frame ended and the read product with it
+exit status: 0

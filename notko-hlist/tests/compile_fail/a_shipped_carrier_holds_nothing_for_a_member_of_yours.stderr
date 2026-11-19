@@ -1,0 +1,45 @@
+error[E0271]: type mismatch resolving `<Val as Shape>::Is == PerMember`
+  --> tests/compile_fail/a_shipped_carrier_holds_nothing_for_a_member_of_yours.rs:11:20
+   |
+11 | impl Form<Res> for Val {
+   |                    ^^^ expected `PerMember`, found `Uniformly`
+   |
+note: required by a bound in `Form`
+  --> src/carrier.rs
+   |
+   | pub trait Form<M>: Shape<Is = PerMember> {
+   |                          ^^^^^^^^^^^^^^ required by this bound in `Form`
+
+error[E0277]: `Cons<Res, notko_hlist::Empty>` has no product through `Val`
+  --> tests/compile_fail/a_shipped_carrier_holds_nothing_for_a_member_of_yours.rs:16:12
+   |
+16 |     let p: <Cons<Res, Empty> as Project<Val>>::Prod = PCons { head: "a", tail: PNil };
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Project<Val>` is not implemented for `Cons<Res, notko_hlist::Empty>`
+   |
+   = note: A product is defined for lists built from `Empty` and `Cons<H, T>` where the carrier holds a form for every member, through `Carrier<H>`, so the usual cause is a member the carrier has no form for, or a tail that is not a list.
+
+error[E0277]: the trait bound `Val: notko_hlist::Route<Res, Uniformly>` is not satisfied
+  --> tests/compile_fail/a_shipped_carrier_holds_nothing_for_a_member_of_yours.rs:16:63
+   |
+16 |     let p: <Cons<Res, Empty> as Project<Val>>::Prod = PCons { head: "a", tail: PNil };
+   |                                                               ^^^^^^^^^ the trait `notko_hlist::Route<Res, Uniformly>` is not implemented for `Val`
+
+error[E0277]: `Val` holds no form for `Res`
+  --> tests/compile_fail/a_shipped_carrier_holds_nothing_for_a_member_of_yours.rs:17:38
+   |
+17 |     let _ = <Cons<Res, Empty> as Has<Val, Res, _>>::pick(&p);
+   |                                      ^^^ the trait `Carrier<Res>` is not implemented for `Val`
+   |
+   = note: A uniform carrier holds every `Elem` member and nothing else, and a per-member carrier holds exactly the members it states a `Form<Res>` for. A product through it exists only where every member of the list is held.
+note: required by a bound in `pick`
+  --> src/has.rs
+   |
+   |         pub $($c)? trait Has<C: Carrier<M>, M, P: Place>: PlaceOf<M, P> + Project<C> {
+   |                                 ^^^^^^^^^^ required by this bound in `Has::pick`
+...
+   |             fn pick(p: &Self::Prod) -> &<C as Carrier<M>>::Of;
+   |                ---- required by a bound in this associated function
+...
+   | has_items!(const);
+   | ----------------- in this macro invocation
+   = note: this error originates in the macro `has_items` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -27,7 +27,9 @@ use proc_macro::TokenStream;
 /// Annotate a function with a fallibility profile. The proc-macro rewrites
 /// the body per the profile's strategy at expansion time.
 ///
-/// Built-ins: `Hot`, `Warm`, `Cold`. The argument is a bare ident matching
+/// Built-ins: `Hot`, `Warm`, `Cold`. `Hot` is for code that does not branch
+/// and does not fail: in an internal-release build an error in it panics, and
+/// aborts under `panic = "abort"`. The argument is a bare ident matching
 /// the ZST marker's name in [`notko_macros_core::tiers`]. Unknown profile
 /// names are resolved by looking up
 /// `<CARGO_MANIFEST_DIR>/notko-optimisers/<Name>.rs` at expansion time.

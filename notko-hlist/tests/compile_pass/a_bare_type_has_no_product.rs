@@ -1,8 +1,8 @@
 // The twin: the empty list in place of the bare type.
 
-use notko_hlist::{Empty, Project};
+use notko_hlist::{Empty, Project, Val};
 
-fn has_product<L: Project>() {}
+fn has_product<L: Project<Val>>() {}
 
 fn main() {
     has_product::<Empty>();

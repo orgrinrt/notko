@@ -7,7 +7,12 @@
 //!
 //! Emits two cfg-gated versions of the function:
 //! - debug / `standalone` / `internal` feature off → `Outcome<T, E>` body.
-//! - release + `internal` feature on → `Just<T>` body with Err → panic.
+//! - release + `internal` feature on → `Just<T>` body with Err → panic, an
+//!   abort under `panic = "abort"`.
+//!
+//! Hot is for code that does not branch and does not fail. The two arms agree
+//! on every input that does not fail, and on an error they differ by design:
+//! the first returns it, the second panics.
 
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -19,9 +24,11 @@ use super::outcome::OutcomeRewriter;
 use crate::tiers::CustomTier;
 
 pub fn rewrite(tier: CustomTier, mut func: ItemFn) -> Result<TokenStream> {
-    // One function emitted twice under opposite `cfg`s, so anything the two
-    // arms would not do identically is a program that means one thing when it
-    // is tested and another when it ships.
+    // One function emitted twice under opposite `cfg`s. On an error the two
+    // arms differ on purpose, a returned `Outcome` against a panic, since hot
+    // code is promised not to fail. Anything else they would not do
+    // identically is a program that means one thing when it is tested and
+    // another when it ships.
     //
     // Three of those are known and each is closed by something nameable, since
     // a paragraph claiming they are all closed is worth nothing on its own:

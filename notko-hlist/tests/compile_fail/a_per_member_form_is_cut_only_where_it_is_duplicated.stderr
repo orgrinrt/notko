@@ -1,0 +1,8 @@
+error[E0277]: `Cons<Count, notko_hlist::Empty>` is not a part of `Cons<Count, notko_hlist::Empty>` through `Write<'_>`
+  --> tests/compile_fail/a_per_member_form_is_cut_only_where_it_is_duplicated.rs:22:14
+   |
+22 |     let _ = <Writes as SubOf<Write<'_>, Writes, _>>::sub(&p);
+   |              ^^^^^^ unsatisfied trait bound
+   |
+   = help: the trait `SubOf<Write<'_>, Cons<Count, notko_hlist::Empty>, Cons<Here, notko_hlist::Empty>>` is not implemented for `Cons<Count, notko_hlist::Empty>`
+   = note: Each member of `Cons<Count, notko_hlist::Empty>` is found in `Cons<Count, notko_hlist::Empty>` through `Has` and duplicated through `Dup<M>`, so the one that failed is not named here. Bound on `PlaceOf<M, _>` for the individual member to find out which, and check that the carrier duplicates what it holds for each.

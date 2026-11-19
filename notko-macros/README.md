@@ -30,10 +30,7 @@ pub struct LookupErr;
 
 #[profile(Hot)]
 pub fn lookup(id: u32) -> Result<u32, LookupErr> {
-    if id > 1000 {
-        return Err(LookupErr);
-    }
-    Ok(id * 2)
+    Ok(id.wrapping_mul(2))
 }
 
 #[derive(Debug)]
@@ -48,7 +45,7 @@ pub fn init(retries: u32) -> Result<u32, SetupErr> {
 }
 ```
 
-`Hot` becomes `Outcome<T, E>` in debug builds and `Just<T>` in a release build with the consumer's own `internal` feature on, where `Err` turns into a panic. `Cold` is always `Outcome<T, E>`, and `Warm` is always `Maybe<T>` with the whole `Err(..)` expression dropped, side effects included. The `internal` feature has to be declared in the consuming crate, with `internal = []` under `[features]`, since the `cfg` is read where the attribute expands. Without it everything still compiles on the `Outcome` arm, but each hot `#[profile]` warns.
+`Hot` becomes `Outcome<T, E>` in debug builds and `Just<T>` in a release build with the consumer's own `internal` feature on, where `Err` and a failing `?` turn into a panic, and an abort under `panic = "abort"`. Hot is for code that does not branch and does not fail, taken as an extra optimisation where that is true, and the panic is what it does when that promise turns out wrong. The debug arm hands the error back so a test can see it, but the two arms only agree on code that never fails, and code that can fail belongs on `Cold` or `Warm`. `Cold` is always `Outcome<T, E>`, and `Warm` is always `Maybe<T>` with the whole `Err(..)` expression dropped, side effects included. The `internal` feature has to be declared in the consuming crate, with `internal = []` under `[features]`, since the `cfg` is read where the attribute expands. Without it everything still compiles on the `Outcome` arm, but each hot `#[profile]` warns.
 
 The rewrite only fires on a return type spelled `Result<T, E>` or `Outcome<T, E>` with both arguments written out. Anything else, like a `Result<T>` alias, is emitted as written without an error, so writing the two arguments out is the fix when a tag seems to do nothing.
 

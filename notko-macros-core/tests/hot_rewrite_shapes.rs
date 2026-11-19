@@ -7,9 +7,11 @@
 //!
 //! The hot strategy emits two versions of one function, a debug one and a
 //! release one, and they are compiled from the same source under different
-//! `cfg`. So every shape it does not handle identically in both arms is a
-//! program that means one thing when you test it and another when you ship it,
-//! with nothing to say so.
+//! `cfg`. On an error the two differ by design, the release arm panicking where
+//! the debug arm returns it, since hot code is promised not to fail. Any other
+//! shape it does not handle identically in both arms is a program that means
+//! one thing when it is tested and another when it ships, with nothing to say
+//! so.
 //!
 //! That makes "leaves it alone" the interesting assertion here, more than
 //! "rewrites it correctly", and it is why most of what follows is about input

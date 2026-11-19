@@ -1,0 +1,8 @@
+error[E0119]: conflicting implementations of trait `Form<Pos>` for type `Read`
+  --> tests/compile_fail/a_member_is_given_one_form_only.rs:16:1
+   |
+13 | impl Form<Pos> for Read {
+   | ----------------------- first implementation here
+...
+16 | impl Form<Pos> for Read {
+   | ^^^^^^^^^^^^^^^^^^^^^^^ conflicting implementation for `Read`

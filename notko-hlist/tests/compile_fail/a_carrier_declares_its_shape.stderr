@@ -1,0 +1,17 @@
+error[E0277]: `Read` declares no shape
+ --> tests/compile_fail/a_carrier_declares_its_shape.rs:9:20
+  |
+9 | impl Form<Pos> for Read {
+  |                    ^^^^ unsatisfied trait bound
+  |
+help: the trait `Shape` is not implemented for `Read`
+ --> tests/compile_fail/a_carrier_declares_its_shape.rs:8:1
+  |
+8 | struct Read;
+  | ^^^^^^^^^^^
+  = note: A carrier declares its shape: `Uniformly` for one that implements `Uniform`, `PerMember` for one that states a `Form<M>` for each member it holds.
+note: required by a bound in `Form`
+ --> src/carrier.rs
+  |
+  | pub trait Form<M>: Shape<Is = PerMember> {
+  |                    ^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Form`
