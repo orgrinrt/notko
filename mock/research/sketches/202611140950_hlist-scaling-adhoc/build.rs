@@ -3,9 +3,10 @@
 //! times `cargo check` and `cargo build` of the library, so the cost of each
 //! query at each length can be read apart from the cost of the list itself.
 
+use std::env;
 use std::fmt::Write as _;
+use std::fs;
 use std::path::PathBuf;
-use std::{env, fs};
 
 fn list(names: &[String]) -> String {
     let mut s = String::new();
@@ -37,10 +38,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=SPIKE_Q");
     println!("cargo:rerun-if-env-changed=SPIKE_SALT");
 
-    let n: usize = env::var("SPIKE_N")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(8);
+    let n: usize = env::var("SPIKE_N").ok().and_then(|v| v.parse().ok()).unwrap_or(8);
     let q = env::var("SPIKE_Q").unwrap_or_else(|_| "base".to_string());
     let salt = env::var("SPIKE_SALT").unwrap_or_default();
 
@@ -52,11 +50,7 @@ fn main() {
     writeln!(g, "// generated: n = {n}, q = {q}, salt = {salt}").unwrap();
     writeln!(g, "pub const SALT: &str = \"{salt}\";").unwrap();
     for name in &names {
-        writeln!(
-            g,
-            "pub struct {name}; impl Elem for {name} {{ type Value = u32; }}"
-        )
-        .unwrap();
+        writeln!(g, "pub struct {name}; impl Elem for {name} {{ type Value = u32; }}").unwrap();
     }
     writeln!(g, "pub type L = {};", list(&names)).unwrap();
     writeln!(g, "pub type R = {};", list(&rev)).unwrap();

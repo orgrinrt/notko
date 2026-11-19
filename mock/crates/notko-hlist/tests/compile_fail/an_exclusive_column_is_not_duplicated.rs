@@ -12,9 +12,6 @@ impl Elem for Pos {
 type Lanes = Cons<Pos, Empty>;
 
 fn main() {
-    let mut a: <Lanes as Project<notko_hlist::Arr<2>>>::Prod = PCons {
-        head: [0; 2],
-        tail: PNil,
-    };
+    let mut a: <Lanes as Project<notko_hlist::Arr<2>>>::Prod = PCons { head: [0; 2], tail: PNil };
     let _ = <Lanes as SubOf<ColMut<'_>, Lanes, _>>::sub(&<Lanes as Arrays<2>>::cols_mut(&mut a));
 }

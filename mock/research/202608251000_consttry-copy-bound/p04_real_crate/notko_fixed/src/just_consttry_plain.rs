@@ -6,11 +6,10 @@
 //! Plain-variant ConstTry / ConstFromResidual impls on `Just<T>`.
 //! Loaded only when feature `const` is disabled.
 
-use core::convert::Infallible;
-use core::ops::ControlFlow;
-
 use super::Just;
 use crate::{ConstFromResidual, ConstTry};
+use core::convert::Infallible;
+use core::ops::ControlFlow;
 
 impl<T> ConstTry for Just<T> {
     type Output = T;

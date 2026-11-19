@@ -1,7 +1,7 @@
 // A member nowhere in the list has no place in it. Without this the positive
 // cases pass equally well for a `PlaceOf` answering `Here` for everything.
 
-use notko_hlist::{Cons, Empty, Place, PlaceOf};
+use notko_hlist::{Cons, Empty, PlaceOf, Place};
 
 struct A;
 struct B;

@@ -16,7 +16,6 @@
 #![cfg_attr(feature = "const", feature(const_convert))]
 
 use core::borrow::{Borrow, BorrowMut};
-
 use notko::Just;
 
 #[derive(PartialEq, Eq, Debug)]
@@ -50,10 +49,7 @@ fn borrow_agrees_with_deref() {
     let j = Just::new(NotCopy(4));
     let b: &NotCopy = j.borrow();
     assert_eq!(b, &*j);
-    assert!(
-        core::ptr::eq(b, &*j),
-        "borrow and deref name the same storage"
-    );
+    assert!(core::ptr::eq(b, &*j), "borrow and deref name the same storage");
 }
 
 #[test]
@@ -68,10 +64,7 @@ fn inherent_as_ref_still_wins_and_returns_the_functor_shape() {
 #[test]
 fn borrow_mut_writes_through() {
     let mut j = Just::new(NotCopy(0));
-    {
-        let m: &mut NotCopy = j.borrow_mut();
-        m.0 = 6;
-    }
+    { let m: &mut NotCopy = j.borrow_mut(); m.0 = 6; }
     assert_eq!(*j, NotCopy(6));
 }
 

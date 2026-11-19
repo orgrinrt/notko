@@ -5,13 +5,9 @@
 #![feature(const_destruct)]
 #![feature(const_trait_impl)]
 struct Moose;
-impl Drop for Moose {
-    fn drop(&mut self) {}
-}
+impl Drop for Moose { fn drop(&mut self) {} }
 struct RealDropper<T>(T);
-const impl<T> Drop for RealDropper<T> {
-    fn drop(&mut self) {}
-}
+impl<T> const Drop for RealDropper<T> { fn drop(&mut self) {} }
 const fn foo(_var: RealDropper<Moose>) {}
 const _: () = foo(RealDropper(Moose));
 fn main() {}

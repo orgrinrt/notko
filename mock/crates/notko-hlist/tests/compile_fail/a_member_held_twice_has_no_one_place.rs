@@ -2,7 +2,7 @@
 // to inference cannot pick one. That ambiguity is the refusal a consumer gets
 // for naming one member twice where it meant one place.
 
-use notko_hlist::{Cons, Empty, Place, PlaceOf};
+use notko_hlist::{Cons, Empty, PlaceOf, Place};
 
 struct A;
 struct B;

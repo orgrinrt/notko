@@ -1,6 +1,6 @@
 // The twin: the same call, for a member the list holds.
 
-use notko_hlist::{Cons, Empty, Place, PlaceOf};
+use notko_hlist::{Cons, Empty, PlaceOf, Place};
 
 struct A;
 struct B;

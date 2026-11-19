@@ -13,9 +13,8 @@ struct Pct(u8);
 
 impl Boundable for Pct {
     type Inner = u8;
-
-    const MAX: u8 = 100;
     const MIN: u8 = 10;
+    const MAX: u8 = 100;
 
     fn try_new(value: u8) -> Outcome<Self, BoundError<u8>> {
         if value < Self::MIN {
@@ -51,10 +50,7 @@ fn below_min_rejects_with_below_variant() {
         Outcome::Ok(_) => panic!("0 must reject"),
         Outcome::Err(e) => e,
     };
-    assert_eq!(err, BoundError::Below {
-        value: 0,
-        min:   10,
-    },);
+    assert_eq!(err, BoundError::Below { value: 0, min: 10 },);
 }
 
 #[test]
@@ -63,10 +59,13 @@ fn above_max_rejects_with_above_variant() {
         Outcome::Ok(_) => panic!("200 must reject"),
         Outcome::Err(e) => e,
     };
-    assert_eq!(err, BoundError::Above {
-        value: 200,
-        max:   100,
-    },);
+    assert_eq!(
+        err,
+        BoundError::Above {
+            value: 200,
+            max: 100,
+        },
+    );
 }
 
 #[test]
@@ -80,10 +79,7 @@ fn value_round_trips() {
 
 #[test]
 fn bound_error_clone_and_eq() {
-    let err: BoundError<u8> = BoundError::Below {
-        value: 5,
-        min:   10,
-    };
+    let err: BoundError<u8> = BoundError::Below { value: 5, min: 10 };
     // The clone call is what this test is about, so clippy's suggestion to
     // drop it would leave `assert_eq!(err, err)` behind.
     #[allow(clippy::clone_on_copy)]
@@ -92,17 +88,14 @@ fn bound_error_clone_and_eq() {
 
     let other: BoundError<u8> = BoundError::Above {
         value: 200,
-        max:   100,
+        max: 100,
     };
     assert!(err != other);
 }
 
 #[test]
 fn bound_error_debug_renders_field_names() {
-    let err: BoundError<u8> = BoundError::Below {
-        value: 5,
-        min:   10,
-    };
+    let err: BoundError<u8> = BoundError::Below { value: 5, min: 10 };
     let rendered = format!("{err:?}");
     assert!(rendered.contains("Below"));
     assert!(rendered.contains("value"));
@@ -118,7 +111,7 @@ fn bound_error_works_with_clone_only_inner() {
 
     let err: BoundError<CloneOnly> = BoundError::Above {
         value: CloneOnly(99),
-        max:   CloneOnly(50),
+        max: CloneOnly(50),
     };
     let cloned = err.clone();
     assert_eq!(err, cloned);
@@ -137,9 +130,8 @@ fn boundable_trait_accepts_non_copy_inner() {
 
     impl Boundable for Wrapped {
         type Inner = CloneOnly;
-
-        const MAX: CloneOnly = CloneOnly(100);
         const MIN: CloneOnly = CloneOnly(10);
+        const MAX: CloneOnly = CloneOnly(100);
 
         fn try_new(value: CloneOnly) -> Outcome<Self, BoundError<CloneOnly>> {
             if value.0 < Self::MIN.0 {
@@ -171,8 +163,11 @@ fn boundable_trait_accepts_non_copy_inner() {
         Outcome::Ok(_) => panic!("0 must reject"),
         Outcome::Err(e) => e,
     };
-    assert_eq!(below, BoundError::Below {
-        value: CloneOnly(0),
-        min:   CloneOnly(10),
-    },);
+    assert_eq!(
+        below,
+        BoundError::Below {
+            value: CloneOnly(0),
+            min: CloneOnly(10),
+        },
+    );
 }

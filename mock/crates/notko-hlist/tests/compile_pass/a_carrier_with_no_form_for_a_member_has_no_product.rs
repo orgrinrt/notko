@@ -1,6 +1,6 @@
 // The twin: the carrier states a form for `Heat` too.
 
-use notko_hlist::{Cons, Empty, Form, PCons, PNil, PerMember, Project, Shape};
+use notko_hlist::{Form, PerMember, Shape, Cons, Empty, PCons, PNil, Project};
 
 struct Pos;
 struct Heat;

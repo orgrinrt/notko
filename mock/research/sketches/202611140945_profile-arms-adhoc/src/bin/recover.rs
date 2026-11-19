@@ -8,9 +8,7 @@ fn main() {
     } else {
         "debug arm"
     };
-    println!(
-        "{arm}: calling a hot function with an input its check refuses, from a caller that tests is_err()"
-    );
+    println!("{arm}: calling a hot function with an input its check refuses, from a caller that tests is_err()");
     // 9 is over the limit of 5, so the source's `Err` path is taken.
     let v = profile_arms_adhoc::caller_recovers(std::hint::black_box(9), std::hint::black_box(5));
     println!("{arm}: the caller recovered and returned {v}");

@@ -4,13 +4,6 @@
 use core::marker::Destruct;
 const fn consume<T: [const] Destruct>(_t: T) {}
 struct HasDrop;
-const impl Drop for HasDrop {
-    fn drop(&mut self) {}
-}
-const fn use_it() {
-    consume(HasDrop);
-    consume(5u8);
-}
-fn main() {
-    use_it();
-}
+impl const Drop for HasDrop { fn drop(&mut self) {} }
+const fn use_it() { consume(HasDrop); consume(5u8); }
+fn main() { use_it(); }

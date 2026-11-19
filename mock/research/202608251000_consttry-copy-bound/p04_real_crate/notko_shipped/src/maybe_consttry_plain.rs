@@ -6,11 +6,10 @@
 //! Plain-variant ConstTry / ConstFromResidual impls on `Maybe<T>`.
 //! Loaded only when feature `const` is disabled.
 
-use core::convert::Infallible;
-use core::ops::ControlFlow;
-
 use super::Maybe;
 use crate::{ConstFromResidual, ConstTry};
+use core::convert::Infallible;
+use core::ops::ControlFlow;
 
 impl<T> ConstTry for Maybe<T> {
     type Output = T;

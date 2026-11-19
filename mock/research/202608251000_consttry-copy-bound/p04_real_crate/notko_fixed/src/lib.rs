@@ -140,7 +140,8 @@ pub use ctor::HasTrivialCtor;
 pub use just::{Just, JustIter};
 pub use maybe::{Maybe, MaybeIter, MaybeNull, NicheFilled};
 pub use nonzero::NonZeroable;
-#[cfg(feature = "macros")]
-pub use notko_macros::profile;
 pub use outcome::Outcome;
 pub use slot::Slot;
+
+#[cfg(feature = "macros")]
+pub use notko_macros::profile;

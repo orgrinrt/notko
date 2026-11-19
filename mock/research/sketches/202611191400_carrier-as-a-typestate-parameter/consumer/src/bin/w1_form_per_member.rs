@@ -13,9 +13,7 @@ impl Elem for Heat {
 }
 type Lanes = Cons<Pos, Cons<Heat, Empty>>;
 
-fn store_of<'f, L: Has<Read<'f>, Store, P>, P: Place>(
-    p: &<L as Project<Read<'f>>>::Prod,
-) -> &'f Seq {
+fn store_of<'f, L: Has<Read<'f>, Store, P>, P: Place>(p: &<L as Project<Read<'f>>>::Prod) -> &'f Seq {
     *L::pick(p)
 }
 
@@ -53,20 +51,10 @@ fn main() {
             },
         };
         let s = store_of::<Reads, _>(&read);
-        assert!(
-            core::ptr::eq(s, &seq),
-            "the field is the borrow, not a copy"
-        );
-        println!(
-            "resource read by member: {:?} of {}",
-            &s.items[.. s.len],
-            s.len
-        );
+        assert!(core::ptr::eq(s, &seq), "the field is the borrow, not a copy");
+        println!("resource read by member: {:?} of {}", &s.items[..s.len], s.len);
         let w = <Reads as Has<Read<'_>, Near, _>>::pick(&read);
-        println!(
-            "window read by member: centre {} is {}",
-            w.centre, w.column[w.centre]
-        );
+        println!("window read by member: centre {} is {}", w.centre, w.column[w.centre]);
         let v = <Reads as Has<Read<'_>, Pos, _>>::pick(&read);
         println!("value read by member: {v}");
     }
@@ -82,9 +70,6 @@ fn main() {
     };
     let cols: <Lanes as Project<Col<'_>>>::Prod = <Lanes as Cols<2>>::cols(&arr);
     let row = <Lanes as Rows<Col<'_>>>::read_row(&cols, 1);
-    println!(
-        "row through the column walk: {} {}",
-        row.head, row.tail.head
-    );
+    println!("row through the column walk: {} {}", row.head, row.tail.head);
     println!("the frame ended and the read product with it");
 }

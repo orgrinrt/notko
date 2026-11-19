@@ -1,6 +1,6 @@
 // The twin: the member `At` names at the front.
 
-use notko_hlist::{Cons, Empty, Here, Place, PlaceOf};
+use notko_hlist::{Cons, Empty, PlaceOf, Here, Place};
 
 struct A;
 struct B;

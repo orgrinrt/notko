@@ -1,6 +1,6 @@
 // The twin: the same carrier on both sides.
 
-use notko_hlist::{Cons, Elem, Empty, Form, PCons, PNil, PerMember, Project, Shape};
+use notko_hlist::{Form, PerMember, Shape, Cons, Elem, Empty, PCons, PNil, Project};
 
 struct Pos;
 impl Elem for Pos {

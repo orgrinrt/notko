@@ -1,7 +1,7 @@
 // The twin: the same list with its second member another type, so `A` has
 // one place.
 
-use notko_hlist::{Cons, Empty, Place, PlaceOf};
+use notko_hlist::{Cons, Empty, PlaceOf, Place};
 
 struct A;
 struct B;

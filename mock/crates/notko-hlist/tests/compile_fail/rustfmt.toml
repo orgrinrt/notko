@@ -1,0 +1,3 @@
+# Committed evidence and trybuild cases are kept byte for byte: their recorded
+# compiler output quotes their lines, so no formatter touches them.
+disable_all_formatting = true

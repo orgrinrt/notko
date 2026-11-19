@@ -1,6 +1,6 @@
 // The twin: the carrier states its form, and the product is the crate's own.
 
-use notko_hlist::{Cons, Empty, Form, PCons, PNil, PerMember, Project, Shape};
+use notko_hlist::{Form, PerMember, Shape, Cons, Empty, PCons, PNil, Project};
 
 struct Mine;
 struct Read;

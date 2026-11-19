@@ -10,9 +10,6 @@ impl Elem for Pos {
 type Lanes = Cons<Pos, Empty>;
 
 fn main() {
-    let a: <Lanes as Project<notko_hlist::Arr<2>>>::Prod = PCons {
-        head: [0; 2],
-        tail: PNil,
-    };
+    let a: <Lanes as Project<notko_hlist::Arr<2>>>::Prod = PCons { head: [0; 2], tail: PNil };
     let _ = <Lanes as SubOf<Col<'_>, Lanes, _>>::sub(&<Lanes as Arrays<2>>::cols(&a));
 }

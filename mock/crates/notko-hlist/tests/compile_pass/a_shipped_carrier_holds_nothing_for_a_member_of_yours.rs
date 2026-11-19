@@ -13,9 +13,6 @@ impl Form<Res> for Mine {
 }
 
 fn main() {
-    let p: <Cons<Res, Empty> as Project<Mine>>::Prod = PCons {
-        head: "a",
-        tail: PNil,
-    };
+    let p: <Cons<Res, Empty> as Project<Mine>>::Prod = PCons { head: "a", tail: PNil };
     let _ = <Cons<Res, Empty> as Has<Mine, Res, _>>::pick(&p);
 }

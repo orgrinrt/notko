@@ -19,8 +19,7 @@ use crate::Maybe;
 /// vocabulary of this crate:
 ///
 /// ```
-/// use notko::Maybe;
-/// use notko::iter::IteratorExt;
+/// use notko::{Maybe, iter::IteratorExt};
 ///
 /// let mut it = [1, 2, 3].into_iter();
 /// match it.next_maybe() {

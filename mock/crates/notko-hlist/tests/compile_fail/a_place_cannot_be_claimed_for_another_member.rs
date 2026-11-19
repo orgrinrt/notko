@@ -2,7 +2,7 @@
 // names there and no other. Asked for `B` at the front of a list whose front
 // is `A`, it refuses rather than answering the place it was handed.
 
-use notko_hlist::{Cons, Empty, Here, Place, PlaceOf};
+use notko_hlist::{Cons, Empty, PlaceOf, Here, Place};
 
 struct A;
 struct B;

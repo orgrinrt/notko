@@ -6,12 +6,11 @@
 //! Const-variant ConstTry / ConstFromResidual impls on `Maybe<T>`.
 //! Loaded only when feature `const` is enabled.
 
+use super::Maybe;
+use crate::{ConstFromResidual, ConstTry};
 use core::convert::Infallible;
 use core::marker::Destruct;
 use core::ops::ControlFlow;
-
-use super::Maybe;
-use crate::{ConstFromResidual, ConstTry};
 
 const impl<T: [const] Destruct> ConstTry for Maybe<T> {
     type Output = T;

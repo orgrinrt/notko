@@ -45,22 +45,12 @@ fn main() {
         };
 
         let s = store_of::<Reads, _>(&read);
-        assert!(
-            core::ptr::eq(s, &seq),
-            "the field is the borrow, not a copy"
-        );
-        println!(
-            "resource read by member: {:?} of {}",
-            &s.items[.. s.len],
-            s.len
-        );
+        assert!(core::ptr::eq(s, &seq), "the field is the borrow, not a copy");
+        println!("resource read by member: {:?} of {}", &s.items[..s.len], s.len);
 
         let w = window_of::<Reads, _>(&read);
         assert!(core::ptr::eq(w.column, &column[..]));
-        println!(
-            "window read by member: centre {} is {}",
-            w.centre, w.column[w.centre]
-        );
+        println!("window read by member: centre {} is {}", w.centre, w.column[w.centre]);
 
         let pos: i32 = <Reads as HasBy<Read<'_>, Pos, _>>::pick(&read);
         println!("value read by member: {pos}");

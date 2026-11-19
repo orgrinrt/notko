@@ -21,9 +21,6 @@ type Reads = Cons<Count, Empty>;
 
 fn main() {
     let n = 0;
-    let p: <Reads as Project<Read<'_>>>::Prod = PCons {
-        head: &n,
-        tail: PNil,
-    };
+    let p: <Reads as Project<Read<'_>>>::Prod = PCons { head: &n, tail: PNil };
     let _ = <Reads as SubOf<Read<'_>, Reads, _>>::sub(&p);
 }

@@ -11,10 +11,9 @@
 //! no absent case for it to panic on. `Maybe` and `Outcome` deliberately get no
 //! `Deref`, because theirs would have to invent a value for the empty variant.
 
+use super::Just;
 use core::borrow::{Borrow, BorrowMut};
 use core::ops::{Deref, DerefMut};
-
-use super::Just;
 
 const impl<T> Deref for Just<T> {
     type Target = T;

@@ -102,15 +102,13 @@ fn product_read_row_put_one(cols: &mut Cols<'_>, n: usize) {
 fn product_destructured(cols: &mut Cols<'_>) {
     let PCons {
         head: a,
-        tail:
-            PCons {
-                head: b,
-                tail:
-                    PCons {
-                        head: c,
-                        tail: PNil,
-                    },
+        tail: PCons {
+            head: b,
+            tail: PCons {
+                head: c,
+                tail: PNil,
             },
+        },
     } = cols;
     for ((a, b), c) in a.iter().zip(b.iter()).zip(c.iter_mut()) {
         *c = kernel(*a, *b);
@@ -151,12 +149,7 @@ fn report(name: &str, n: usize, mut pass: impl FnMut()) {
         *s = t.elapsed().as_nanos() as f64 / (passes * n) as f64;
     }
     samples.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    println!(
-        "| {name} | {n} | {:.3} | {:.3} | {:.3} |",
-        samples[0],
-        samples[SAMPLES / 2],
-        samples[SAMPLES - 1]
-    );
+    println!("| {name} | {n} | {:.3} | {:.3} | {:.3} |", samples[0], samples[SAMPLES / 2], samples[SAMPLES - 1]);
 }
 
 fn fill(v: &mut [u32], mut s: u32) {
@@ -169,9 +162,7 @@ fn fill(v: &mut [u32], mut s: u32) {
 }
 
 fn main() {
-    println!(
-        "map over rows, c = a * 3 + b, three u32 columns; nanoseconds per row, {SAMPLES} samples"
-    );
+    println!("map over rows, c = a * 3 + b, three u32 columns; nanoseconds per row, {SAMPLES} samples");
     println!();
     println!("| arm | rows | min | median | max |");
     println!("|---|---|---|---|---|");
@@ -180,18 +171,12 @@ fn main() {
         let mut a = vec![0u32; n];
         let mut b = vec![0u32; n];
         let mut c = vec![0u32; n];
-        fill(&mut a, 0x9E37_79B9);
-        fill(&mut b, 0x85EB_CA6B);
+        fill(&mut a, 0x9e37_79b9);
+        fill(&mut b, 0x85eb_ca6b);
 
-        report("slices, zip", n, || {
-            zip(black_box(&a), black_box(&b), black_box(&mut c))
-        });
-        report("slices, indexed, lengths asserted", n, || {
-            indexed(black_box(&a), black_box(&b), black_box(&mut c))
-        });
-        report("slices, unchecked", n, || {
-            unchecked(black_box(&a), black_box(&b), black_box(&mut c))
-        });
+        report("slices, zip", n, || zip(black_box(&a), black_box(&b), black_box(&mut c)));
+        report("slices, indexed, lengths asserted", n, || indexed(black_box(&a), black_box(&b), black_box(&mut c)));
+        report("slices, unchecked", n, || unchecked(black_box(&a), black_box(&b), black_box(&mut c)));
         let check = c.iter().fold(0u32, |s, x| s.wrapping_add(*x));
 
         report("product, read_row and write_row", n, || {
@@ -251,10 +236,8 @@ fn main() {
             },
         };
         let mut cols = L::made::<N>(&row);
-        fill(&mut cols.head, 0x9E37_79B9);
-        fill(&mut cols.tail.head, 0x85EB_CA6B);
-        report("product over Arr<N>, read_row and write_row", N, || {
-            product_arrays::<N>(black_box(&mut cols))
-        });
+        fill(&mut cols.head, 0x9e37_79b9);
+        fill(&mut cols.tail.head, 0x85eb_ca6b);
+        report("product over Arr<N>, read_row and write_row", N, || product_arrays::<N>(black_box(&mut cols)));
     }
 }

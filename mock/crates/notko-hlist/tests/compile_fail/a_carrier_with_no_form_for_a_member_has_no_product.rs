@@ -1,7 +1,7 @@
 // A product holds a field for every member, so a carrier stating no form for
 // one of them has no product for the list.
 
-use notko_hlist::{Cons, Empty, Form, PCons, PNil, PerMember, Project, Shape};
+use notko_hlist::{Form, PerMember, Shape, Cons, Empty, PCons, PNil, Project};
 
 struct Pos;
 struct Heat;

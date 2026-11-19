@@ -3,11 +3,7 @@
 // Q: is that const-callable from a downstream crate on this pin?
 #![feature(const_trait_impl, const_destruct)]
 struct HasDrop;
-const impl Drop for HasDrop {
-    fn drop(&mut self) {}
-}
-const fn go() {
-    core::mem::drop(HasDrop);
-}
+impl const Drop for HasDrop { fn drop(&mut self) {} }
+const fn go() { core::mem::drop(HasDrop); }
 const _: () = go();
 fn main() {}

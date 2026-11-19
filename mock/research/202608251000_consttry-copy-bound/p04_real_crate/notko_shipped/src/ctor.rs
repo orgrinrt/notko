@@ -30,5 +30,6 @@ mod plain_path;
 
 #[cfg(feature = "const")]
 pub use const_path::HasTrivialCtor;
+
 #[cfg(not(feature = "const"))]
 pub use plain_path::HasTrivialCtor;

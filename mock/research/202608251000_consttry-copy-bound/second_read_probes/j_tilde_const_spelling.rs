@@ -4,10 +4,8 @@
 // site (core/src/intrinsics/mod.rs), so the spelling is expected to be live.
 #![feature(const_trait_impl, const_destruct)]
 use core::marker::Destruct;
-const fn consume<T: [const] Destruct>(_t: T) {}
+const fn consume<T: ~const Destruct>(_t: T) {}
 struct HasDrop;
-const impl Drop for HasDrop {
-    fn drop(&mut self) {}
-}
+impl const Drop for HasDrop { fn drop(&mut self) {} }
 const _: () = consume(HasDrop);
 fn main() {}

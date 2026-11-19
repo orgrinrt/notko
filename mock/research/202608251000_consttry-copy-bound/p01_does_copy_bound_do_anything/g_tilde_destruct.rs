@@ -1,9 +1,9 @@
 #![feature(const_trait_impl, const_destruct)]
 #![no_std]
 #![crate_type = "lib"]
+use core::ops::ControlFlow;
 use core::convert::Infallible;
 use core::marker::Destruct;
-use core::ops::ControlFlow;
 pub struct Just<T>(pub T);
 pub const trait ConstTry {
     type Output;
@@ -11,14 +11,10 @@ pub const trait ConstTry {
     fn from_output(output: Self::Output) -> Self;
     fn branch(self) -> ControlFlow<Self::Residual, Self::Output>;
 }
-const impl<T: [const] Destruct> ConstTry for Just<T> {
+const impl<T: ~const Destruct> ConstTry for Just<T> {
     type Output = T;
     type Residual = Infallible;
-
-    fn from_output(output: Self::Output) -> Self {
-        Just(output)
-    }
-
+    fn from_output(output: Self::Output) -> Self { Just(output) }
     fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
         ControlFlow::Continue(self.0)
     }

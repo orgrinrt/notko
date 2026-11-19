@@ -10,16 +10,8 @@ use std::env;
 use std::process::Command;
 use std::time::Instant;
 
-const QUERIES: &[&str] = &[
-    "base",
-    "length",
-    "contains_last",
-    "contains_all",
-    "pick_last",
-    "pick_all",
-    "sub_rev",
-    "project",
-];
+const QUERIES: &[&str] =
+    &["base", "length", "contains_last", "contains_all", "pick_last", "pick_all", "sub_rev", "project"];
 
 fn run(mode: &str, q: &str, n: usize, salt: u64) -> Result<f64, String> {
     let t = Instant::now();
@@ -39,11 +31,7 @@ fn run(mode: &str, q: &str, n: usize, salt: u64) -> Result<f64, String> {
         Ok(ms)
     } else {
         let err = String::from_utf8_lossy(&out.stderr);
-        let first = err
-            .lines()
-            .find(|l| l.starts_with("error"))
-            .unwrap_or("error")
-            .to_string();
+        let first = err.lines().find(|l| l.starts_with("error")).unwrap_or("error").to_string();
         Err(first.chars().take(140).collect())
     }
 }
@@ -64,10 +52,7 @@ fn main() {
             .expect("cargo could not be run");
         for l in String::from_utf8_lossy(&out.stderr).lines() {
             if l.contains("Dirty") || l.contains("Fresh") || l.contains("Finished") {
-                println!(
-                    "sub_rev at {n}: {}",
-                    l.trim().chars().take(150).collect::<String>()
-                );
+                println!("sub_rev at {n}: {}", l.trim().chars().take(150).collect::<String>());
             }
         }
         match run("check", "absent", n, 1) {
@@ -114,11 +99,7 @@ fn main() {
                 Some(e) => println!("| {q} | {n} | fails | {e} |"),
                 None => {
                     times.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                    println!(
-                        "| {q} | {n} | {:.0} | {:.0} |",
-                        times[0],
-                        times[times.len() / 2]
-                    );
+                    println!("| {q} | {n} | {:.0} | {:.0} |", times[0], times[times.len() / 2]);
                 },
             }
         }

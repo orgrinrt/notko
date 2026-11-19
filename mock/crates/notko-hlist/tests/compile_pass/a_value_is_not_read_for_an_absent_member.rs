@@ -16,13 +16,7 @@ impl Elem for Absent {
 }
 
 fn main() {
-    let row = Vals::<Cons<Pos, Cons<Heat, Empty>>>(PCons {
-        head: 1,
-        tail: PCons {
-            head: 2,
-            tail: PNil,
-        },
-    });
+    let row = Vals::<Cons<Pos, Cons<Heat, Empty>>>(PCons { head: 1, tail: PCons { head: 2, tail: PNil } });
     let _ = row.get(Heat);
     let _ = Absent;
 }

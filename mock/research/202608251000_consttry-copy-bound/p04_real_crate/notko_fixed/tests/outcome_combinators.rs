@@ -5,7 +5,8 @@
 
 //! Smoke tests for the Outcome combinator surface.
 
-use notko::{Maybe, Outcome};
+use notko::Maybe;
+use notko::Outcome;
 
 #[test]
 fn as_ref_and_as_mut() {

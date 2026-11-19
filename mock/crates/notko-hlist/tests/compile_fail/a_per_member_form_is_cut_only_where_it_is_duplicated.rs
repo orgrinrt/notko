@@ -18,9 +18,6 @@ type Writes = Cons<Count, Empty>;
 
 fn main() {
     let mut n = 0;
-    let p: <Writes as Project<Write<'_>>>::Prod = PCons {
-        head: &mut n,
-        tail: PNil,
-    };
+    let p: <Writes as Project<Write<'_>>>::Prod = PCons { head: &mut n, tail: PNil };
     let _ = <Writes as SubOf<Write<'_>, Writes, _>>::sub(&p);
 }

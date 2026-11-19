@@ -74,10 +74,7 @@ fn main() {
         let read = frame(&pos, &heat, &table);
 
         let t = table_of::<Lanes, _>(&read);
-        assert!(
-            core::ptr::eq(t, &table),
-            "the field is the borrow, not a copy"
-        );
+        assert!(core::ptr::eq(t, &table), "the field is the borrow, not a copy");
         println!("table read by member through the borrowed product: {t:?}");
         println!("heat read by field: {}", read.tail.head);
 

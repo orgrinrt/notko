@@ -3,7 +3,7 @@
 
 use core::marker::PhantomData;
 
-use notko_hlist::{Cons, Empty, Form, Has, PCons, PNil, PerMember, Project, Shape};
+use notko_hlist::{Form, PerMember, Shape, Cons, Empty, Has, PCons, PNil, Project};
 
 struct Seq {
     len: usize,

@@ -20,7 +20,6 @@
 
 use core::convert::Infallible;
 use core::ops::ControlFlow;
-
 use notko::{ConstFromResidual, ConstTry, Just, Maybe, Outcome};
 
 /// Not `Copy`, and no destructor. The type the `const` feature used to refuse.
@@ -58,11 +57,9 @@ const _MAYBE_NOTCOPY_IS: () = {
 const _MAYBE_NOTCOPY_ISNT: () = {
     match <Maybe<NotCopy> as ConstTry>::branch(Maybe::Isnt) {
         ControlFlow::Continue(_) => panic!("Maybe::Isnt should Break"),
-        ControlFlow::Break(residual) => {
-            match residual {
-                Maybe::Isnt => {},
-                Maybe::Is(_) => panic!("residual should be Isnt"),
-            }
+        ControlFlow::Break(residual) => match residual {
+            Maybe::Isnt => {}
+            Maybe::Is(_) => panic!("residual should be Isnt"),
         },
     }
 };
@@ -86,11 +83,9 @@ const _OUTCOME_NOTCOPY_OK: () = {
 const _OUTCOME_NOTCOPY_ERR: () = {
     match <Outcome<NotCopy, NotCopy> as ConstTry>::branch(Outcome::Err(NotCopy(7))) {
         ControlFlow::Continue(_) => panic!("Outcome::Err should Break"),
-        ControlFlow::Break(residual) => {
-            match residual {
-                Outcome::Err(e) => assert!(e.0 == 7),
-                Outcome::Ok(_) => panic!("residual should be Err"),
-            }
+        ControlFlow::Break(residual) => match residual {
+            Outcome::Err(e) => assert!(e.0 == 7),
+            Outcome::Ok(_) => panic!("residual should be Err"),
         },
     }
 };
@@ -100,16 +95,15 @@ const _OUTCOME_NOTCOPY_ERR: () = {
 // in the reflexive `E == F` shape the shipped const impl supports.
 const _OUTCOME_FROM_RESIDUAL_REFLEXIVE: () = {
     let residual: Outcome<Infallible, NotCopy> = Outcome::Err(NotCopy(9));
-    let o: Outcome<u32, NotCopy> = <Outcome<u32, NotCopy> as ConstFromResidual<
-        Outcome<Infallible, NotCopy>,
-    >>::from_residual(residual);
+    let o: Outcome<u32, NotCopy> =
+        <Outcome<u32, NotCopy> as ConstFromResidual<Outcome<Infallible, NotCopy>>>::from_residual(
+            residual,
+        );
     match <Outcome<u32, NotCopy> as ConstTry>::branch(o) {
         ControlFlow::Continue(_) => panic!("from_residual(Err) should Break"),
-        ControlFlow::Break(residual) => {
-            match residual {
-                Outcome::Err(e) => assert!(e.0 == 9),
-                Outcome::Ok(_) => panic!("residual should be Err"),
-            }
+        ControlFlow::Break(residual) => match residual {
+            Outcome::Err(e) => assert!(e.0 == 9),
+            Outcome::Ok(_) => panic!("residual should be Err"),
         },
     }
 };
@@ -121,3 +115,4 @@ const _JUST_FROM_RESIDUAL_NOTCOPY: () = {
         <Just<NotCopy> as ConstFromResidual<Infallible>>::from_residual(r)
     };
 };
+

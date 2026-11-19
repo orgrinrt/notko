@@ -1,7 +1,7 @@
 //! Expected to fail: the twin of `w1`, whose read product is kept past the
 //! frame its borrows come from.
 
-use consumer::{Read, Seq, Store};
+use consumer::{Seq, Store, Read};
 use model::{Cons, Empty, Has, PCons, PNil, Project};
 
 type Res = Cons<Store, Empty>;

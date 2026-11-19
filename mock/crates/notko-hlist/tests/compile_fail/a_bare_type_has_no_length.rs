@@ -12,7 +12,6 @@ struct Count(usize);
 
 const impl Cardinal for Count {
     const ZERO: Self = Count(0);
-
     fn succ(self) -> Self {
         Count(self.0 + 1)
     }

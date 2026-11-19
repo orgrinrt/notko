@@ -15,7 +15,7 @@ use profile_arms_adhoc::*;
 const N: usize = 4096;
 const PASSES: usize = 2048;
 const SAMPLES: usize = 15;
-const LIM: u32 = 0x7FFF_FFFF;
+const LIM: u32 = 0x7fff_ffff;
 
 macro_rules! loops {
     // carriers that support `?`
@@ -97,18 +97,13 @@ fn measure<R>(name: &str, shape: &str, data: &[u32], f: impl Fn(&[u32], u32) -> 
         *s = t.elapsed().as_nanos() as f64 / (PASSES * N) as f64;
     }
     samples.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    println!(
-        "| {name} | {shape} | {:.3} | {:.3} | {:.3} |",
-        samples[0],
-        samples[SAMPLES / 2],
-        samples[SAMPLES - 1]
-    );
+    println!("| {name} | {shape} | {:.3} | {:.3} | {:.3} |", samples[0], samples[SAMPLES / 2], samples[SAMPLES - 1]);
 }
 
 fn main() {
     // A fixed xorshift fill, every value at or under the limit.
     let mut data = [0u32; N];
-    let mut s = 0x9E37_79B9u32;
+    let mut s = 0x9e37_79b9u32;
     for d in &mut data {
         s ^= s << 13;
         s ^= s >> 17;
@@ -122,9 +117,7 @@ fn main() {
         "debug arm (feature internal off or debug assertions on)"
     };
     println!("profile arm this binary was built in: {arm}");
-    println!(
-        "elements {N}, passes per sample {PASSES}, samples {SAMPLES}; nanoseconds per element"
-    );
+    println!("elements {N}, passes per sample {PASSES}, samples {SAMPLES}; nanoseconds per element");
     println!();
     println!("| arm | loop | min | median | max |");
     println!("|---|---|---|---|---|");
@@ -141,45 +134,17 @@ fn main() {
     run!("core Result, inlined", result_inl_sum, result_inl_chain);
     run!("core Result, call", result_noinl_sum, result_noinl_chain);
     run!("notko Outcome, inlined", outcome_inl_sum, outcome_inl_chain);
-    run!(
-        "notko Outcome, call",
-        outcome_noinl_sum,
-        outcome_noinl_chain
-    );
+    run!("notko Outcome, call", outcome_noinl_sum, outcome_noinl_chain);
     run!("core Option, inlined", option_inl_sum, option_inl_chain);
     run!("core Option, call", option_noinl_sum, option_noinl_chain);
     run!("notko Maybe, inlined", maybe_inl_sum, maybe_inl_chain);
     run!("notko Maybe, call", maybe_noinl_sum, maybe_noinl_chain);
-    run!(
-        "notko Just with panic, inlined",
-        just_inl_sum,
-        just_inl_chain
-    );
-    run!(
-        "notko Just with panic, call",
-        just_noinl_sum,
-        just_noinl_chain
-    );
-    run!(
-        "core Result, wide error, inlined",
-        result_wide_inl_sum,
-        result_wide_inl_chain
-    );
-    run!(
-        "core Result, wide error, call",
-        result_wide_noinl_sum,
-        result_wide_noinl_chain
-    );
-    run!(
-        "notko Outcome, wide error, inlined",
-        outcome_wide_inl_sum,
-        outcome_wide_inl_chain
-    );
-    run!(
-        "notko Outcome, wide error, call",
-        outcome_wide_noinl_sum,
-        outcome_wide_noinl_chain
-    );
+    run!("notko Just with panic, inlined", just_inl_sum, just_inl_chain);
+    run!("notko Just with panic, call", just_noinl_sum, just_noinl_chain);
+    run!("core Result, wide error, inlined", result_wide_inl_sum, result_wide_inl_chain);
+    run!("core Result, wide error, call", result_wide_noinl_sum, result_wide_noinl_chain);
+    run!("notko Outcome, wide error, inlined", outcome_wide_inl_sum, outcome_wide_inl_chain);
+    run!("notko Outcome, wide error, call", outcome_wide_noinl_sum, outcome_wide_noinl_chain);
     run!("#[profile(Hot)]", macro_hot_sum, macro_hot_chain);
     run!("#[profile(Cold)]", macro_cold_sum, macro_cold_chain);
     run!("#[profile(Warm)]", macro_warm_sum, macro_warm_chain);

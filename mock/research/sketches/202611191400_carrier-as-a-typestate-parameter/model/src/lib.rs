@@ -48,12 +48,12 @@ impl<const N: usize> Uniform for Arr<N> {
 pub const trait ByRow: Uniform {
     fn at<E: Elem>(c: &Self::Of<E>, i: usize) -> E::Value;
 }
-const impl<'a> ByRow for Col<'a> {
+impl<'a> const ByRow for Col<'a> {
     fn at<E: Elem>(c: &Self::Of<E>, i: usize) -> E::Value {
         c[i]
     }
 }
-const impl<const N: usize> ByRow for Arr<N> {
+impl<const N: usize> const ByRow for Arr<N> {
     fn at<E: Elem>(c: &Self::Of<E>, i: usize) -> E::Value {
         c[i]
     }
@@ -77,13 +77,11 @@ pub trait Project<C>: List {
 
 impl<C> Project<C> for Empty {
     type Prod = PNil;
-
     fn sealed(_: seal::Token) {}
 }
 
 impl<C: Carrier<H>, H, T: Project<C>> Project<C> for Cons<H, T> {
     type Prod = PCons<C, H, T::Prod>;
-
     fn sealed(_: seal::Token) {}
 }
 
@@ -92,13 +90,13 @@ pub const trait Has<C: Carrier<M>, M, P: Place>: Project<C> + PlaceOf<M, P> {
     fn pick(p: &Self::Prod) -> &<C as Carrier<M>>::Of;
 }
 
-const impl<C: Carrier<M>, M, T: Project<C>> Has<C, M, Here> for Cons<M, T> {
+impl<C: Carrier<M>, M, T: Project<C>> const Has<C, M, Here> for Cons<M, T> {
     fn pick(p: &Self::Prod) -> &<C as Carrier<M>>::Of {
         &p.head
     }
 }
 
-const impl<C, H, M, P, T> Has<C, M, There<P>> for Cons<H, T>
+impl<C, H, M, P, T> const Has<C, M, There<P>> for Cons<H, T>
 where
     C: Carrier<H> + Carrier<M>,
     P: Place,
@@ -117,7 +115,7 @@ pub const trait Rows<C: Uniform>: Project<C> + Project<Val> {
         C: [const] ByRow;
 }
 
-const impl<C: Uniform> Rows<C> for Empty {
+impl<C: Uniform> const Rows<C> for Empty {
     fn read_row(_: &PNil, _: usize) -> PNil
     where
         C: [const] ByRow,
@@ -126,7 +124,7 @@ const impl<C: Uniform> Rows<C> for Empty {
     }
 }
 
-const impl<C: Uniform, H: Elem, T: [const] Rows<C>> Rows<C> for Cons<H, T> {
+impl<C: Uniform, H: Elem, T: [const] Rows<C>> const Rows<C> for Cons<H, T> {
     fn read_row(p: &<Self as Project<C>>::Prod, i: usize) -> <Self as Project<Val>>::Prod
     where
         C: [const] ByRow,
