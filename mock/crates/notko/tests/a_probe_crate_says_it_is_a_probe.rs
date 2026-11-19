@@ -131,3 +131,71 @@ fn the_checks_above_can_fail() {
         "one spelling of it is missed"
     );
 }
+
+/// Every `path = "..."` a manifest line sets, with whether the line is an
+/// inline dependency table, which must name a crate rather than a file.
+fn paths_named(text: &str) -> Vec<(String, bool)> {
+    text.lines()
+        .filter(|l| !l.trim_start().starts_with('#'))
+        .filter_map(|l| {
+            let at = l.find("path")?;
+            let rest = l[at + "path".len() ..].trim_start().strip_prefix('=')?;
+            let rest = rest.trim_start().strip_prefix('"')?;
+            let end = rest.find('"')?;
+            Some((rest[.. end].to_string(), l.contains('{')))
+        })
+        .collect()
+}
+
+/// A probe that cannot resolve its own manifest cannot be rebuilt, and a
+/// design citing it then cites something nobody can check. Moving the crates
+/// under `mock/crates/` left seven sketches pointing at directories that were
+/// gone, and nothing failed until a reviewer ran `cargo metadata` on them.
+#[test]
+fn every_path_a_research_manifest_names_exists() {
+    let found = probe_manifests();
+    let mut bad = Vec::new();
+    let mut deps = 0;
+    for p in &found {
+        let text = std::fs::read_to_string(p).expect("a tracked manifest reads");
+        let dir = p.parent().expect("a manifest sits in a directory");
+        for (rel, is_dep) in paths_named(&text) {
+            let target = dir.join(&rel);
+            let ok = if is_dep {
+                deps += 1;
+                target.join("Cargo.toml").is_file()
+            } else {
+                target.exists()
+            };
+            if !ok {
+                bad.push(format!("{}: {}", p.display(), rel));
+            }
+        }
+    }
+    assert!(
+        deps > 0,
+        "no manifest names a path dependency, so this read nothing"
+    );
+    assert!(
+        bad.is_empty(),
+        "a research manifest names a path that does not resolve:\n{}",
+        bad.join("\n")
+    );
+}
+
+#[test]
+fn the_path_reader_can_fail() {
+    let read = paths_named("notko = { path = \"../../..\", features = [\"x\"] }\n");
+    assert_eq!(read, vec![("../../..".to_string(), true)]);
+    let read = paths_named("path = \"src/lib.rs\"\n");
+    assert_eq!(read, vec![("src/lib.rs".to_string(), false)]);
+    assert!(
+        paths_named("# notko = { path = \"gone\" }\n").is_empty(),
+        "a commented line reads as a path"
+    );
+    let gone = Path::new(env!("CARGO_MANIFEST_DIR")).join("../notko-hlist-does-not-exist");
+    assert!(
+        !gone.join("Cargo.toml").is_file(),
+        "a missing directory reads as a crate"
+    );
+}

@@ -14,7 +14,7 @@ build = "build.rs"
 [dependencies]
 # The default set, const and membership both on, which is what hilavitkutin's
 # manifest takes.
-notko-hlist = { path = "../../../notko-hlist" }
+notko-hlist = { path = "../../../crates/notko-hlist" }
 
 [profile.release]
 opt-level = 3

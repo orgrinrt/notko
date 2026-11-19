@@ -15,4 +15,4 @@ publish = false
 # The shipped list crate, as the worktree has it. The copy under `no_static`
 # is a member of this workspace and deliberately not a dependency: it is
 # built alone, and it does not build.
-notko-hlist = { path = "../../../notko-hlist" }
+notko-hlist = { path = "../../../crates/notko-hlist" }

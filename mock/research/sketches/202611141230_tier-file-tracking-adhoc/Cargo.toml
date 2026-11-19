@@ -11,7 +11,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
-notko = { path = "../../..", features = ["macros", "try_trait_v2"] }
+notko = { path = "../../../crates/notko", features = ["macros", "try_trait_v2"] }
 
 [features]
 internal = []

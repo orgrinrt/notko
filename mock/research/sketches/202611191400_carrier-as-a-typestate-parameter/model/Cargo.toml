@@ -5,4 +5,4 @@ edition = "2024"
 publish = false
 
 [dependencies]
-notko-hlist = { path = "../../../../notko-hlist" }
+notko-hlist = { path = "../../../../crates/notko-hlist" }

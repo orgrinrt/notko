@@ -6,4 +6,4 @@ publish = false
 
 [dependencies]
 model = { path = "../model" }
-notko-hlist = { path = "../../../../notko-hlist" }
+notko-hlist = { path = "../../../../crates/notko-hlist" }
