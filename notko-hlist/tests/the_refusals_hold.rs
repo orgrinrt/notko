@@ -217,6 +217,8 @@ fn the_blessed_diagnostics_carry_this_crate_s_own_notes() {
         "has no product",
         "names no value type",
         "holds no form for",
+        "states no form for",
+        "declares no shape",
         // The sealing is the load-bearing one and rustc words it, not us, so
         // these are the check that a fixture actually reaches a sealed impl
         // rather than failing earlier for some other reason.
@@ -258,7 +260,18 @@ fn every_test_file_is_a_declared_target() {
             }
         }
     }
-    assert!(files >= 10, "the test directory holds {files} files, too few to be the set");
-    assert!(undeclared.is_empty(), "a test file no target names:\n{}", undeclared.join("\n"));
-    assert!(unshipped.is_empty(), "a test target `include` leaves out:\n{}", unshipped.join("\n"));
+    assert!(
+        files >= 10,
+        "the test directory holds {files} files, too few to be the set"
+    );
+    assert!(
+        undeclared.is_empty(),
+        "a test file no target names:\n{}",
+        undeclared.join("\n")
+    );
+    assert!(
+        unshipped.is_empty(),
+        "a test target `include` leaves out:\n{}",
+        unshipped.join("\n")
+    );
 }

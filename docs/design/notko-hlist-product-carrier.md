@@ -2,7 +2,7 @@
 
 notko-hlist builds a product over a list of members, one field per member, and the carrier decides what each field is: a value, a shared or exclusive column, an owned array. Until now the carrier picked one form for all members at once, over each member's `Elem::Value`, so a product could not hold a value for one member, a window for another and a borrowed resource for a third. A read list of mixed members needs exactly that, and hilavitkutin's read lists are the first consumer waiting on it.
 
-This design takes the carrier as a parameter of the product trait, the route the sketch `research/sketches/202611191400_carrier-as-a-typestate-parameter/` showed working, and holds it to the condition the maintainer set on 16 November (clause-dev `.shared/research/202611150830_stack-path/57-op-calls-on-the-night.md`, call 2): "If the parameterisation is done via typestate, that's fine, and things remain exactly explicit and nowhere ambiguous or allowing ambiguousness". The carrier is a typestate, and every member's form is fixed by the types.
+This design takes the carrier as a parameter of the product trait, the route the sketch `research/sketches/202611191400_carrier-as-a-typestate-parameter/` showed working, and holds it to the condition the maintainer set on 16 November: "If the parameterisation is done via typestate, that's fine, and things remain exactly explicit and nowhere ambiguous or allowing ambiguousness". The carrier is a typestate, and every member's form is fixed by the types.
 
 notko declares no canon, so this design stands as the governing document for the product, below the maintainer's words and above the code.
 
@@ -10,9 +10,13 @@ notko declares no canon, so this design stands as the governing document for the
 
 A carrier is a marker type, and its type is its state. `Val` is one value per member, `Col<'a>` a shared column borrowed for `'a`, a consumer's `Read<'f>` whatever that consumer reads for the frame `'f`. Nothing about the state lives at run time, and nothing picks it there.
 
-For each member a carrier holds, it states one form, through `Carrier<M>` with an associated type `Of`. An associated type has one value per impl and coherence allows one impl per carrier and member, so a carrier's form for a member is a function of the two types and of nothing else. Two forms for one member are refused (`E0119`).
+A carrier declares its shape once, through `Shape` with an associated type `Is`, which is `Uniformly` or `PerMember` and nothing else. The shape is part of the carrier's type, so what the carrier holds follows from the type alone.
 
-A carrier that holds every `Elem` member the same way, over its value, says so once, through `Uniform`, which has a generic associated type `Of<E: Elem>`. A blanket impl makes every uniform carrier a `Carrier<E>` for every `E: Elem`. A uniform carrier cannot be given a different form for one member: that impl conflicts with the blanket one and is refused, so a carrier is either uniform or per member, and a reader of `Val` knows what it holds for every member without looking further. The four carriers this crate ships, `Val`, `Col`, `ColMut` and `Arr`, are uniform.
+A uniform carrier holds every `Elem` member the same way, over its value, through `Uniform`, which has a generic associated type `Of<E: Elem>` and requires `Shape<Is = Uniformly>`. It holds nothing for a member that is not an `Elem`. The four carriers this crate ships, `Val`, `Col`, `ColMut` and `Arr`, are uniform.
+
+A per-member carrier states one form for each member it holds, through `Form<M>` with an associated type `Of`, which requires `Shape<Is = PerMember>`. An associated type has one value per impl and coherence allows one impl per carrier and member, so the form is a function of the two types and of nothing else. Two forms for one member are refused (`E0119`).
+
+`Carrier<M>`, what a product reads, is this crate's alone: one blanket impl routes it through the carrier's shape to `Uniform::Of<M>` or to `Form<M>::Of`, and the trait is sealed. That is what keeps a crate that owns a member from deciding what a shipped carrier holds for it. The orphan rule would let such a crate implement a trait keyed on its own member for `Val`, but a `Form<M>` for `Val` is refused at `Val`'s shape, and `Carrier<M>` cannot be implemented outside this crate at all. So a carrier is uniform or per member and never both, and a reader of `Val` knows what it holds for every member without looking further.
 
 ## The product names its carrier and every member
 
@@ -20,7 +24,7 @@ A carrier that holds every `Elem` member the same way, over its value, says so o
 
 The cell `PCons<C, H, T>` holds `<C as Carrier<H>>::Of` and names both `C` and `H` in its own type. So a product never stands for another list or another carrier, even where the fields coincide: the product of `Cons<Pos, Empty>` through `Val` is not the product of `Cons<Depth, Empty>` through `Val` although both hold one `i32`, and it is not the product of `Cons<Pos, Empty>` through a consumer carrier that also holds an `i32` for `Pos`. Neither is ever inferred from what the fields hold.
 
-A member is any type. `Elem` is what a uniform carrier asks of a member, since it builds the form over `Elem::Value`, and a per-member carrier asks nothing beyond its own impls. A resource that is not `Copy`, held by reference for a frame, is a member of a read list without being an `Elem`.
+A member is any type. `Elem` is what a uniform carrier asks of a member, since it builds the form over `Elem::Value`, and a per-member carrier asks nothing beyond its own `Form` impls. A resource that is not `Copy`, held by reference for a frame, is a member of a read list without being an `Elem`.
 
 ## Reaching into a product
 
@@ -28,7 +32,7 @@ A member is any type. `Elem` is what a uniform carrier asks of a member, since i
 
 `Vals<L>` is the product of values at one row, through `Val`, read and written by naming the member, as before.
 
-`SubOf<C, S, Ps>` cuts the product of a narrower list out of the product of a wider one through the same carrier, each field duplicated. Duplication is per member, `Dup<M>`, since a per-member carrier knows for each form whether it can be duplicated: `Val` and `Col` duplicate every `Elem` member, `ColMut` and `Arr` none, and a read carrier states its own.
+`SubOf<C, S, Ps>` cuts the product of a narrower list out of the product of a wider one through the same carrier, each field duplicated. Duplication is per member, `Dup<M>`, since a per-member carrier knows for each form whether it can be duplicated, and a read carrier states its own. A uniform carrier duplicates every member or none, through `DupAll`, which has no member parameter: `Val` and `Col` duplicate every `Elem` member, `ColMut` and `Arr` none. A blanket impl makes a `DupAll` carrier a `Dup<E>` for every `Elem` member, and the same blanket refuses a `Dup` stated from outside for one member of a uniform carrier, so no crate can make `Arr` duplicate its member.
 
 ## Walks between two carriers
 
@@ -43,7 +47,7 @@ All of them are sealed, and all but `Split` have a const twin under the `const` 
 
 ## What this replaces
 
-The shipped `Carrier`, a generic associated type over `Elem`, is renamed `Uniform`, and `Carrier<M>` is the per-member trait in its place. `Project` with its generic associated type `Prod<C: Carrier>` and its walk methods becomes `Project<C>` with `Prod`, and the walks move to the traits above. `Has<M, P>` becomes `Has<C, M, P>`, `SubOf<S, Ps>` becomes `SubOf<C, S, Ps>`, and its two writes move to `PutRow` and `PutVals`. `Dup` takes the member. Nothing of the old shape is kept beside the new one. No crate in the workspace calls the product today, so nothing downstream breaks.
+The shipped `Carrier`, a generic associated type over `Elem`, is renamed `Uniform`, with `Shape` and `Form<M>` beside it, and `Carrier<M>` is the sealed trait the product reads in its place. `Project` with its generic associated type `Prod<C: Carrier>` and its walk methods becomes `Project<C>` with `Prod`, and the walks move to the traits above. `Has<M, P>` becomes `Has<C, M, P>`, `SubOf<S, Ps>` becomes `SubOf<C, S, Ps>`, and its two writes move to `PutRow` and `PutVals`. `Dup` takes the member, and `DupAll` is what a uniform carrier implements. Nothing of the old shape is kept beside the new one. No crate in the workspace calls the product today, so nothing downstream breaks.
 
 ## What is not decided here
 

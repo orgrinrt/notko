@@ -1,9 +1,16 @@
-error[E0119]: conflicting implementations of trait `Carrier<Pos>` for type `Mine`
-  --> tests/compile_fail/a_uniform_carrier_has_no_exception_for_one_member.rs:16:1
+error[E0271]: type mismatch resolving `<Mine as Shape>::Is == PerMember`
+  --> tests/compile_fail/a_uniform_carrier_has_no_exception_for_one_member.rs:20:20
    |
-16 | impl Carrier<Pos> for Mine {
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+20 | impl Form<Pos> for Mine {
+   |                    ^^^^ type mismatch resolving `<Mine as Shape>::Is == PerMember`
    |
-   = note: conflicting implementation in crate `notko_hlist`:
-           - impl<C, E> Carrier<E> for C
-             where C: Uniform, E: Elem;
+note: expected this to be `PerMember`
+  --> tests/compile_fail/a_uniform_carrier_has_no_exception_for_one_member.rs:15:15
+   |
+15 |     type Is = Uniformly;
+   |               ^^^^^^^^^
+note: required by a bound in `Form`
+  --> src/carrier.rs
+   |
+   | pub trait Form<M>: Shape<Is = PerMember> {
+   |                          ^^^^^^^^^^^^^^ required by this bound in `Form`

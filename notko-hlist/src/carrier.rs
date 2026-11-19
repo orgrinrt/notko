@@ -14,13 +14,13 @@
 //! a whole list through whichever carrier is asked for.
 //!
 //! A carrier is a typestate: a marker whose type, lifetimes included, is the
-//! state, with nothing about it decided at run time. For each member it holds,
-//! it states exactly one form, through one impl of [`Carrier<M>`]. A carrier
-//! that holds every member the same way over its value says so once, through
-//! [`Uniform`], and a blanket impl makes it a `Carrier<E>` for every [`Elem`]
-//! member. A uniform carrier cannot be given another form for one member: that
-//! impl conflicts with the blanket one, so a carrier is uniform or per member
-//! and never both.
+//! state, with nothing about it decided at run time. It declares its [`Shape`]
+//! once. A uniform carrier holds every [`Elem`] member the same way over its
+//! value, through [`Uniform`], and nothing else. A per-member carrier states
+//! exactly one form for each member it holds, through one impl of [`Form<M>`].
+//! [`Carrier<M>`], what a product reads, is this crate's alone and follows the
+//! shape, so a form stated for a carrier of the other shape, by whichever
+//! crate, is refused, and a carrier is uniform or per member and never both.
 //!
 //! A member of a uniform carrier is a marker that names its value type,
 //! [`Elem`], rather than the value type itself. Two members may carry the same
@@ -36,6 +36,8 @@
 //! declarations and the bodies are the same on both paths, so a second file
 //! holding the same text with `const` struck out would only be a place for the
 //! two to drift apart.
+
+use crate::seal::Token;
 
 /// A member of a list, naming the one value type a uniform carrier holds it
 /// over.
@@ -67,42 +69,38 @@ pub trait Elem: 'static {
     type Value: Copy + 'static;
 }
 
-/// Carrier `Self` holds `Of` for member `M`.
+/// The shape of a carrier, declared once in its type: [`Uniformly`] or
+/// [`PerMember`].
 ///
-/// An associated type, so one impl per carrier and member and one form per
-/// pair: coherence refuses a second. A product through `Self` exists for a
-/// list exactly where every member has an impl here.
-///
-/// ```
-/// use core::marker::PhantomData;
-/// use notko_hlist::{Carrier, Cons, Empty, Has, PCons, PNil, Project};
-///
-/// struct Seq(u32);
-/// struct Count;
-/// struct Store;
-///
-/// /// What a unit reads for the frame `'f`.
-/// struct Read<'f>(PhantomData<&'f ()>);
-/// impl<'f> Carrier<Count> for Read<'f> {
-///     type Of = u32;
-/// }
-/// impl<'f> Carrier<Store> for Read<'f> {
-///     type Of = &'f Seq;
-/// }
-///
-/// type Reads = Cons<Count, Cons<Store, Empty>>;
-///
-/// let seq = Seq(5);
-/// let p: <Reads as Project<Read<'_>>>::Prod = PCons { head: 3, tail: PCons { head: &seq, tail: PNil } };
-/// assert_eq!(<Reads as Has<Read<'_>, Store, _>>::pick(&p).0, 5);
-/// ```
+/// This is what makes a carrier's forms a function of its type alone. A
+/// uniform carrier holds every [`Elem`] member over its value and nothing else,
+/// a per-member carrier holds exactly the members it states a [`Form`] for, and
+/// the shape decides which of the two routes [`Carrier`] reads. A form stated
+/// for a carrier of the other shape is refused, so neither can be given an
+/// exception by a crate that owns a member.
 #[diagnostic::on_unimplemented(
-    message = "`{Self}` holds no form for `{M}`",
-    note = "A carrier states what it holds for each member it carries, one `impl Carrier<{M}>` per member, or once for every `Elem` member through `Uniform`. A product through it exists only where every member of the list has one."
+    message = "`{Self}` declares no shape",
+    note = "A carrier declares its shape: `Uniformly` for one that implements `Uniform`, `PerMember` for one that states a `Form<M>` for each member it holds."
 )]
-pub trait Carrier<M> {
-    /// What is held for `M`.
-    type Of;
+pub trait Shape {
+    /// The shape, [`Uniformly`] or [`PerMember`].
+    type Is: shape::Kind;
+}
+
+/// The shape of a carrier holding every [`Elem`] member the same way.
+pub struct Uniformly;
+
+/// The shape of a carrier stating a [`Form`] for each member it holds.
+pub struct PerMember;
+
+/// The two shapes, closed.
+mod shape {
+    /// Implemented for [`Uniformly`](super::Uniformly) and
+    /// [`PerMember`](super::PerMember) and nothing else, since a third shape
+    /// would be a route [`Carrier`](super::Carrier) does not read.
+    pub trait Kind {}
+    impl Kind for super::Uniformly {}
+    impl Kind for super::PerMember {}
 }
 
 /// A carrier holding every [`Elem`] member the same way, over its value.
@@ -110,17 +108,121 @@ pub trait Carrier<M> {
 /// `Of<E>` is the type held for member `E`. The four carriers in this crate,
 /// [`Val`], [`Col`], [`ColMut`] and [`Arr`], are uniform, and they are what the
 /// row capabilities and the walks between products work over.
-pub trait Uniform {
+pub trait Uniform: Shape<Is = Uniformly> {
     /// What is held for member `E`.
     type Of<E: Elem>;
 }
 
-// Not recommended, for the reason the impls below give, and so that a missing
-// form on a per-member carrier is reported through `Carrier`'s own note rather
-// than as a list of the uniform carriers.
+/// The form a per-member carrier `Self` holds for member `M`.
+///
+/// An associated type, so one impl per carrier and member and one form per
+/// pair: coherence refuses a second. A product through `Self` exists for a
+/// list exactly where every member has one.
+///
+/// ```
+/// use core::marker::PhantomData;
+///
+/// use notko_hlist::{
+///     Cons,
+///     Empty,
+///     Form,
+///     Has,
+///     PCons,
+///     PNil,
+///     PerMember,
+///     Project,
+///     Shape,
+/// };
+///
+/// struct Seq(u32);
+/// struct Count;
+/// struct Store;
+///
+/// /// What a unit reads for the frame `'f`.
+/// struct Read<'f>(PhantomData<&'f ()>);
+/// impl<'f> Shape for Read<'f> {
+///     type Is = PerMember;
+/// }
+/// impl<'f> Form<Count> for Read<'f> {
+///     type Of = u32;
+/// }
+/// impl<'f> Form<Store> for Read<'f> {
+///     type Of = &'f Seq;
+/// }
+///
+/// type Reads = Cons<Count, Cons<Store, Empty>>;
+///
+/// let seq = Seq(5);
+/// let p: <Reads as Project<Read<'_>>>::Prod = PCons {
+///     head: 3,
+///     tail: PCons {
+///         head: &seq,
+///         tail: PNil,
+///     },
+/// };
+/// assert_eq!(<Reads as Has<Read<'_>, Store, _>>::pick(&p).0, 5);
+/// ```
+#[diagnostic::on_unimplemented(
+    message = "`{Self}` states no form for `{M}`",
+    note = "A per-member carrier declares `Shape<Is = PerMember>` and states one `impl Form<{M}>` for each member it holds. A uniform carrier states none: what it holds is `Uniform::Of`, for `Elem` members only."
+)]
+pub trait Form<M>: Shape<Is = PerMember> {
+    /// What is held for `M`.
+    type Of;
+}
+
+/// Carrier `Self` holds `Of` for member `M`: what a product reads.
+///
+/// Implemented by this crate alone, for every carrier, through its [`Shape`]:
+/// a uniform carrier holds `Uniform::Of<M>` for an [`Elem`] member, a
+/// per-member carrier holds its `Form<M>::Of`, and nothing else holds anything.
+/// Sealed, so no crate that owns a member can make a carrier hold a form for it
+/// that the carrier's own shape does not give.
+#[diagnostic::on_unimplemented(
+    message = "`{Self}` holds no form for `{M}`",
+    note = "A uniform carrier holds every `Elem` member and nothing else, and a per-member carrier holds exactly the members it states a `Form<{M}>` for. A product through it exists only where every member of the list is held."
+)]
+pub trait Carrier<M> {
+    /// What is held for `M`.
+    type Of;
+
+    /// The seal. Never needs calling.
+    #[doc(hidden)]
+    fn sealed(_: Token);
+}
+
+/// The route [`Carrier`] takes for a carrier of shape `K`. Sealed.
+#[doc(hidden)]
+pub trait Route<M, K> {
+    /// What is held for `M`.
+    type Of;
+
+    /// The seal. Never needs calling.
+    #[doc(hidden)]
+    fn sealed(_: Token);
+}
+
 #[diagnostic::do_not_recommend]
-impl<C: Uniform, E: Elem> Carrier<E> for C {
+impl<C: Uniform, E: Elem> Route<E, Uniformly> for C {
     type Of = C::Of<E>;
+
+    fn sealed(_: Token) {}
+}
+
+#[diagnostic::do_not_recommend]
+impl<C: Form<M>, M> Route<M, PerMember> for C {
+    type Of = <C as Form<M>>::Of;
+
+    fn sealed(_: Token) {}
+}
+
+// Not recommended, so that a missing form is reported through `Carrier`'s own
+// note rather than as the route behind it.
+#[diagnostic::do_not_recommend]
+impl<C: Shape + Route<M, <C as Shape>::Is>, M> Carrier<M> for C {
+    type Of = <C as Route<M, <C as Shape>::Is>>::Of;
+
+    fn sealed(_: Token) {}
 }
 
 /// One value per member.
@@ -157,6 +259,26 @@ impl<'a> Uniform for ColMut<'a> {
 #[diagnostic::do_not_recommend]
 impl<const N: usize> Uniform for Arr<N> {
     type Of<E: Elem> = [E::Value; N];
+}
+
+#[diagnostic::do_not_recommend]
+impl Shape for Val {
+    type Is = Uniformly;
+}
+
+#[diagnostic::do_not_recommend]
+impl<'a> Shape for Col<'a> {
+    type Is = Uniformly;
+}
+
+#[diagnostic::do_not_recommend]
+impl<'a> Shape for ColMut<'a> {
+    type Is = Uniformly;
+}
+
+#[diagnostic::do_not_recommend]
+impl<const N: usize> Shape for Arr<N> {
+    type Is = Uniformly;
 }
 
 macro_rules! carrier_items {
@@ -236,16 +358,34 @@ macro_rules! carrier_items {
             }
         }
 
+        /// A uniform carrier that duplicates what it holds for every member.
+        ///
+        /// No member parameter, so no crate but this one can say it of a
+        /// carrier it does not own, and through the blanket impl below no crate
+        /// can state `Dup` for a single member of a uniform carrier either: that
+        /// impl conflicts with the blanket one. `Val` and `Col` are the two.
+        pub $($c)? trait DupAll: Uniform {
+            /// Another of what `c` is, for the same member.
+            fn dup_all<E: Elem>(c: &Self::Of<E>) -> Self::Of<E>;
+        }
+
         #[diagnostic::do_not_recommend]
-        $($c)? impl<E: Elem> Dup<E> for Val {
-            fn dup(c: &E::Value) -> E::Value {
+        $($c)? impl<C: $([$c])? DupAll, E: Elem> Dup<E> for C {
+            fn dup(c: &<Self as Carrier<E>>::Of) -> <Self as Carrier<E>>::Of {
+                C::dup_all::<E>(c)
+            }
+        }
+
+        #[diagnostic::do_not_recommend]
+        $($c)? impl DupAll for Val {
+            fn dup_all<E: Elem>(c: &E::Value) -> E::Value {
                 *c
             }
         }
 
         #[diagnostic::do_not_recommend]
-        $($c)? impl<'a, E: Elem> Dup<E> for Col<'a> {
-            fn dup(c: &&'a [E::Value]) -> &'a [E::Value] {
+        $($c)? impl<'a> DupAll for Col<'a> {
+            fn dup_all<E: Elem>(c: &&'a [E::Value]) -> &'a [E::Value] {
                 c
             }
         }

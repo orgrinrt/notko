@@ -119,7 +119,10 @@ where
 /// }
 /// type Lanes = Cons<Pos, Empty>;
 ///
-/// let row: <Lanes as Project<Val>>::Prod = PCons { head: 7, tail: PNil };
+/// let row: <Lanes as Project<Val>>::Prod = PCons {
+///     head: 7,
+///     tail: PNil,
+/// };
 /// assert_eq!(row.head, 7);
 /// ```
 ///
@@ -386,7 +389,17 @@ project_items!();
 /// column for threads is a runtime act in any case.
 ///
 /// ```
-/// use notko_hlist::{Arr, Arrays, Cons, Elem, Empty, PCons, PNil, Project, Split};
+/// use notko_hlist::{
+///     Arr,
+///     Arrays,
+///     Cons,
+///     Elem,
+///     Empty,
+///     PCons,
+///     PNil,
+///     Project,
+///     Split,
+/// };
 ///
 /// struct Pos;
 /// impl Elem for Pos {
@@ -398,7 +411,10 @@ project_items!();
 ///     head: [1, 2, 3, 4],
 ///     tail: PNil,
 /// };
-/// let (front, back) = <Lanes as Split>::split_mut(<Lanes as Arrays<4>>::cols_mut(&mut cols), 1);
+/// let (front, back) = <Lanes as Split>::split_mut(
+///     <Lanes as Arrays<4>>::cols_mut(&mut cols),
+///     1,
+/// );
 /// front.head[0] = 10;
 /// back.head[0] = 20;
 /// assert_eq!(cols.head, [10, 20, 3, 4]);
@@ -417,7 +433,10 @@ pub trait Split: for<'a> Project<ColMut<'a>> {
     fn split_mut<'a>(
         p: <Self as Project<ColMut<'a>>>::Prod,
         mid: usize,
-    ) -> (<Self as Project<ColMut<'a>>>::Prod, <Self as Project<ColMut<'a>>>::Prod);
+    ) -> (
+        <Self as Project<ColMut<'a>>>::Prod,
+        <Self as Project<ColMut<'a>>>::Prod,
+    );
 }
 
 #[diagnostic::do_not_recommend]
@@ -427,7 +446,10 @@ impl Split for Empty {
     fn split_mut<'a>(
         _: <Self as Project<ColMut<'a>>>::Prod,
         _: usize,
-    ) -> (<Self as Project<ColMut<'a>>>::Prod, <Self as Project<ColMut<'a>>>::Prod) {
+    ) -> (
+        <Self as Project<ColMut<'a>>>::Prod,
+        <Self as Project<ColMut<'a>>>::Prod,
+    ) {
         (PNil, PNil)
     }
 }
@@ -439,7 +461,10 @@ impl<H: Elem, T: Split> Split for Cons<H, T> {
     fn split_mut<'a>(
         p: <Self as Project<ColMut<'a>>>::Prod,
         mid: usize,
-    ) -> (<Self as Project<ColMut<'a>>>::Prod, <Self as Project<ColMut<'a>>>::Prod) {
+    ) -> (
+        <Self as Project<ColMut<'a>>>::Prod,
+        <Self as Project<ColMut<'a>>>::Prod,
+    ) {
         let PCons {
             head,
             tail,

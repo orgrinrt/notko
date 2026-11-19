@@ -10,7 +10,22 @@
 
 #![feature(const_trait_impl)]
 
-use notko_hlist::{Arr, Arrays, Cons, Elem, Empty, Has, PCons, PNil, Project, PutVals, Rows, SubOf, Val, Vals};
+use notko_hlist::{
+    Arr,
+    Arrays,
+    Cons,
+    Elem,
+    Empty,
+    Has,
+    PCons,
+    PNil,
+    Project,
+    PutVals,
+    Rows,
+    SubOf,
+    Val,
+    Vals,
+};
 
 struct Pos;
 impl Elem for Pos {

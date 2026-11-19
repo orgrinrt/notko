@@ -2,7 +2,7 @@
 // is two product types, since a product names its carrier. The carrier is
 // never inferred from what the fields hold.
 
-use notko_hlist::{Carrier, Cons, Elem, Empty, PCons, PNil, Project, Val};
+use notko_hlist::{Form, PerMember, Shape, Cons, Elem, Empty, PCons, PNil, Project, Val};
 
 struct Pos;
 impl Elem for Pos {
@@ -10,7 +10,10 @@ impl Elem for Pos {
 }
 
 struct Read;
-impl Carrier<Pos> for Read {
+impl Shape for Read {
+    type Is = PerMember;
+}
+impl Form<Pos> for Read {
     type Of = i32;
 }
 

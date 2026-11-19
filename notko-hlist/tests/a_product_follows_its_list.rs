@@ -132,7 +132,10 @@ fn columns_read_and_write_the_arrays_under_them() {
     {
         let mut excl = <Lanes as Arrays<3>>::cols_mut(&mut cols);
         <Lanes as Rows<ColMut<'_>>>::write_row(&mut excl, 1, &row(4, 5, 6));
-        assert_eq!(<Lanes as Rows<ColMut<'_>>>::read_row(&excl, 1), row(4, 5, 6));
+        assert_eq!(
+            <Lanes as Rows<ColMut<'_>>>::read_row(&excl, 1),
+            row(4, 5, 6)
+        );
     }
     let shared = <Lanes as Arrays<3>>::cols(&cols);
     assert_eq!(<Lanes as Rows<Col<'_>>>::read_row(&shared, 1), row(4, 5, 6));
@@ -182,7 +185,9 @@ fn a_split_at_the_end_leaves_the_back_empty() {
     assert_eq!((front.head.len(), back.tail.tail.head.len()), (4, 0));
 }
 
-fn heat<L: Has<Arr<2>, Heat, P>, P: Place>(cols: &mut <L as Project<Arr<2>>>::Prod) -> &mut [u8; 2] {
+fn heat<L: Has<Arr<2>, Heat, P>, P: Place>(
+    cols: &mut <L as Project<Arr<2>>>::Prod,
+) -> &mut [u8; 2] {
     L::pick_mut(cols)
 }
 
@@ -192,10 +197,7 @@ fn pick_reaches_the_member_s_field_through_any_carrier() {
     heat::<Lanes, _>(&mut cols)[1] = 77;
     assert_eq!(cols.tail.head, [2, 77]);
     let shared = <Lanes as Arrays<2>>::cols(&cols);
-    assert_eq!(
-        *<Lanes as Has<Col<'_>, Lag, _>>::pick(&shared),
-        &[3, 3][..]
-    );
+    assert_eq!(*<Lanes as Has<Col<'_>, Lag, _>>::pick(&shared), &[3, 3][..]);
     assert_eq!(*<Lanes as Has<Val, Pos, _>>::pick(&row(9, 0, 0)), 9);
 }
 
@@ -279,14 +281,8 @@ fn a_deep_product_is_built_and_copied_on_a_default_stack() {
             let mut dst: <Deep as Project<Arr<256>>>::Prod = <Deep as Arrays<256>>::made(&zero);
             <Deep as Arrays<256>>::copy_from(&mut dst, &src);
 
-            assert_eq!(
-                *<Deep as Has<Arr<256>, Lane<63>, _>>::pick(&dst),
-                [1; 256]
-            );
-            assert_eq!(
-                *<Deep as Has<Arr<256>, Lane<40>, _>>::pick(&dst),
-                [2; 256]
-            );
+            assert_eq!(*<Deep as Has<Arr<256>, Lane<63>, _>>::pick(&dst), [1; 256]);
+            assert_eq!(*<Deep as Has<Arr<256>, Lane<40>, _>>::pick(&dst), [2; 256]);
             assert_eq!(*<Deep as Has<Arr<256>, Lane<0>, _>>::pick(&dst), [0; 256]);
             assert_eq!(<Deep as Rows<Arr<256>>>::read_row(&dst, 255), row);
         })

@@ -1,0 +1,10 @@
+error[E0119]: conflicting implementations of trait `Dup<Pos>` for type `Arr<_>`
+  --> tests/compile_fail/an_array_carrier_is_not_given_duplication_from_outside.rs:13:1
+   |
+13 | impl<const N: usize> Dup<Pos> for Arr<N> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: conflicting implementation in crate `notko_hlist`:
+           - impl<C, E> Dup<E> for C
+             where C: DupAll, E: Elem;
+   = note: upstream crates may add a new impl of trait `notko_hlist::DupAll` for type `notko_hlist::Arr<_>` in future versions

@@ -3,7 +3,7 @@
 
 use core::marker::PhantomData;
 
-use notko_hlist::{Carrier, Cons, Empty, Has, PCons, PNil, Project};
+use notko_hlist::{Form, PerMember, Shape, Cons, Empty, Has, PCons, PNil, Project};
 
 struct Seq {
     len: usize,
@@ -11,7 +11,10 @@ struct Seq {
 struct Store;
 
 struct Read<'f>(PhantomData<&'f ()>);
-impl<'f> Carrier<Store> for Read<'f> {
+impl<'f> Shape for Read<'f> {
+    type Is = PerMember;
+}
+impl<'f> Form<Store> for Read<'f> {
     type Of = &'f Seq;
 }
 

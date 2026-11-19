@@ -46,15 +46,16 @@
 //!
 //! A list holds no values, and a consumer wanting one per member asks
 //! [`Project<C>`] for the product through a carrier `C`: [`PCons`] per cell and
-//! [`PNil`] at the end, each cell holding what the carrier states for that
-//! member through [`Carrier<M>`], one form per member. The carriers here are
-//! [`Uniform`], holding every member the same way over the value it names
-//! through [`Elem`]: [`Val`] for one value, [`Col`] and [`ColMut`] for a shared
-//! or exclusive slice, and [`Arr`] for an owned array. A consumer's own carrier
-//! may instead state a form per member, a value for one and a borrow of a frame
-//! for the next, and its list names no lifetime. The carrier is a typestate: the
+//! [`PNil`] at the end, each cell holding what the carrier holds for that
+//! member through [`Carrier<M>`], one form per member. A carrier declares its
+//! [`Shape`]. The carriers here are [`Uniform`], holding every member the same
+//! way over the value it names through [`Elem`]: [`Val`] for one value, [`Col`]
+//! and [`ColMut`] for a shared or exclusive slice, and [`Arr`] for an owned
+//! array. A consumer's own carrier may instead be [`PerMember`] and state a
+//! [`Form`] for each member, a value for one and a borrow of a frame for the
+//! next, and its list names no lifetime. The carrier is a typestate: the
 //! product's type names it and every member, so it is never inferred from what
-//! the fields hold.
+//! the fields hold, and what a carrier holds follows from its shape alone.
 //!
 //! [`Has`] reaches one member's field, [`Vals`] reads and writes a row of values
 //! by member, [`SubOf`] cuts a narrower list's product out of a wider one and
@@ -152,7 +153,25 @@ mod sub;
 
 pub use at::At;
 pub use cardinal::Cardinal;
-pub use carrier::{Arr, ByRow, ByRowMut, Carrier, Col, ColMut, Dup, Elem, Uniform, Val};
+#[doc(hidden)]
+pub use carrier::Route;
+pub use carrier::{
+    Arr,
+    ByRow,
+    ByRowMut,
+    Carrier,
+    Col,
+    ColMut,
+    Dup,
+    DupAll,
+    Elem,
+    Form,
+    PerMember,
+    Shape,
+    Uniform,
+    Uniformly,
+    Val,
+};
 pub use concat::Concat;
 pub use has::{Has, Vals};
 pub use length::Length;

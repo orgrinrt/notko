@@ -9,3 +9,6 @@
 [workspace]
 members = ["model", "consumer"]
 resolver = "2"
+
+[workspace.package]
+publish = false

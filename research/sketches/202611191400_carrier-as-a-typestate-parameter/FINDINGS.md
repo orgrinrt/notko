@@ -62,7 +62,7 @@ error[E0119]: conflicting implementations of trait `Carrier<Pos>` for type `Mine
              where C: Uniform, E: Elem;
 ```
 
-So a carrier is either uniform or per member, and a per-member exception to a uniform carrier cannot be written.
+So a per-member exception to a uniform carrier cannot be written for an `Elem` member. That is all r2 shows. A member that is not an `Elem`, owned by the consumer, was not tried, and the first review of the branch built it: the blanket impl covers `Elem` members only, so the consumer's `impl Carrier<Res> for Val` is accepted and `Val` then holds whatever that crate says for `Res`. The model leaves that open. The design closes it with a declared shape and a sealed `Carrier<M>` (`docs/design/notko-hlist-product-carrier.md`), and the crate pins it with `tests/compile_fail/a_shipped_carrier_holds_nothing_for_a_member_of_yours.rs`.
 
 ### r3. A carrier with no form for a member. Refused.
 

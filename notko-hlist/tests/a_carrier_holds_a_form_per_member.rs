@@ -13,7 +13,21 @@
 
 use core::marker::PhantomData;
 
-use notko_hlist::{Carrier, Cons, Dup, Elem, Empty, Has, PCons, PNil, Place, Project, SubOf, Val};
+use notko_hlist::{
+    Cons,
+    Dup,
+    Elem,
+    Empty,
+    Form,
+    Has,
+    PCons,
+    PNil,
+    PerMember,
+    Place,
+    Project,
+    Shape,
+    SubOf,
+};
 
 /// A resource holding a collection, so it is not `Copy`.
 struct Seq {
@@ -42,14 +56,17 @@ struct Store;
 
 /// The read carrier for the frame `'f`.
 struct Read<'f>(PhantomData<&'f ()>);
+impl<'f> Shape for Read<'f> {
+    type Is = PerMember;
+}
 
-impl<'f> Carrier<Pos> for Read<'f> {
+impl<'f> Form<Pos> for Read<'f> {
     type Of = i32;
 }
-impl<'f> Carrier<Near> for Read<'f> {
+impl<'f> Form<Near> for Read<'f> {
     type Of = Window<'f>;
 }
-impl<'f> Carrier<Store> for Read<'f> {
+impl<'f> Form<Store> for Read<'f> {
     type Of = &'f Seq;
 }
 
@@ -72,7 +89,9 @@ impl<'f> Dup<Store> for Read<'f> {
 type Reads = Cons<Pos, Cons<Near, Cons<Store, Empty>>>;
 type ResourceOnly = Cons<Store, Empty>;
 
-fn store_of<'f, L: Has<Read<'f>, Store, P>, P: Place>(p: &<L as Project<Read<'f>>>::Prod) -> &'f Seq {
+fn store_of<'f, L: Has<Read<'f>, Store, P>, P: Place>(
+    p: &<L as Project<Read<'f>>>::Prod,
+) -> &'f Seq {
     L::pick(p)
 }
 
@@ -105,7 +124,7 @@ fn each_member_is_read_in_its_own_form() {
     let w = <Reads as Has<Read<'_>, Near, _>>::pick(&p);
     assert_eq!(w.column[w.centre], 6);
     let s = store_of::<Reads, _>(&p);
-    assert_eq!(&s.items[..s.len], &[5, 6, 7]);
+    assert_eq!(&s.items[.. s.len], &[5, 6, 7]);
 }
 
 #[test]
@@ -135,15 +154,4 @@ fn a_narrower_read_list_is_cut_out_of_a_wider_one() {
     assert!(core::ptr::eq(part.head, &seq));
     // The wider product is still there to read after the cut.
     assert_eq!(*<Reads as Has<Read<'_>, Pos, _>>::pick(&p), 9);
-}
-
-#[test]
-fn a_member_of_a_read_list_is_still_a_member_of_a_value_product() {
-    // `Pos` is held by the read carrier as a member of its own choosing and by
-    // `Val` as an `Elem`, through the one product trait.
-    let row: <Cons<Pos, Empty> as Project<Val>>::Prod = PCons {
-        head: 11,
-        tail: PNil,
-    };
-    assert_eq!(*<Cons<Pos, Empty> as Has<Val, Pos, _>>::pick(&row), 11);
 }

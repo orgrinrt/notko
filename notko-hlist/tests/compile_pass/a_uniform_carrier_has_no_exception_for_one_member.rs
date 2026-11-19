@@ -1,6 +1,6 @@
 // The twin: the same form for `Pos` on a carrier that is per member instead.
 
-use notko_hlist::{Carrier, Elem};
+use notko_hlist::{Elem, Form, PerMember, Shape};
 
 struct Pos;
 impl Elem for Pos {
@@ -8,7 +8,10 @@ impl Elem for Pos {
 }
 
 struct Mine;
-impl Carrier<Pos> for Mine {
+impl Shape for Mine {
+    type Is = PerMember;
+}
+impl Form<Pos> for Mine {
     type Of = u8;
 }
 

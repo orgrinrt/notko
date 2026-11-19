@@ -21,8 +21,31 @@ mod lists;
 
 use lists::*;
 use notko_hlist::{
-    Arr, Arrays, At, ByRow, ByRowMut, Cardinal, Carrier, Concat, Cons, Elem, Empty, Has, Length,
-    List, PCons, PNil, Place, PlaceOf, Position, Project, Rows, Split, SubOf, Val, Vals,
+    Arr,
+    Arrays,
+    At,
+    ByRow,
+    ByRowMut,
+    Cardinal,
+    Carrier,
+    Concat,
+    Cons,
+    Elem,
+    Empty,
+    Has,
+    Length,
+    List,
+    PCons,
+    PNil,
+    Place,
+    PlaceOf,
+    Position,
+    Project,
+    Rows,
+    Split,
+    SubOf,
+    Val,
+    Vals,
 };
 
 // The count-carrying signatures below are never called. A generic function's
@@ -106,15 +129,24 @@ impl Elem for Heat {
 }
 type Lanes = Cons<Pos, Cons<Heat, Empty>>;
 
-fn row_of<L: Rows<C>, C: ByRow>(p: &<L as Project<C>>::Prod, i: usize) -> <L as Project<Val>>::Prod {
+fn row_of<L: Rows<C>, C: ByRow>(
+    p: &<L as Project<C>>::Prod,
+    i: usize,
+) -> <L as Project<Val>>::Prod {
     <L as Rows<C>>::read_row(p, i)
 }
 
-fn row_into<L: Rows<C>, C: ByRowMut>(p: &mut <L as Project<C>>::Prod, i: usize, v: &<L as Project<Val>>::Prod) {
+fn row_into<L: Rows<C>, C: ByRowMut>(
+    p: &mut <L as Project<C>>::Prod,
+    i: usize,
+    v: &<L as Project<Val>>::Prod,
+) {
     <L as Rows<C>>::write_row(p, i, v)
 }
 
-fn field_of<L: Has<C, M, P>, M, P: Place, C: Carrier<M>>(p: &<L as Project<C>>::Prod) -> &<C as Carrier<M>>::Of {
+fn field_of<L: Has<C, M, P>, M, P: Place, C: Carrier<M>>(
+    p: &<L as Project<C>>::Prod,
+) -> &<C as Carrier<M>>::Of {
     L::pick(p)
 }
 
@@ -122,7 +154,9 @@ fn place_of<L: PlaceOf<M, P>, M, P: Place>() {
     let _ = core::marker::PhantomData::<(L, M, P)>;
 }
 
-fn part_of<L: SubOf<C, S, Ps>, S: Project<C>, Ps: List, C>(s: &<S as Project<C>>::Prod) -> <L as Project<C>>::Prod {
+fn part_of<L: SubOf<C, S, Ps>, S: Project<C>, Ps: List, C>(
+    s: &<S as Project<C>>::Prod,
+) -> <L as Project<C>>::Prod {
     L::sub(s)
 }
 
@@ -130,7 +164,10 @@ fn value_of<L: Has<Val, M, P>, M: Elem, P: Place>(v: &Vals<L>, m: M) -> M::Value
     v.get(m)
 }
 
-fn halves<L: Split + Arrays<N>, const N: usize>(p: &mut <L as Project<Arr<N>>>::Prod, mid: usize) -> usize {
+fn halves<L: Split + Arrays<N>, const N: usize>(
+    p: &mut <L as Project<Arr<N>>>::Prod,
+    mid: usize,
+) -> usize {
     let (a, _) = <L as Split>::split_mut(<L as Arrays<N>>::cols_mut(p), mid);
     let _ = a;
     mid
@@ -138,8 +175,20 @@ fn halves<L: Split + Arrays<N>, const N: usize>(p: &mut <L as Project<Arr<N>>>::
 
 #[test]
 fn the_product_bounds_compile_in_this_configuration() {
-    let mut cols: <Lanes as Project<Arr<2>>>::Prod = <Lanes as Arrays<2>>::made(&PCons { head: 1, tail: PCons { head: 2, tail: PNil } });
-    row_into::<Lanes, Arr<2>>(&mut cols, 1, &PCons { head: 3, tail: PCons { head: 4, tail: PNil } });
+    let mut cols: <Lanes as Project<Arr<2>>>::Prod = <Lanes as Arrays<2>>::made(&PCons {
+        head: 1,
+        tail: PCons {
+            head: 2,
+            tail: PNil,
+        },
+    });
+    row_into::<Lanes, Arr<2>>(&mut cols, 1, &PCons {
+        head: 3,
+        tail: PCons {
+            head: 4,
+            tail: PNil,
+        },
+    });
     assert_eq!(row_of::<Lanes, Arr<2>>(&cols, 1).tail.head, 4);
     assert_eq!(*field_of::<Lanes, Pos, _, Arr<2>>(&cols), [1, 3]);
     place_of::<Lanes, Heat, _>();

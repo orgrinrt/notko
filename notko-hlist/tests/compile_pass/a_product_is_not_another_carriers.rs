@@ -1,6 +1,6 @@
 // The twin: the same carrier on both sides.
 
-use notko_hlist::{Carrier, Cons, Elem, Empty, PCons, PNil, Project};
+use notko_hlist::{Form, PerMember, Shape, Cons, Elem, Empty, PCons, PNil, Project};
 
 struct Pos;
 impl Elem for Pos {
@@ -8,7 +8,10 @@ impl Elem for Pos {
 }
 
 struct Read;
-impl Carrier<Pos> for Read {
+impl Shape for Read {
+    type Is = PerMember;
+}
+impl Form<Pos> for Read {
     type Of = i32;
 }
 

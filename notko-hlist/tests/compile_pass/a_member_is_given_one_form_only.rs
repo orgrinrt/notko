@@ -1,11 +1,14 @@
 // The twin: the one form, stated once.
 
-use notko_hlist::Carrier;
+use notko_hlist::{Form, PerMember, Shape};
 
 struct Pos;
 
 struct Read;
-impl Carrier<Pos> for Read {
+impl Shape for Read {
+    type Is = PerMember;
+}
+impl Form<Pos> for Read {
     type Of = i32;
 }
 
