@@ -24,18 +24,23 @@ maxContributors = 3
 # Every crate in the workspace, and the tests, which ship in the package and are
 # as much the published source as the library is.
 include = [
-    "src/**/*.rs",
-    "tests/**/*.rs",
-    "notko-hlist/src/**/*.rs",
-    "notko-hlist/tests/**/*.rs",
-    "notko-macros/src/**/*.rs",
-    "notko-macros/tests/**/*.rs",
-    "notko-macros-core/src/**/*.rs",
-    "notko-macros-core/tests/**/*.rs",
-    "notko-build/src/**/*.rs",
+    "mock/crates/notko/src/**/*.rs",
+    "mock/crates/notko/tests/**/*.rs",
+    "mock/crates/notko-hlist/src/**/*.rs",
+    "mock/crates/notko-hlist/tests/**/*.rs",
+    "mock/crates/notko-macros/src/**/*.rs",
+    "mock/crates/notko-macros/tests/**/*.rs",
+    "mock/crates/notko-macros-core/src/**/*.rs",
+    "mock/crates/notko-macros-core/tests/**/*.rs",
+    "mock/crates/notko-build/src/**/*.rs",
 ]
 
 # The compile-fail fixtures are inputs to a harness rather than published
 # source: they do not ship, and the diagnostics recorded beside them carry line
 # numbers, so a header prepended to one silently invalidates its `.stderr`.
-exclude = ["**/target/**", "tests/compile_fail/**", "tests/compile_fail_try/**"]
+exclude = [
+    "**/target/**",
+    "mock/crates/*/tests/compile_fail/**",
+    "mock/crates/*/tests/compile_fail_try/**",
+    "mock/crates/*/tests/compile_pass/**",
+]
