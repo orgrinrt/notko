@@ -1,0 +1,3 @@
+# schema_v1	timestamp	git_commit	benchmark	variant	n	mode	median_ns	ci_lo_ns	ci_hi_ns
+1795158724	323f66d	product-build_n32	cargo_alone	32	warm	42883026.9	42883026.9	52435377.4
+1795158724	323f66d	product-build_n32	from_clean	32	warm	142999418.5	142999418.5	180761257.8

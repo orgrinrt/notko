@@ -121,3 +121,7 @@ link time, or about error-message length when a query fails. The members are
 all `u32` columns. A consumer with fewer, larger queries per list will sit
 well under these figures, and one that asks all-against-all questions of many
 lists will sit over them.
+
+## Later
+
+The product changed under this spike when the carrier landed, so its figures are of the product before it. The compile time of a consumer-shaped crate over the product as it is now is a bench run, `research/202611200700_product-build-time/NOTES.md`, and it measures a whole build rather than one query checked, so the two are not compared.
