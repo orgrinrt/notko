@@ -10,3 +10,6 @@
 # mockspace: files that only grow keep both sides' additions, see the append merge driver
 /mock/crates/*/BACKLOG.md.tmpl merge=mockspace-append
 /mock/crates/*/SHAME.md.tmpl merge=mockspace-append
+
+# mockspace: a lockfile is settled from the merged manifests, see the lockfile merge driver
+/mock/Cargo.lock merge=mockspace-lockfile
