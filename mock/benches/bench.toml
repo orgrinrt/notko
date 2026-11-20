@@ -1,0 +1,31 @@
+# Bench tree globals. Each bench is a subdirectory with its own
+# bench.toml; `mock bench list` prints what is registered,
+# `mock bench run [names...]` runs it. The driver binary is generated
+# from this configuration; no consumer Rust is needed for byte-shaped
+# benches. Optional extension points:
+#
+#   src/lib.rs           a hooks() library (routine_for, after_cell,
+#                        on_init, after_init)
+#   <bench>/support/     library crates this bench's arms share
+#   support/             library crates several benches share
+#   [workload.<name>]    stages = ["algo_call", "scalar_work 48", ...]
+#   [dispatch]           out = 8; points defaults to the union of
+#                        every bench's points
+#   [build]              mockspace dep spec + release profile values
+#
+# Membership is declared, cargo-workspace style, and defaults to
+# every subdirectory carrying its own bench.toml:
+#
+#   [benchspace]
+#   members = ["**"]      # the default when the section is absent
+#   exclude = []
+#
+# The driver is generated from these files and is the only runner: a
+# Cargo.toml or a src/main.rs of your own at this root is refused.
+
+[timing]
+passes = 4
+runs_per_pass = 1000
+batch_size = 100
+harness_runs = 1
+cooldowns_ms = [0]

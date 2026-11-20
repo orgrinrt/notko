@@ -1,0 +1,21 @@
+# Two arms. `from_clean`: a call writes the fixture's source for its point, brings `notko-hlist` up to date and
+# cleans the fixture package alone, all untimed; builds the fixture with its registry in cargo's dev profile inside
+# the harness's `timed!` run block; then, untimed, reads cargo's own messages for what it built. `cargo_alone`: the
+# same call with the registry left off, so the fixture compiles empty and what is timed is cargo's own work. It is
+# the floor. The harness reports raw deltas against the baseline and uses `floor` only in its `ratio` mode, which
+# this bench does not run in; the build above the floor is worked out in the findings note. The hooks library reads
+# the call record and refuses the cell if any call built other than the fixture alone, from clean, at the cell's
+# point, with the registry exactly when its arm asked for it.
+#
+# A point is the registry's column count, and the fixture asks one system's sets of every eight columns.
+
+title = "product-build: the product over a registry of columns, built in the dev profile"
+workload = "default"
+master_seed = 0x6e6f_746b_6f70_6201
+arms = ["from_clean", "cargo_alone"]
+baseline = "from_clean"
+floor = "cargo_alone"
+may_differ = false
+required = true
+points = [32, 64, 128, 256]
+timing = { passes = 3, runs_per_pass = 1, batch_size = 1, cooldowns_ms = [0], validation_seeds = 1, determinism_check_seeds = 1 }

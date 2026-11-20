@@ -1,0 +1,7 @@
+run,pass,cooldown_ms,mode,variant,batch_idx,e2e_ns,algo_ns,bridge_ns,batch_count,score,input_tag,instructions,cycles,setup_ns,first_ns,digest
+1,1,0,warm,from_clean,0,743825601.3,743815671.7,38773154.9,1,,,0,0,0.0,0.0,0
+1,1,0,cold,from_clean,0,761673737.0,761662954.0,39611638.1,1,,,0,0,0.0,0.0,0
+1,2,0,warm,from_clean,0,743020943.3,743011089.1,44551020.0,1,,,0,0,0.0,0.0,0
+1,2,0,cold,from_clean,0,749829945.0,749821002.9,46941615.8,1,,,0,0,0.0,0.0,0
+1,3,0,warm,from_clean,0,764777921.4,764748634.1,43300916.3,1,,,0,0,0.0,0.0,0
+1,3,0,cold,from_clean,0,822149233.9,822136482.6,43512459.4,1,,,0,0,0.0,0.0,0

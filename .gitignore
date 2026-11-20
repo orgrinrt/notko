@@ -1,6 +1,7 @@
 /target
 Cargo.lock
 !/mock/Cargo.lock
+!/mock/benches/product-build/fixture/Cargo.lock
 .DS_Store
 *.swp
 *.swo

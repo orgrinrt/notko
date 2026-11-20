@@ -1,0 +1,15 @@
+pid	call	columns	fixture_built	others_built	absent_before	present_after	waited_on_lock	exit
+21060	1	128	0	1	true	false	false	0
+21060	2	128	0	1	true	false	false	0
+21129	1	128	0	1	true	false	false	0
+21129	2	128	0	1	true	false	false	0
+21252	1	128	0	1	true	false	false	0
+21252	2	128	0	1	true	false	false	0
+21320	1	128	0	1	true	false	false	0
+21320	2	128	0	1	true	false	false	0
+21385	1	128	0	1	true	false	false	0
+21385	2	128	0	1	true	false	false	0
+21450	1	128	0	1	true	false	false	0
+21450	2	128	0	1	true	false	false	0
+21518	1	128	0	1	true	false	false	0
+21518	2	128	0	1	true	false	false	0
