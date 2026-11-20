@@ -20,6 +20,6 @@ mod call;
 mod record;
 mod source;
 
-pub use call::{build, fixture_dir, prepare, record};
+pub use call::{Fixture, build, fixture_dir, prepare, record};
 pub use record::{Call, LOG_HEADER, calls, log_path, reset_log, verdict};
 pub use source::{columns_of_system, source};

@@ -24,9 +24,9 @@ pub unsafe extern "C" fn bench_entry(
             let absent_before = product_build_call::prepare(point);
         }
         run {
-            let said = product_build_call::build(point);
+            let said = product_build_call::build(point, product_build_call::Fixture::Registry);
         }
-        let built = product_build_call::record(point, &said, absent_before);
+        let built = product_build_call::record(point, product_build_call::Fixture::Registry, &said, absent_before);
         unsafe { output_ptr.cast::<u64>().write_unaligned(built) };
     }
 }

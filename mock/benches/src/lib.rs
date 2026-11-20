@@ -24,7 +24,7 @@ fn after_cell(cell: &AfterCell<'_>) -> CellVerdict {
     ) {
         return CellVerdict::Fail(format!("calls.tsv was not written: {e}"));
     }
-    match product_build_call::verdict(&calls) {
+    match product_build_call::verdict(&calls, cell.config.n) {
         Ok(note) => CellVerdict::Note(note),
         Err(why) => CellVerdict::Fail(why),
     }

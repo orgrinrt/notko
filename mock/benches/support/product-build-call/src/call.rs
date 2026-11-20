@@ -8,6 +8,7 @@
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::record::log_path;
@@ -29,20 +30,41 @@ pub fn fixture_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../product-build/fixture")
 }
 
-/// The directory this bench owns under the inherited build directory, made absolute against the process's own
-/// directory, since cargo runs from the fixture and would read a relative path against that instead.
-pub(crate) fn own_dir() -> PathBuf {
-    let dir = match std::env::var_os("CARGO_TARGET_DIR") {
-        Some(dir) => PathBuf::from(dir).join("notko-product-build"),
-        None => fixture_dir().join("target").join("notko-product-build"),
-    };
-    if dir.is_absolute() {
-        dir
-    } else {
-        std::env::current_dir()
-            .expect("the process's own directory")
-            .join(dir)
+/// What a call builds: the fixture with its registry, or the fixture with nothing in it, which leaves cargo's own
+/// work alone (starting, resolving, fingerprinting, writing the empty library) as the floor under the first.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Fixture {
+    Registry,
+    Empty,
+}
+
+impl Fixture {
+    /// Whether the build asks for the `registry` feature.
+    pub const fn wants_registry(self) -> bool {
+        matches!(self, Fixture::Registry)
     }
+}
+
+/// The directory this bench owns under the build directory cargo resolves for the fixture, from the environment or
+/// the workspace config alike, asked of `cargo metadata` once per process.
+pub(crate) fn own_dir() -> PathBuf {
+    static DIR: OnceLock<PathBuf> = OnceLock::new();
+    DIR.get_or_init(|| {
+        let out = Command::new("cargo")
+            .current_dir(fixture_dir())
+            .args(["metadata", "--format-version", "1", "--no-deps", "--offline"])
+            .output()
+            .unwrap_or_else(|e| panic!("product-build-call: cargo metadata: {e}"));
+        let said = String::from_utf8_lossy(&out.stdout);
+        let key = "\"target_directory\":\"";
+        let start = said
+            .find(key)
+            .unwrap_or_else(|| panic!("product-build-call: no target directory in cargo metadata"))
+            + key.len();
+        let end = start + said[start ..].find('"').expect("a closing quote");
+        PathBuf::from(&said[start .. end]).join("notko-product-build")
+    })
+    .clone()
 }
 
 fn target_dir() -> PathBuf {
@@ -124,34 +146,35 @@ pub fn prepare(n: usize) -> bool {
     !library_present()
 }
 
-/// Timed: the fixture built in cargo's dev profile.
-pub fn build(n: usize) -> Output {
+/// Timed: the fixture built in cargo's dev profile, with its registry or empty.
+pub fn build(n: usize, fixture: Fixture) -> Output {
     let mut c = cargo(n);
-    c.args([
-        "build",
-        "-p",
-        FIXTURE,
-        "--features",
-        "registry",
-        "--message-format=json",
-        "--target-dir",
-    ])
-    .arg(target_dir());
+    c.args(["build", "-p", FIXTURE]);
+    if fixture.wants_registry() {
+        c.args(["--features", "registry"]);
+    }
+    c.args(["--message-format=json", "--target-dir"])
+        .arg(target_dir());
     c.output().expect("cargo on the path")
 }
 
 /// Untimed, after the build: what the compiler built, from cargo's own messages, with one line appended to the
-/// record. Answers with the number of packages the compiler built fresh.
-pub fn record(n: usize, output: &Output, absent_before: bool) -> u64 {
+/// record. Whether the fixture was built with its registry is read from the features cargo says it built with,
+/// not from what was asked. Answers with the number of packages the compiler built fresh.
+pub fn record(n: usize, fixture: Fixture, output: &Output, absent_before: bool) -> u64 {
     let said = String::from_utf8_lossy(&output.stdout);
     let built: Vec<&str> = said
         .lines()
         .filter(|l| l.contains("\"reason\":\"compiler-artifact\"") && l.contains("\"fresh\":false"))
         .collect();
-    let fixture_built = built
+    let own: Vec<&&str> = built
         .iter()
         .filter(|l| l.contains(&format!("\"name\":\"{FIXTURE_LIB}\"")))
-        .count();
+        .collect();
+    let fixture_built = own.len();
+    let with_registry = own
+        .iter()
+        .any(|l| l.contains("\"features\":[\"registry\"]"));
     let others_built = built.len() - fixture_built;
     let present_after = library_present();
     let waited = String::from_utf8_lossy(&output.stderr).contains("Blocking waiting for file lock");
@@ -161,8 +184,9 @@ pub fn record(n: usize, output: &Output, absent_before: bool) -> u64 {
         .code()
         .map_or_else(|| "signal".to_string(), |c| c.to_string());
     let line = format!(
-        "{}\t{call}\t{n}\t{fixture_built}\t{others_built}\t{absent_before}\t{present_after}\t{waited}\t{exit}\n",
+        "{}\t{call}\t{n}\t{}\t{fixture_built}\t{with_registry}\t{others_built}\t{absent_before}\t{present_after}\t{waited}\t{exit}\n",
         std::process::id(),
+        fixture.wants_registry(),
     );
     std::fs::create_dir_all(own_dir()).unwrap_or_else(|e| panic!("{}: {e}", own_dir().display()));
     std::fs::OpenOptions::new()
