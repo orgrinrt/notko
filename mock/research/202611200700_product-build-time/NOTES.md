@@ -12,7 +12,7 @@ Each call, untimed, writes the source, brings `notko-hlist` up to date and clean
 
 ## Results
 
-Run `20261120T071113Z-323f66d`, machine class `linux-x86_64-c4-container-intel` (4 cpus, Xeon at 2.10 GHz, a shared container), `rustc 1.102.0-nightly (59cbdee2e 2026-11-17)`. The fixture is built in cargo's dev profile; the release profile in `meta.json` is the harness's, for the driver and the arms. Three passes, each taking one warm and one cold sample per arm, so six samples per arm per point. Directories: `mock/benches/results/product-build/product-build_n<point>/linux-x86_64-c4-container-intel/20261120T071113Z-323f66d/`.
+Run `20261120T071113Z-323f66d`, machine class `linux-x86_64-c4-container-intel` (4 cpus, Xeon at 2.10 GHz, a shared container), `rustc 1.102.0-nightly (59cbdee2e 2026-11-17)`. The fixture is built in cargo's dev profile; the release profile in `meta.json` is the harness's, for the driver and the arms. Three passes, each taking one warm and one cold sample per arm, so six samples per arm per point. The harness reports deltas against `from_clean` raw; it subtracts a declared floor only in its `ratio` mode, which this bench does not run in, so the build above the floor below is worked out here from the medians in `summary.tsv`. Directories: `mock/benches/results/product-build/product-build_n<point>/linux-x86_64-c4-container-intel/20261120T071113Z-323f66d/`.
 
 Two arms. `from_clean` builds the fixture with its registry. `cargo_alone` builds the same fixture without the `registry` feature, so the crate is empty: cargo starts, resolves, fingerprints and writes a library, and the compiler has nothing of the product to do. It is the floor, and what is left above it is what the product costs the compiler.
 
@@ -22,14 +22,14 @@ The medians are the harness's, over the three warm samples; warm and cold mean n
 |---|---|---|---|---|---|---|
 | 32 | 143 ms | 111 to 181 | 43 ms | 100 ms | 3.1 ms | |
 | 64 | 247 ms | 228 to 253 | 54 ms | 192 ms | 3.0 ms | 1.9 times, +92 ms |
-| 128 | 810 ms | 776 to 1151 | 47 ms | 763 ms | 6.0 ms | 4.0 times, +571 ms |
+| 128 | 810 ms | 776 to 1151 | 47 ms | 762 ms | 6.0 ms | 4.0 times, +570 ms |
 | 256 | 3817 ms | 3695 to 3836 | 51 ms | 3767 ms | 14.7 ms | 4.9 times, +3004 ms |
 
-The floor stays between 43 and 60 ms over every sample at every point, so cargo's own work is a fixed cost and none of the growth. Above it, the cost is about linear up to 64 columns. From 64 to 128 it about quadruples, and the last doubling costs 4.9 times, an exponent of about 2.3. A registry of 256 columns costs a consumer close to four seconds of compiler time in a dev build for this shape of use. Nothing past 256 was measured, and no figure past it is claimed.
+The floor stays between 42.7 and 59.6 ms over every sample at every point, so cargo's own work is a fixed cost and none of the growth. Above it, the cost is about linear up to 64 columns. From 64 to 128 it about quadruples, and the last doubling costs 4.9 times, an exponent of about 2.3. A registry of 256 columns costs a consumer close to four seconds of compiler time in a dev build for this shape of use. Nothing past 256 was measured, and no figure past it is claimed.
 
 The 32-column point is the noisiest: its range is wider than its floor-subtracted cost, and its median here is 32 ms above the one in the run before (below), which is within that range. Its figures say the cost there is around a tenth of a second and no more exactly than that.
 
-Two earlier runs are kept beside this one. `20261120T064624Z-ccbd272` was refused: its check could not see the fixture's library, so it certifies nothing (the commits `9252c11` and `d4d4ad1`). `20261120T065436Z-d4d4ad1` passed with `from_clean` alone and no floor; its warm medians, 111, 225, 744 and 3596 ms, agree with this run within the ranges above, and it is superseded by this one only because it has nothing to subtract.
+Two earlier runs are kept beside this one. `20261120T064624Z-ccbd272` was refused: its check could not see the fixture's library, so it certifies nothing (the commits `9252c11` and `d4d4ad1`). `20261120T065436Z-d4d4ad1` passed with `from_clean` alone and no floor; its warm medians are 111, 225, 744 and 3596 ms. Each sits just below this run's lowest sample at its point, so the two runs differ by more than either one's own spread, by six to nine percent in the medians from 64 columns up. The ratios between points and the exponent agree; the absolute figures carry that difference between runs, on a shared container, as their uncertainty. It is superseded by this one because it has no floor to subtract.
 
 ## Holds for
 
@@ -37,4 +37,4 @@ columns 32, 64, 128, 256; systems `n / 8`, four picks and six bound members each
 
 ## What it does not show
 
-Nothing here is about a release build, about `cargo check` alone, about link time, or about a carrier other than the uniform one. Which of the pieces (the picks, the `ContainsAll` bounds, the row literal, the walks) carries the growth was not separated: the bench has one arm that builds the product, and its floor. A per-piece arm is the next question if the curve matters, and the ad-hoc spike's table names the likely ones (`ContainsAll` of a reordered list and a pick of every member grew between quadratic and cubic there). Six samples per arm per point on a shared container give the range above and no more; a point whose range overlaps a neighbour's would need more passes before a difference between them is quoted.
+Nothing here is about a release build, about `cargo check` alone, about link time, or about a carrier other than the uniform one. Which of the pieces (the picks, the `ContainsAll` bounds, the row literal, the walks) carries the growth was not separated: the bench has one arm that builds the product, and its floor. A per-piece arm is the next question if the curve matters, and the ad-hoc spike's table names the likely ones (`ContainsAll` of a reordered list and a pick of every member grew between quadratic and cubic there). Six samples per arm per point on a shared container give the range above and no more, and the run before this one sat just below it, so a figure here is good to within about a tenth between runs; a point whose range overlaps a neighbour's would need more passes before a difference between them is quoted.
