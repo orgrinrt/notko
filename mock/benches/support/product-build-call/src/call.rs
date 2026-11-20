@@ -53,19 +53,37 @@ fn source_path(n: usize) -> PathBuf {
     own_dir().join("source").join(format!("registry_{n}.rs"))
 }
 
-fn library() -> PathBuf {
-    target_dir()
-        .join("debug")
-        .join(format!("lib{FIXTURE_LIB}.rlib"))
+/// Whether the fixture's library is anywhere in the target directory. Cargo's build-dir layout keeps the rlib under
+/// `debug/build/<package>/<hash>/out/` and copies nothing to `debug/`, so the file is looked for by name, not by a path.
+fn library_present() -> bool {
+    fn walk(dir: &Path, prefix: &str) -> bool {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return false;
+        };
+        entries.flatten().any(|e| {
+            let path = e.path();
+            if path.is_dir() {
+                walk(&path, prefix)
+            } else {
+                path.file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| n.starts_with(prefix) && n.ends_with(".rlib"))
+            }
+        })
+    }
+    walk(&target_dir(), &format!("lib{FIXTURE_LIB}"))
 }
 
 /// Cargo for the fixture: dev profile, offline, against the committed lockfile, no incremental cache, and no
-/// compiler wrapper, so a cache in front of rustc cannot answer for the compiler.
+/// compiler wrapper, so a cache in front of rustc cannot answer for the compiler. The build directory is the bench's
+/// own as well as the target directory: the workspace config sends every build's intermediates to the one shared
+/// `build-dir`, where cleaning the fixture would reach past this bench and its library would not be found.
 fn cargo(n: usize) -> Command {
     let mut c = Command::new("cargo");
     c.current_dir(fixture_dir())
         .env("CARGO_INCREMENTAL", "0")
         .env(SOURCE_VAR, source_path(n))
+        .env("CARGO_BUILD_BUILD_DIR", target_dir())
         .env_remove("RUSTC_WRAPPER")
         .env_remove("RUSTC_WORKSPACE_WRAPPER")
         .arg("--offline")
@@ -103,7 +121,7 @@ pub fn prepare(n: usize) -> bool {
         .args(["clean", "-p", FIXTURE, "--target-dir"])
         .arg(target_dir());
     run(clean, "cleaning the fixture");
-    !library().exists()
+    !library_present()
 }
 
 /// Timed: the fixture built in cargo's dev profile.
@@ -135,7 +153,7 @@ pub fn record(n: usize, output: &Output, absent_before: bool) -> u64 {
         .filter(|l| l.contains(&format!("\"name\":\"{FIXTURE_LIB}\"")))
         .count();
     let others_built = built.len() - fixture_built;
-    let present_after = library().is_file();
+    let present_after = library_present();
     let waited = String::from_utf8_lossy(&output.stderr).contains("Blocking waiting for file lock");
     let call = CALLS.fetch_add(1, Ordering::Relaxed) + 1;
     let exit = output
