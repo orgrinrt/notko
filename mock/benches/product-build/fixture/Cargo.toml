@@ -1,0 +1,19 @@
+# The crate `product-build` times: a registry of columns, and what a consumer asks of the product over it. Its
+# source is written per point by `product-build-call` and included through `NOTKO_PRODUCT_FIXTURE_SOURCE`. Never
+# published, and its own workspace so the repository's does not adopt it.
+[workspace]
+
+[package]
+name = "notko-product-fixture"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "MPL-2.0"
+
+[dependencies]
+# The default set, const and membership both on, which is what hilavitkutin's manifest takes.
+notko-hlist = { path = "../../../crates/notko-hlist" }
+
+[features]
+# The registry, from the source the bench writes. Off by default, so a build that sets no source compiles.
+registry = []
