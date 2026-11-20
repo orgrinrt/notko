@@ -2,9 +2,8 @@ error[E0277]: `Cons<Absent, notko_hlist::Empty>` is not a part of `Cons<A, Cons<
   --> tests/compile_fail/a_part_naming_an_absent_member_is_refused.rs:24:19
    |
 24 |     part::<Whole, Cons<Absent, Empty>, _>();
-   |                   ^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+   |                   ^^^^^^^^^^^^^^^^^^^ the trait `SubOf<Val, Cons<A, Cons<B, notko_hlist::Empty>>, _>` is not implemented for `Cons<Absent, notko_hlist::Empty>`
    |
-   = help: the trait `SubOf<Val, Cons<A, Cons<B, notko_hlist::Empty>>, Cons<There<There<_>>, notko_hlist::Empty>>` is not implemented for `Cons<Absent, notko_hlist::Empty>`
    = note: Each member of `Cons<Absent, notko_hlist::Empty>` is found in `Cons<A, Cons<B, notko_hlist::Empty>>` through `Has` and duplicated through `Dup<M>`, so the one that failed is not named here. Bound on `PlaceOf<M, _>` for the individual member to find out which, and check that the carrier duplicates what it holds for each.
 note: required by a bound in `part`
   --> tests/compile_fail/a_part_naming_an_absent_member_is_refused.rs:21:29

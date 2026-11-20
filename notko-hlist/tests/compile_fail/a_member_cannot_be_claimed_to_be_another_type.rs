@@ -15,7 +15,7 @@ struct C;
 
 type Three = Cons<A, Cons<B, Cons<C, Empty>>>;
 
-fn member_is<L: At<P, Member = M>, P, M>() {}
+fn member_is<L: At<P, Member = M>, P: notko_hlist::Place, M>() {}
 
 fn main() {
     // Position one is `B`.
