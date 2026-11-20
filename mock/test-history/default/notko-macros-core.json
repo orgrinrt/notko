@@ -3,17 +3,17 @@
   "flavour": "",
   "member": "notko-macros-core",
   "green": {
-    "full": "5563bcbad771aa3773ba098cf2a1cdf3cb9a4c55758cd56e8e72020809f6fe69",
+    "full": "f4759c0c8c6667c7e0793ca458aa3dc89b70ef8bbf70ea8cb3df1ce401976026",
     "own": {
       "notko-macros-core": "fb794abf31e001c5434122e5a743afe212047514d4ef342de14155d2c36958e9"
     }
   },
   "tests": {},
   "bins": {
-    "notko-macros-core": "225a6f4f36629893d7fbb8b7d6e6e0393f0d581873128af443ad8d38f6bf5ede",
-    "notko-macros-core::a_third_party_macro_names_its_own_crate": "8fd8dbe8cd7456fc45d3d9b62ac20e09d3404b3feb1741183ac9ea15403f5bfd",
-    "notko-macros-core::extension": "5320857a031de1ab9d2e0c02cf22a288327a0de01b8d30b88ddf73c4916030a9",
-    "notko-macros-core::hot_rewrite_shapes": "040014137a08e30ac494dbc422f97500c9e1af897075ea6eaccd56a79b065298",
-    "notko-macros-core::the_readme_examples_are_the_api": "4a641d5db5e845888ae7962fb0ec9417d9bfae342326f21ef5c64a2500a68ad0"
+    "notko-macros-core": "f05d54090306398f0407f48c02075c0e60592ab3c1a53e369bc6a299b3dcd4f6",
+    "notko-macros-core::a_third_party_macro_names_its_own_crate": "331f834fb4350dfb2ae65c7fbc61b6c7093dd162fe7b8e1f8770fcf17d0bcf96",
+    "notko-macros-core::extension": "63e85d035d5c6687ab5079c7babbd47a7a3a5208a4d1b609a35d60e29c4a8864",
+    "notko-macros-core::hot_rewrite_shapes": "6b89768b5e0b1477dbc59f2967c87e68ee485c388faf1163c8d8add32dc8894a",
+    "notko-macros-core::the_readme_examples_are_the_api": "c3cf87ed05782da334ef599a2c27dc556bf9876d600478eda6fbf09d9262f591"
   }
 }

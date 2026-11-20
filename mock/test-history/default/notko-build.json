@@ -3,13 +3,13 @@
   "flavour": "",
   "member": "notko-build",
   "green": {
-    "full": "594b99bcf1488e5089243bf8203ed088516aa868a22505dba3a2679c38dad8d7",
+    "full": "6782334e1c041edf46be7685bbc64363774f1316792eedd7291d2fa9cd69c783",
     "own": {
       "notko-build": "27bf07d22d589246c7689378beb61250d596a294b81c304921cd74939fb9936b"
     }
   },
   "tests": {},
   "bins": {
-    "notko-build": "4e14bd3ad5c90c3ea25c82de7dbeae82b97465387871a507aedd9ace3ba8642e"
+    "notko-build": "5b92094f49f97a31fdcbb2a177fec5defe163d84d2d52dc83ad95c4f0345c88e"
   }
 }

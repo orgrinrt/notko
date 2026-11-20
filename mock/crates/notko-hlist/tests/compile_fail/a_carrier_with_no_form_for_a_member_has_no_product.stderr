@@ -1,42 +1,7 @@
-error[E0277]: `Cons<Heat, notko_hlist::Empty>` has no product through `Read`
-  --> tests/compile_fail/a_carrier_with_no_form_for_a_member_has_no_product.rs:18:13
+error[E0277]: `Cons<Pos, Cons<Heat, notko_hlist::Empty>>` has no product through `Read`
+  --> tests/compile_fail/a_carrier_with_no_form_for_a_member_has_no_product.rs:18:14
    |
 18 |     let _p: <Cons<Pos, Cons<Heat, Empty>> as Project<Read>>::Prod = PCons {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Project<Read>` is not implemented for `Cons<Heat, notko_hlist::Empty>`
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Project<Read>` is not implemented for `Cons<Pos, Cons<Heat, notko_hlist::Empty>>`
    |
    = note: A product is defined for lists built from `Empty` and `Cons<H, T>` where the carrier holds a form for every member, through `Carrier<H>`, so the usual cause is a member the carrier has no form for, or a tail that is not a list.
-
-error[E0277]: `Read` holds no form for `Heat`
-  --> tests/compile_fail/a_carrier_with_no_form_for_a_member_has_no_product.rs:20:15
-   |
-20 |           tail: PCons {
-   |  _______________^
-21 | |             head: 2,
-22 | |             tail: PNil,
-23 | |         },
-   | |_________^ unsatisfied trait bound
-   |
-help: the trait `Carrier<Heat>` is not implemented for `Read`
-  --> tests/compile_fail/a_carrier_with_no_form_for_a_member_has_no_product.rs:9:1
-   |
- 9 | struct Read;
-   | ^^^^^^^^^^^
-   = note: A uniform carrier holds every `Elem` member and nothing else, and a per-member carrier holds exactly the members it states a `Form<Heat>` for. A product through it exists only where every member of the list is held.
-note: required by a bound in `PCons`
-  --> src/project.rs
-   |
-   | pub struct PCons<C: Carrier<H>, H, T> {
-   |                     ^^^^^^^^^^ required by this bound in `PCons`
-
-error[E0277]: `Read` states no form for `Heat`
-  --> tests/compile_fail/a_carrier_with_no_form_for_a_member_has_no_product.rs:21:13
-   |
-21 |             head: 2,
-   |             ^^^^^^^ unsatisfied trait bound
-   |
-help: the trait `notko_hlist::Route<Heat, PerMember>` is not implemented for `Read`
-  --> tests/compile_fail/a_carrier_with_no_form_for_a_member_has_no_product.rs:9:1
-   |
- 9 | struct Read;
-   | ^^^^^^^^^^^
-   = note: A per-member carrier declares `Shape<Is = PerMember>` and states one `impl Form<Heat>` for each member it holds. A uniform carrier states none: what it holds is `Uniform::Of`, for `Elem` members only.

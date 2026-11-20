@@ -11,18 +11,12 @@ note: required by a bound in `Form`
    |                          ^^^^^^^^^^^^^^ required by this bound in `Form`
 
 error[E0277]: `Cons<Res, notko_hlist::Empty>` has no product through `Val`
-  --> tests/compile_fail/a_shipped_carrier_holds_nothing_for_a_member_of_yours.rs:16:12
+  --> tests/compile_fail/a_shipped_carrier_holds_nothing_for_a_member_of_yours.rs:16:13
    |
 16 |     let p: <Cons<Res, Empty> as Project<Val>>::Prod = PCons { head: "a", tail: PNil };
-   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Project<Val>` is not implemented for `Cons<Res, notko_hlist::Empty>`
+   |             ^^^^^^^^^^^^^^^^ the trait `Project<Val>` is not implemented for `Cons<Res, notko_hlist::Empty>`
    |
    = note: A product is defined for lists built from `Empty` and `Cons<H, T>` where the carrier holds a form for every member, through `Carrier<H>`, so the usual cause is a member the carrier has no form for, or a tail that is not a list.
-
-error[E0277]: the trait bound `Val: notko_hlist::Route<Res, Uniformly>` is not satisfied
-  --> tests/compile_fail/a_shipped_carrier_holds_nothing_for_a_member_of_yours.rs:16:63
-   |
-16 |     let p: <Cons<Res, Empty> as Project<Val>>::Prod = PCons { head: "a", tail: PNil };
-   |                                                               ^^^^^^^^^ the trait `notko_hlist::Route<Res, Uniformly>` is not implemented for `Val`
 
 error[E0277]: `Val` holds no form for `Res`
   --> tests/compile_fail/a_shipped_carrier_holds_nothing_for_a_member_of_yours.rs:17:38
@@ -38,8 +32,39 @@ note: required by a bound in `pick`
    |                                 ^^^^^^^^^^ required by this bound in `Has::pick`
 ...
    |             fn pick(p: &Self::Prod) -> &<C as Carrier<M>>::Of;
-   |                ---- required by a bound in this associated function
 ...
    | has_items!(const);
    | ----------------- in this macro invocation
    = note: this error originates in the macro `has_items` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: `Cons<Res, notko_hlist::Empty>` has no field for `Res` through `Val`
+  --> tests/compile_fail/a_shipped_carrier_holds_nothing_for_a_member_of_yours.rs:17:14
+   |
+17 |     let _ = <Cons<Res, Empty> as Has<Val, Res, _>>::pick(&p);
+   |              ^^^^^^^^^^^^^^^^ the trait `Has<Val, Res, Here>` is not implemented for `Cons<Res, notko_hlist::Empty>`
+   |
+   = note: A field is found where `PlaceOf` finds the member: `Here` for the head of a `Cons`, `There<P>` when the tail holds it at `P`. The usual cause is a member the list does not hold, and if the compiler reports `type annotations needed` instead, the list holds it at more than one place.
+
+error[E0277]: `Cons<Res, notko_hlist::Empty>` has no product through `Val`
+  --> tests/compile_fail/a_shipped_carrier_holds_nothing_for_a_member_of_yours.rs:17:13
+   |
+17 |     let _ = <Cons<Res, Empty> as Has<Val, Res, _>>::pick(&p);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Project<Val>` is not implemented for `Cons<Res, notko_hlist::Empty>`
+   |
+   = note: A product is defined for lists built from `Empty` and `Cons<H, T>` where the carrier holds a form for every member, through `Carrier<H>`, so the usual cause is a member the carrier has no form for, or a tail that is not a list.
+
+error[E0277]: `Val` holds no form for `Res`
+  --> tests/compile_fail/a_shipped_carrier_holds_nothing_for_a_member_of_yours.rs:17:13
+   |
+17 |     let _ = <Cons<Res, Empty> as Has<Val, Res, _>>::pick(&p);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Carrier<Res>` is not implemented for `Val`
+   |
+   = note: A uniform carrier holds every `Elem` member and nothing else, and a per-member carrier holds exactly the members it states a `Form<Res>` for. A product through it exists only where every member of the list is held.
+
+error[E0277]: `Cons<Res, notko_hlist::Empty>` has no product through `Val`
+  --> tests/compile_fail/a_shipped_carrier_holds_nothing_for_a_member_of_yours.rs:17:58
+   |
+17 |     let _ = <Cons<Res, Empty> as Has<Val, Res, _>>::pick(&p);
+   |                                                          ^^ the trait `Project<Val>` is not implemented for `Cons<Res, notko_hlist::Empty>`
+   |
+   = note: A product is defined for lists built from `Empty` and `Cons<H, T>` where the carrier holds a form for every member, through `Carrier<H>`, so the usual cause is a member the carrier has no form for, or a tail that is not a list.

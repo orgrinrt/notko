@@ -14,7 +14,7 @@ struct B;
 
 type Two = Cons<A, Cons<B, Empty>>;
 
-fn member_of<L: At<P>, P>() {}
+fn member_of<L: At<P>, P: notko_hlist::Place>() {}
 
 fn main() {
     member_of::<Two, There<There<Here>>>();
