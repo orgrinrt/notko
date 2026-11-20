@@ -12,7 +12,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::record::log_path;
 
-/// The fixture's package, and the library it builds to in the dev profile.
+/// The fixture's package, and its library target as cargo names it in its messages and on disk.
 pub(crate) const FIXTURE: &str = "notko-product-fixture";
 const FIXTURE_LIB: &str = "notko_product_fixture";
 
@@ -29,11 +29,19 @@ pub fn fixture_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../product-build/fixture")
 }
 
-/// The directory this bench owns under the inherited build directory.
+/// The directory this bench owns under the inherited build directory, made absolute against the process's own
+/// directory, since cargo runs from the fixture and would read a relative path against that instead.
 pub(crate) fn own_dir() -> PathBuf {
-    match std::env::var_os("CARGO_TARGET_DIR") {
+    let dir = match std::env::var_os("CARGO_TARGET_DIR") {
         Some(dir) => PathBuf::from(dir).join("notko-product-build"),
         None => fixture_dir().join("target").join("notko-product-build"),
+    };
+    if dir.is_absolute() {
+        dir
+    } else {
+        std::env::current_dir()
+            .expect("the process's own directory")
+            .join(dir)
     }
 }
 
@@ -124,7 +132,7 @@ pub fn record(n: usize, output: &Output, absent_before: bool) -> u64 {
         .collect();
     let fixture_built = built
         .iter()
-        .filter(|l| l.contains(&format!("\"name\":\"{FIXTURE}\"")))
+        .filter(|l| l.contains(&format!("\"name\":\"{FIXTURE_LIB}\"")))
         .count();
     let others_built = built.len() - fixture_built;
     let present_after = library().is_file();
