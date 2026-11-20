@@ -8,8 +8,9 @@ error[E0277]: the trait bound `&mut Theirs: Copy` is not satisfied
 note: required by a bound in `Slot::<T>::into_maybe`
   --> src/slot.rs
    |
+   | impl<T: NonZeroable + NicheFilled> Slot<T> {
+...
    |     pub const fn into_maybe(self) -> Maybe<T>
-   |                  ---------- required by a bound in this associated function
    |     where
    |         T: Copy,
    |            ^^^^ required by this bound in `Slot::<T>::into_maybe`

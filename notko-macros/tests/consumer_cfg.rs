@@ -97,6 +97,11 @@ fn try_build(with_feature_declared: bool, extra: &[&str], body: Option<&str>) ->
         // each other's artifacts: the arms then report whichever body won the
         // race, and the result changes between runs of the same suite.
         .env("CARGO_TARGET_DIR", scratch.join("target"))
+        // And its own intermediates. Cargo splits the two, so a `build-dir` set
+        // by a config the working directory inherits (the workspace root's, in
+        // a checkout that sits under one) survives `CARGO_TARGET_DIR` and every
+        // scratch crate of this name then compiles into one shared directory.
+        .env("CARGO_BUILD_BUILD_DIR", scratch.join("target"))
         .output()
         .expect("cargo did not run");
 
