@@ -1,0 +1,24 @@
+[workspace]
+members = [
+    "crates/notko",
+    "crates/notko-hlist",
+    "crates/notko-macros",
+    "crates/notko-macros-core",
+    "crates/notko-build",
+]
+# A test fixture of `notko-hlist`, built as its path dev-dependency and never
+# published, so it is no member and the publish checks do not read it.
+exclude = ["crates/notko-hlist/tests/carrier_owner"]
+resolver = "2"
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+# The floor for the build with the default features off, which is the one that
+# works on stable at all: the default set turns on const-trait machinery that
+# only nightly has. Checked against 1.85.0 itself with `--no-default-features`,
+# rather than inferred from what the code looks like it needs.
+rust-version = "1.85"
+license = "MPL-2.0"
+homepage = "https://github.com/orgrinrt/notko"
+repository = "https://github.com/orgrinrt/notko"

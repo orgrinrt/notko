@@ -1,0 +1,62 @@
+{
+  "version": 2,
+  "flavour": "",
+  "member": "notko-macros",
+  "green": {
+    "full": "6454ab829a12d17713dfde6c357bb4b83864cfa8dbbb469ca677f30ab491d23e",
+    "own": {
+      "notko": "f2d3f46f8c3d2b7bde3b7056c23e31c43c84d16c37bbd6b7e9869e8cd09266cf",
+      "notko-macros": "06b9c5c0cccaaaa8bf643ff63857dcbeb336d2a0e56a090392deed48b1b4327d",
+      "notko-macros-core": "e2e729eed242e32bcebb44e550073d6fe32fbdff037e61c9cc6a941115af8ddd"
+    }
+  },
+  "tests": {
+    "notko-macros::consumer_cfg": {
+      "a_consumer_declaring_the_feature_builds_without_a_warning": {
+        "secs": 8.5,
+        "passed": true,
+        "passed_at": "458bb500ab825ecef940d629f912f0929589704caf68c3076b3906fc627dccf8"
+      },
+      "a_consumer_that_does_not_declare_it_is_warned": {
+        "secs": 6.7,
+        "passed": true,
+        "passed_at": "458bb500ab825ecef940d629f912f0929589704caf68c3076b3906fc627dccf8"
+      },
+      "an_error_without_debug_is_refused_by_both_arms_or_neither": {
+        "secs": 14.1,
+        "passed": true,
+        "passed_at": "458bb500ab825ecef940d629f912f0929589704caf68c3076b3906fc627dccf8"
+      },
+      "an_impl_trait_error_builds_in_both_arms_or_neither": {
+        "secs": 17.2,
+        "passed": true,
+        "passed_at": "458bb500ab825ecef940d629f912f0929589704caf68c3076b3906fc627dccf8"
+      },
+      "an_ordinary_body_still_builds_in_both_arms": {
+        "secs": 15.1,
+        "passed": true,
+        "passed_at": "458bb500ab825ecef940d629f912f0929589704caf68c3076b3906fc627dccf8"
+      },
+      "the_question_mark_operator_builds_in_both_arms_or_neither": {
+        "secs": 13.6,
+        "passed": true,
+        "passed_at": "458bb500ab825ecef940d629f912f0929589704caf68c3076b3906fc627dccf8"
+      },
+      "the_release_arm_the_feature_selects_also_builds": {
+        "secs": 7.7,
+        "passed": true,
+        "passed_at": "458bb500ab825ecef940d629f912f0929589704caf68c3076b3906fc627dccf8"
+      },
+      "the_release_arm_warns_about_nothing": {
+        "secs": 5.6,
+        "passed": true,
+        "passed_at": "458bb500ab825ecef940d629f912f0929589704caf68c3076b3906fc627dccf8"
+      }
+    }
+  },
+  "bins": {
+    "notko-macros": "90be27d69c148d97aab5bf1074ab36e2b24674f6bc8c77436e17eb84a9ec27e9",
+    "notko-macros::consumer_cfg": "458bb500ab825ecef940d629f912f0929589704caf68c3076b3906fc627dccf8",
+    "notko-macros::smoke": "abf023431fc6b76ff973004d8e57c93abd0bf34c03e8802c809fe1193fd39eed"
+  }
+}

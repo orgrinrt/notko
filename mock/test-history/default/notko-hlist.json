@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "flavour": "",
+  "member": "notko-hlist",
+  "green": {
+    "full": "5b4b2c1012d65b6350c3bc62321ec5bfd3c6a1aa072454d573257bb9740fc3ed",
+    "own": {
+      "notko-hlist": "39f7fbc01e38dc1f014cdde67049412bc87d5c39867e44a3312894dce376ce9f",
+      "notko-hlist-fixture-carrier-owner": "00200c8906eb9a225cd276fc210ad5a393869dd49ced97e8d250221effa7a863"
+    }
+  },
+  "tests": {
+    "notko-hlist::the_refusals_hold": {
+      "every_refusal_still_refuses": {
+        "secs": 18.4,
+        "passed": true,
+        "passed_at": "8e8507c0f1d24c4fd7946f05e61dca266f66024af121366daeb0214f391cbc3b"
+      }
+    }
+  },
+  "bins": {
+    "notko-hlist": "b0ba3a0ea0502847eb011d158f4ef7343ed8d9549f837f989c14368ecc069f65",
+    "notko-hlist::a_carrier_holds_a_form_per_member": "9d9535b53b5c642e68591321bbab2d96f73d4a75f9980f624813402a646d0376",
+    "notko-hlist::a_carrier_of_another_crate_takes_your_members": "8d0022d270381d22721d173fa5afbe195042393e234797789244726a91a7c424",
+    "notko-hlist::a_count_counts": "30ae3c9b92af8c1a943323eb1f302d1339f6a5485f4ac5a4ac062f46daf0f56b",
+    "notko-hlist::a_count_counts_without_const": "121d7199ac9f0bc14918f2b6a9e5ac16fcbfa8888dde833c112dfdb4ef939630",
+    "notko-hlist::a_member_sits_at_a_position": "ff120d86853969817215cc60d78bc2debdbfe046c56d05be2e07613258ca8753",
+    "notko-hlist::a_product_follows_its_list": "fc0eed9c268255d1c93b9678d982b7a6302c9ea38d27f1e8fbd2aba4c30531bf",
+    "notko-hlist::a_product_is_built_at_compile_time": "cb4ba0796d7faa54297c3c75c90da64249b1314e08457a8313b93b48ef4db392",
+    "notko-hlist::append_is_append": "ac234032f9fcfc5a3949031c5f6ad47d71d1b852ec5e06d816c98d3d226127b8",
+    "notko-hlist::both_paths_take_the_same_bounds": "07c40d61bb9e0cdf2ac61567a347173894cd5456b7ffe404c1c45e43d9221866",
+    "notko-hlist::the_list_holds_what_it_holds": "8b4e9a9950d57e2100dd3c0ccd5c744ccf9373c0e068dc681293cf6c38c7e404",
+    "notko-hlist::the_refusals_hold": "8e8507c0f1d24c4fd7946f05e61dca266f66024af121366daeb0214f391cbc3b"
+  }
+}

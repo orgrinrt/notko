@@ -2,7 +2,7 @@
 
 notko-hlist builds a product over a list of members, one field per member, and the carrier decides what each field is: a value, a shared or exclusive column, an owned array. Until now the carrier picked one form for all members at once, over each member's `Elem::Value`, so a product could not hold a value for one member, a window for another and a borrowed resource for a third. A read list of mixed members needs exactly that, and hilavitkutin's read lists are the first consumer waiting on it.
 
-This design takes the carrier as a parameter of the product trait, the route the sketch `research/sketches/202611191400_carrier-as-a-typestate-parameter/` showed working, and holds it to the condition the maintainer set on 16 November: "If the parameterisation is done via typestate, that's fine, and things remain exactly explicit and nowhere ambiguous or allowing ambiguousness". The carrier is a typestate, and every member's form is fixed by the types.
+This design takes the carrier as a parameter of the product trait, the route the sketch `mock/research/sketches/202611191400_carrier-as-a-typestate-parameter/` showed working, and holds it to the condition the maintainer set on 16 November: "If the parameterisation is done via typestate, that's fine, and things remain exactly explicit and nowhere ambiguous or allowing ambiguousness". The carrier is a typestate, and every member's form is fixed by the types.
 
 notko declares no canon, so this design stands as the governing document for the product, below the maintainer's words and above the code.
 
@@ -51,4 +51,4 @@ The shipped `Carrier`, a generic associated type over `Elem`, is renamed `Unifor
 
 ## What is not decided here
 
-Whether a frame lifetime may sit on a member rather than on the carrier is left as the earlier sketch left it: it puts the lifetime in the list type and does not build as a small change (`research/sketches/202611152220_read-product-borrowed/FINDINGS.md`, attempt 4). The carrier is where the frame lives in this design.
+Whether a frame lifetime may sit on a member rather than on the carrier is left as the earlier sketch left it: it puts the lifetime in the list type and does not build as a small change (`mock/research/sketches/202611152220_read-product-borrowed/FINDINGS.md`, attempt 4). The carrier is where the frame lives in this design.

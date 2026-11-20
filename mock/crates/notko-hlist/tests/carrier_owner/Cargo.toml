@@ -1,0 +1,12 @@
+# A crate owning a per-member carrier and no members, the arrangement the
+# first consumer has: the carrier in one crate, the members in another. A test
+# fixture of `notko-hlist` only, never published.
+[package]
+name = "notko-hlist-fixture-carrier-owner"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "MPL-2.0"
+
+[dependencies]
+notko-hlist = { path = "../.." }
