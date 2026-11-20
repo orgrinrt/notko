@@ -224,7 +224,9 @@ fn the_blessed_diagnostics_carry_this_crate_s_own_notes() {
         // these are the check that a fixture actually reaches a sealed impl
         // rather than failing earlier for some other reason.
         "is a \"sealed trait\"",
-        "the trait `Place` is not implemented for",
+        "the trait `Place` is not implemented for `Rogue`",
+        "the trait `Place` is not implemented for `Ninth`",
+        "`Place` is a \"sealed trait\"",
     ] {
         assert!(
             blessed.contains(fragment),
