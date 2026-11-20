@@ -11,7 +11,7 @@
 # Usage: scripts/feature-matrix.sh
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../mock"
 
 fail=0
 

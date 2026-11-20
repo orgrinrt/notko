@@ -1,0 +1,50 @@
+e2ed7c1 chore: lock src changelist 202611192331
+8dc1bbf docs: record the verification of the restored evidence
+a67b03f fix: put the research and trybuild cases back to their bytes on `dev`
+94812d3 chore: lock doc changelist 202611192330
+2660843 docs: open a round to put the moved evidence back to its bytes
+18d1833 chore: close design round 202611192252
+27cb5e5 chore: lock src changelist 202611192256
+b152c75 docs: record the verification of the move
+a64a507 fix: give the macros consumer fixture its licence
+bbd6c4b fix: give the hlist fixture crate its licence
+b3c1229 fix: alias the hlist fixture and read the readme claims in the crate
+9968e5a refactor: move the crates under the mock directory
+4ace68c chore: relock doc changelist 202611192252 and reopen the source window
+ac5a981 chore: reopen the doc changelist and move the crate readmes
+40bfad9 chore: lock doc changelist 202611192252 and open the source window
+5a36b31 docs: open notko's first design round with a mockspace
+15a9531 feat: add the hlist product carrier typestate and document the hot tier
+1b2a572 research: sketch a borrowed read product and the hot tier's refusal
+4c16d2e docs: report that notko has no bench harness to port onto
+f5d8f56 research: land the second stack audit
+8a74dbc feat: add the hlist items a contract crate needs
+0a13d99 docs: cut the `notko` readmes down
+d56eb83 docs: drop the second person from the crate readmes
+57f8925 docs: point the licence link at dev
+4151906 docs: bring the crate readmes onto the shared shape
+1a978e5 fix: stop recommending the `At` impls, which leak a checkout path
+0244d0c feat: answer which member of a list sits at a position
+9e968a6 fix: make every crate description the readme tagline it has to be
+3889e0f docs: land the voice pass, dropping the branch's version bump
+473ba37 docs: rewrite the readme
+a30683d docs: give the crate docs the pass the readmes already had
+9faf19e docs: correct the shipped-test count in notko-hlist's manifest
+e64ac33 docs: the readme names notko-hlist, which is a fifth crate now
+530366e feat: add notko-hlist, the type-level list three crates had each rewritten
+8763b5c docs: rewrite the four readmes, and check what they claim
+bd9f4d8 fix: the four blockers a full read of this turned up
+d2c717a feat: MaybeNull prints and defaults as itself
+c484578 chore: take the shared deny and rustfmt configs
+4f26e41 fix: say what the code does, in the docs and in the tests
+4038855 fix: the hot rewrite declines what it cannot read
+26e4c05 fix!: maybe orders like option, and the include check reaches every crate
+5de8fa4 fix: the const path narrows on Destruct, not on Copy
+e25c62e docs: fix the readme claims an audit found wrong
+573ec72 fix: warm rewrites to Maybe, and the macro crates stop naming notko
+e3cde02 docs: install notko from the registry it is about to be on
+889b84f chore: publishable crates, plus what reviewing them turned up
+9913082 fix: the sibling deps still pinned 0.0.0 after the workspace moved
+c153a9e docs: rewrite the readme, and declare the publish metadata
+46e4b50 feat: ship the receive contract, so nobody writes it a third time
+3992c8b feat: one lending contract for storage a caller supplies

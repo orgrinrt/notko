@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "flavour": "",
+  "member": "notko",
+  "green": {
+    "full": "5c58b95917bb5d6c1e61ad18f5a219b73cce073ff338b6cfd703f5eece708ff7",
+    "own": {
+      "notko": "cf05b0d0f10069c7b501799d39254156f74965e5bb92d179275c1213c2028795",
+      "notko-macros": "1417fefaf42d4444361071a4115fccfb0d01840ae0d62e45153c7877505644f6",
+      "notko-macros-core": "e2e729eed242e32bcebb44e550073d6fe32fbdff037e61c9cc6a941115af8ddd"
+    }
+  },
+  "tests": {},
+  "bins": {
+    "notko": "e18c577c234fcb2f6aefd225b50f41c97f0a4f324a9977441ca6f8fc62ef1b56",
+    "notko::a_probe_crate_says_it_is_a_probe": "e2635bcc983f3db7485b43f6ce5286a49ea7528d84d958c8cf8d4670541dccfb",
+    "notko::bounded": "6887c810753542c2aa760036d617b20da81e6d30421f485045afe188db58603d",
+    "notko::cmp_ext": "aa34638cec4e3c75d2d4b6d63d08c9ea4144ebb9f2ae54f48a49b0fb4b30cb14",
+    "notko::const_error_conversion": "2558f906388e67be90fed97dd26e30541f1119e22dba34a49f45342f40279127",
+    "notko::consttry_notcopy": "5242498cdf71adbb7613a91f9ebc7224b53e497158f482d1d03b607f686a8b1a",
+    "notko::consttry_parity": "7d8c8f3b0fc4b33f40868119eb38d378f998960a6d4be0903a506c4404d91540",
+    "notko::consttry_smoke": "de67287c1335ce94a97beae4f5333225d03f9c859fb6154cd0a5f900f7030b26",
+    "notko::ctor_const_path": "a5f7841a6657a6ca0a9819c6f246153e76063c5b73c2dbf39246b786d8185f58",
+    "notko::ctor_plain_path": "a89e3bce6df88da8f3715aa0a54cc8b279df1070f934fc03dbbd0424fb29a7c5",
+    "notko::every_publishable_crate_can_actually_be_published": "3282f614cdfb8813026c777c793f59ca3b29de094a1a834187a79ea1106bd552",
+    "notko::iter_ext": "991f12784f835ce81d11ffe6c40be5f73e1106d9d5a72c01396aeda7bc9d6f99",
+    "notko::just_combinators": "098dcc162cdc49d0062e85ca110309bc696e1c301556128e5478c0dfbf51057f",
+    "notko::maybe_combinators": "292b92d1edfccef0786d1b4fb1403b0e29f4d7f52e34b6a5d516f24e55e0befd",
+    "notko::maybe_null_prints_and_defaults_as_itself": "d572bd15b16cb0d9206fd86a5bd2acf63f6568807be38ad5b5559ee1b82854c0",
+    "notko::nonzero": "6bb8d0bd0dcdb3f62a41965c8ec3de8c6773efe73cf914fecddc8566839e627a",
+    "notko::ordering_parity": "cae073a4443bc0ad349578f8f1e6570d6fc1dbb19b8ef749a85c1770df921a35",
+    "notko::outcome_combinators": "c7559e4185463d04115f9524e1bf64e11dfd7f43c14c9a5946fb4e53b973a9ce",
+    "notko::readme_claims": "484d776e29212c6f9b3e911b5e0d35f2b23317228d174bb5273dbd17b32611df",
+    "notko::slot_admits_more_than_the_nonzero_family": "34c3f635c8c8c321a0dff7484714b6dd96af8382e81e79303828074228eea37d",
+    "notko::slot_layout": "c89d89be1b04b5b3dbce8620f33c0a96fad5ee98a6caaa95d36a34640c1f943e",
+    "notko::slot_prints_in_its_own_vocabulary": "e640ea71ee5ad979005e50dd07c7d51f51a3b8c564ff513344fc9b16700b792e",
+    "notko::the_seals_hold_from_outside": "f46aa0fc8c88b39c286ab233dfdbb26f8c7024584ae230ef3d68a366cb9d15bb",
+    "notko::try_smoke": "3acac77174bc548ef22371517d5dfdfaf208c80ce23096afe896bcf041789885"
+  }
+}

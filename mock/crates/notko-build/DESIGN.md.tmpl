@@ -1,0 +1,15 @@
+# notko-build
+
+The build-script helper for a fallibility tier that is defined in one crate and used in another. A
+proc-macro cannot reach a file inside a dependency, so a consumer's `build.rs` calls
+`collect_and_distribute`, which copies the crate's own tier files and the ones its direct dependencies
+handed over into one directory under `OUT_DIR` and points the proc-macro at it. It is idempotent, and
+calling it every build is the intended shape.
+
+Each tier copied is recorded with its `Origin`, the path it came from and its `Source`, which is
+either the consuming crate's own directory or a dependency's. The source is what decides whether a
+repeated name is a shadow, a crate's own tier over a dependency's, or a clash between two
+dependencies, which is returned as an `Error`.
+
+It runs at build time on the host and uses std, as the two macro crates do at expansion time; the
+crates a consumer links stay `no_std`.

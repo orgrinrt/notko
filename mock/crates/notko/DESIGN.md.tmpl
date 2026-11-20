@@ -1,0 +1,10 @@
+# notko
+
+The three carriers, `Just`, `Maybe` and `Outcome`, each with a matching api so a function moves
+between them as a type change with the body left alone. The const paths sit beside the plain ones,
+selected by the `const` feature, and the `try_trait_v2` feature gives each carrier its `?`.
+
+The crate's readme is compiled as a doctest through `Readme`, a private unit struct whose only job is
+to carry the readme as its documentation. It exists only under `doctest` with the features the
+examples reach for, so the readme's examples are checked by the same run that checks everything else
+and by no narrower one.
