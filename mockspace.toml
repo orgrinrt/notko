@@ -28,3 +28,8 @@ layers = []
 
 [crate_colors]
 
+# `mock search`: the one search over this repository, answered from its own index and never building
+# it. It comes in alone from the lint pack's repository, without the pack's lints.
+[lint-crates]
+mockspace-extra-search = { git = "ssh://git@github.com/orgrinrt/mockspace-extra-lints.git", branch = "dev" }
+
